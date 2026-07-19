@@ -508,15 +508,12 @@ function DishCard({
       {/* Info + Actions */}
             <div className="flex-1 min-w-0 flex flex-col justify-between">
               <div>
-                <h3 className="text-white font-bold text-sm leading-snug">
-                  {lang === "ar" ? dish.nameAr : dish.nameFr}
-                </h3>
-                <span className="text-[#C8A24D] font-bold text-xs mt-1 block">
-                  {dish.price} {currency}
-                </span>
-                <p className="text-white/35 text-xs mt-1 line-clamp-2 leading-relaxed">
-                  {lang === "ar" ? dish.descriptionAr : dish.descriptionFr}
-                </p>
+                              <h3 className="text-white font-bold text-sm leading-snug">
+                                {lang === "ar" ? dish.nameAr : dish.nameFr}
+                              </h3>
+                              <p className="text-white/35 text-xs mt-1 line-clamp-2 leading-relaxed">
+                                {lang === "ar" ? dish.descriptionAr : dish.descriptionFr}
+                              </p>
           {/* Badges */}
           <div className="flex flex-wrap gap-1 mt-1.5">
             {dish.isNew && (
@@ -538,38 +535,41 @@ function DishCard({
         </div>
 
         {/* Action */}
-        <div className="mt-2">
-          {!dish.isAvailable ? (
-            <span className="text-xs text-red-400/50 font-medium">
-              {lang === "ar" ? "غير متوفر حالياً" : "Indisponible"}
-            </span>
-          ) : cartItem ? (
-            <div className="flex items-center gap-1 bg-white/[0.06] rounded-full p-0.5 w-fit">
-              <button
-                onClick={() => updateQuantity(dish.id, -1)}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <Minus className="h-3 w-3" />
-              </button>
-              <span className="text-xs font-bold text-white px-1 min-w-[18px] text-center">
-                {cartItem.quantity}
-              </span>
-              <button
-                onClick={() => updateQuantity(dish.id, 1)}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <Plus className="h-3 w-3" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => addToCart(dish)}
-              className="text-xs font-semibold text-[#C8A24D] hover:text-[#D4B35D] transition-colors"
-            >
-              + {lang === "ar" ? "إضافة" : "Ajouter"}
-            </button>
-          )}
-        </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[#C8A24D] font-bold text-sm">
+                    {dish.price} {currency}
+                  </span>
+                  {!dish.isAvailable ? (
+                    <span className="text-xs text-red-400/50 font-medium">
+                      {lang === "ar" ? "غير متوفر حالياً" : "Indisponible"}
+                    </span>
+                  ) : cartItem ? (
+                    <div className="flex items-center gap-1 bg-white/[0.06] rounded-full p-0.5">
+                      <button
+                        onClick={() => updateQuantity(dish.id, -1)}
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <span className="text-xs font-bold text-white px-1 min-w-[18px] text-center">
+                        {cartItem.quantity}
+                      </span>
+                      <button
+                        onClick={() => updateQuantity(dish.id, 1)}
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => addToCart(dish)}
+                      className="text-xs font-semibold text-[#C8A24D] hover:text-[#D4B35D] transition-colors"
+                    >
+                      + {lang === "ar" ? "إضافة" : "Ajouter"}
+                    </button>
+                  )}
+                </div>
       </div>
     </div>
   );
