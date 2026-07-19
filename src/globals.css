@@ -108,4 +108,25 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+
+  .category-fade-mask {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.12) 3%,
+      black 7%,
+      black 93%,
+      rgba(0, 0, 0, 0.12) 97%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.12) 3%,
+      black 7%,
+      black 93%,
+      rgba(0, 0, 0, 0.12) 97%,
+      transparent 100%
+    );
+  }
 }
