@@ -108,19 +108,4 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
-
-  .momentum-scroll {
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-    cursor: grab;
-  }
-  .momentum-scroll:active {
-    cursor: grabbing;
-  }
-  .momentum-scroll.dragging {
-    cursor: grabbing;
-    scroll-behavior: auto;
-    user-select: none;
-    -webkit-user-select: none;
-  }
 }

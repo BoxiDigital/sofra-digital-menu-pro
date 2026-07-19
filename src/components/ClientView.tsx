@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import { Dish, Category, RestaurantConfig, CartItem } from "../types";
 import {
   Search,
@@ -47,48 +47,9 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const categoryScrollRef = useRef<HTMLDivElement>(null);
-  const dragStateRef = useRef({ isDown: false, startX: 0, scrollLeft: 0 });
   const { toast } = useToast();
 
   const isRtl = lang === "ar";
-
-  /* ─── Drag-to-scroll for category tabs ─── */
-  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const el = categoryScrollRef.current;
-    if (!el) return;
-    dragStateRef.current.isDown = true;
-    dragStateRef.current.startX = e.clientX - el.offsetLeft;
-    dragStateRef.current.scrollLeft = el.scrollLeft;
-    el.classList.add("dragging");
-    setIsDragging(true);
-  }, []);
-
-  const handlePointerLeave = useCallback(() => {
-    const el = categoryScrollRef.current;
-    if (!el) return;
-    dragStateRef.current.isDown = false;
-    el.classList.remove("dragging");
-    setIsDragging(false);
-  }, []);
-
-  const handlePointerUp = useCallback(() => {
-    const el = categoryScrollRef.current;
-    if (!el) return;
-    dragStateRef.current.isDown = false;
-    el.classList.remove("dragging");
-    setIsDragging(false);
-  }, []);
-
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const el = categoryScrollRef.current;
-    if (!el || !dragStateRef.current.isDown) return;
-    e.preventDefault();
-    const x = e.clientX - el.offsetLeft;
-    const walk = (x - dragStateRef.current.startX) * 1.5;
-    el.scrollLeft = dragStateRef.current.scrollLeft - walk;
-  }, []);
 
   const filteredDishes = useMemo(() => {
     return dishes.filter((dish) => {
