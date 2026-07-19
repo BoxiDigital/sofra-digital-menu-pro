@@ -21,6 +21,7 @@ import {
   Sparkles,
   Utensils,
   Beef,
+  Sandwich,
   Cake,
   Coffee,
   AlertCircle
@@ -36,13 +37,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
-// Map icon names to Lucide components
 const iconMap: Record<string, React.ComponentType<any>> = {
-  Sparkles: Sparkles,
-  Utensils: Utensils,
-  Beef: Beef,
-  Cake: Cake,
-  Coffee: Coffee,
+  Sparkles,
+  Utensils,
+  Beef,
+  Sandwich,
+  Cake,
+  Coffee,
 };
 
 interface AdminViewProps {
@@ -69,27 +70,23 @@ export default function AdminView({
   const [password, setPassword] = useState("admin123");
   const { toast } = useToast();
 
-  // Form states for Dish
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
   const [dishForm, setDishForm] = useState<Partial<Dish>>({});
   const [isDishDialogOpen, setIsDishDialogOpen] = useState(false);
 
-  // Form states for Category
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryForm, setCategoryForm] = useState<Partial<Category>>({});
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
 
-  // Config form state
   const [configForm, setConfigForm] = useState<RestaurantConfig>({ ...config });
 
-  // Handle Login
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (email === "admin@sofra.com" && password === "admin123") {
       setIsLoggedIn(true);
       toast({
         title: "تم تسجيل الدخول بنجاح",
-        description: "مرحباً بك في لوحة تحكم مطعم سفرة",
+        description: "مرحباً بك في لوحة تحكم مطعم شِي نُو",
       });
     } else {
       toast({
@@ -100,7 +97,6 @@ export default function AdminView({
     }
   };
 
-  // Handle Image Upload (Base64)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "dish" | "logo") => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -121,7 +117,6 @@ export default function AdminView({
     reader.readAsDataURL(file);
   };
 
-  // Dish CRUD
   const openAddDish = () => {
     setEditingDish(null);
     setDishForm({
@@ -197,7 +192,6 @@ export default function AdminView({
     onUpdateDishes(updated);
   };
 
-  // Category CRUD
   const openAddCategory = () => {
     setEditingCategory(null);
     setCategoryForm({
@@ -242,7 +236,6 @@ export default function AdminView({
   };
 
   const deleteCategory = (id: string) => {
-    // Check if category has dishes
     const hasDishes = dishes.some((d) => d.category === id);
     if (hasDishes) {
       toast({
@@ -260,7 +253,6 @@ export default function AdminView({
     }
   };
 
-  // Save Config
   const saveConfig = () => {
     onUpdateConfig(configForm);
     toast({
@@ -269,7 +261,6 @@ export default function AdminView({
     });
   };
 
-  // Download QR Code
   const downloadQRCode = async () => {
     const currentUrl = window.location.origin;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(currentUrl)}`;
@@ -290,173 +281,202 @@ export default function AdminView({
         description: "تم حفظ رمز QR الخاص بقائمتك بنجاح",
       });
     } catch (error) {
-      // Fallback: open in new tab
       window.open(qrUrl, "_blank");
     }
   };
 
+  // ─── LOGIN SCREEN ───
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12" dir="rtl">
-        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D] px-4 py-12" dir="rtl">
+        <div className="max-w-md w-full space-y-8 bg-white/[0.03] p-8 rounded-2xl border border-white/[0.06] backdrop-blur-sm">
           <div className="text-center">
-            <div className="mx-auto h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 mb-4">
-              <Lock className="h-6 w-6" />
+            <div className="mx-auto h-14 w-14 rounded-2xl bg-[#C8A24D]/15 flex items-center justify-center text-[#C8A24D] mb-5 border border-[#C8A24D]/20">
+              <Lock className="h-7 w-7" />
             </div>
-            <h2 className="text-3xl font-extrabold text-gray-900">لوحة تحكم المدير</h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <h2 className="text-2xl font-extrabold text-white">لوحة تحكم المدير</h2>
+            <p className="mt-2 text-sm text-white/40">
               سجل الدخول لإدارة قائمة الطعام وتخصيص المظهر
             </p>
           </div>
 
-          <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-            <div className="rounded-md shadow-sm space-y-4">
+          <form className="mt-8 space-y-5" onSubmit={handleLogin}>
+            <div className="space-y-4">
               <div>
-                <Label htmlFor="email">البريد الإلكتروني</Label>
+                <Label className="text-white/70 text-sm">البريد الإلكتروني</Label>
                 <Input
                   id="email"
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1"
+                  className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 rounded-xl h-11"
                   placeholder="admin@sofra.com"
                 />
               </div>
               <div>
-                <Label htmlFor="password">كلمة المرور</Label>
+                <Label className="text-white/70 text-sm">كلمة المرور</Label>
                 <Input
                   id="password"
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1"
+                  className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 rounded-xl h-11"
                   placeholder="••••••••"
                 />
               </div>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex items-start gap-2">
+            <div className="bg-[#C8A24D]/10 border border-[#C8A24D]/20 rounded-xl p-3.5 text-xs text-[#C8A24D] flex items-start gap-2.5">
               <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold">بيانات الدخول التجريبية:</span>
                 <br />
-                البريد: <code className="font-mono">admin@sofra.com</code>
+                البريد: <code className="font-mono text-white/60">admin@sofra.com</code>
                 <br />
-                الرمز: <code className="font-mono">admin123</code>
+                الرمز: <code className="font-mono text-white/60">admin123</code>
               </div>
             </div>
 
-            <div>
-              <Button type="submit" className="w-full py-6 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md">
-                تسجيل الدخول
-              </Button>
-            </div>
+            <Button type="submit" className="w-full py-6 bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl text-base">
+              تسجيل الدخول
+            </Button>
           </form>
         </div>
       </div>
     );
   }
 
+  // ─── MAIN ADMIN PANEL ───
   return (
-    <div className="min-h-screen bg-gray-50 pb-12" dir="rtl">
-      {/* Admin Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-xs">
+    <div className="min-h-screen bg-[#0D0D0D] pb-12" dir="rtl">
+      {/* Header */}
+      <header className="bg-white/[0.02] border-b border-white/[0.06] sticky top-0 z-40 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+            <div className="h-10 w-10 rounded-xl bg-[#C8A24D]/15 flex items-center justify-center text-[#C8A24D] border border-[#C8A24D]/20">
               <Settings className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">لوحة إدارة سفرة</h1>
-              <p className="text-xs text-gray-500">تعديل فوري لقائمة الطعام والمظهر</p>
+              <h1 className="text-base font-bold text-white">لوحة إدارة شِي نُو</h1>
+              <p className="text-xs text-white/35">تعديل فوري لقائمة الطعام والمظهر</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-white/30 hidden sm:block">مرحباً، مدير المطعم</span>
             <Button 
-              variant="outline" 
+              variant="ghost" 
               size="sm" 
-              className="text-red-600 border-red-200 hover:bg-red-50"
+              className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl"
               onClick={() => setIsLoggedIn(false)}
             >
-              <LogOut className="h-4 w-4 ml-1" />
+              <LogOut className="h-4 w-4 ml-1.5" />
               <span>خروج</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         <Tabs defaultValue="dishes" className="space-y-6">
-          <TabsList className="bg-white border border-gray-200 p-1 rounded-xl w-full max-w-md flex">
-            <TabsTrigger value="dishes" className="flex-1 py-2.5 rounded-lg font-bold">الأطباق</TabsTrigger>
-            <TabsTrigger value="categories" className="flex-1 py-2.5 rounded-lg font-bold">الفئات</TabsTrigger>
-            <TabsTrigger value="settings" className="flex-1 py-2.5 rounded-lg font-bold">الإعدادات والمظهر</TabsTrigger>
+          <TabsList className="bg-white/[0.03] border border-white/[0.06] p-1 rounded-2xl w-full max-w-lg flex">
+            <TabsTrigger 
+              value="dishes" 
+              className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[#C8A24D] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all"
+            >
+              الأطباق
+            </TabsTrigger>
+            <TabsTrigger 
+              value="categories" 
+              className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[#C8A24D] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all"
+            >
+              الفئات
+            </TabsTrigger>
+            <TabsTrigger 
+              value="settings" 
+              className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[#C8A24D] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all"
+            >
+              الإعدادات
+            </TabsTrigger>
           </TabsList>
 
-          {/* DISHES TAB */}
-          <TabsContent value="dishes" className="space-y-4">
+          {/* ═══════ DISHES TAB ═══════ */}
+          <TabsContent value="dishes" className="space-y-5">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">إدارة الأطباق ({dishes.length})</h2>
-              <Button onClick={openAddDish} className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl">
-                <Plus className="h-4 w-4 ml-1" />
-                <span>إضافة طبق جديد</span>
+              <div>
+                <h2 className="text-xl font-bold text-white">إدارة الأطباق</h2>
+                <p className="text-xs text-white/35 mt-0.5">{dishes.length} طبق في القائمة</p>
+              </div>
+              <Button onClick={openAddDish} className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl h-10 px-4">
+                <Plus className="h-4 w-4 ml-1.5" />
+                <span>إضافة طبق</span>
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {dishes.map((dish) => {
                 const cat = categories.find((c) => c.id === dish.category);
                 return (
-                  <div key={dish.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs flex flex-col justify-between">
+                  <div key={dish.id} className="bg-white/[0.03] rounded-2xl border border-white/[0.06] overflow-hidden flex flex-col justify-between hover:border-white/[0.10] transition-all">
+                    {/* Image */}
                     <div>
-                      <div className="relative h-48 bg-gray-100">
+                      <div className="relative h-44 bg-white/[0.03]">
                         <img src={dish.image} alt={dish.nameAr} className="w-full h-full object-cover" />
-                        <div className="absolute top-3 right-3 flex gap-1">
-                          <Badge className={dish.isAvailable ? "bg-green-600" : "bg-red-600"}>
+                        <div className="absolute top-3 right-3 flex gap-1.5 flex-wrap">
+                          <Badge className={`border-0 text-[10px] font-bold px-2.5 py-0.5 rounded-full ${dish.isAvailable ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}`}>
                             {dish.isAvailable ? "متوفر" : "غير متوفر"}
                           </Badge>
                           {cat && (
-                            <Badge variant="outline" className="bg-white/90 text-gray-800 border-gray-200">
+                            <Badge className="bg-white/10 text-white/70 border-0 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
                               {cat.nameAr}
                             </Badge>
                           )}
                         </div>
-                      </div>
-                      <div className="p-4 space-y-2">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-bold text-lg text-gray-900">{dish.nameAr}</h3>
-                            <p className="text-xs text-gray-500 font-mono">{dish.nameFr}</p>
+                        {dish.isPromo && (
+                          <div className="absolute top-3 left-3">
+                            <Badge className="bg-[#C8A24D] text-black border-0 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                              عرض خاص
+                            </Badge>
                           </div>
-                          <div className="flex items-center gap-1">
+                        )}
+                      </div>
+                      {/* Content */}
+                      <div className="p-4 space-y-2">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="min-w-0">
+                            <h3 className="font-bold text-white text-base truncate">{dish.nameAr}</h3>
+                            <p className="text-xs text-white/30 font-mono truncate">{dish.nameFr}</p>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
                             <Input
                               type="number"
                               value={dish.price}
                               onChange={(e) => updateDishPrice(dish.id, parseFloat(e.target.value) || 0)}
-                              className="w-20 text-center font-bold h-8 px-1"
+                              className="w-20 text-center font-bold h-8 px-1 bg-white/[0.04] border-white/[0.08] text-white rounded-lg"
                             />
-                            <span className="text-xs font-bold text-gray-500">{config.currencyAr}</span>
+                            <span className="text-xs text-white/40">{config.currencyAr}</span>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-600 line-clamp-2">{dish.descriptionAr}</p>
+                        <p className="text-xs text-white/35 line-clamp-2 leading-relaxed">{dish.descriptionAr}</p>
                       </div>
                     </div>
 
-                    <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-2">
+                    {/* Footer */}
+                    <div className="p-3 border-t border-white/[0.05] bg-white/[0.01] flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-500">حالة التوفر:</span>
+                        <span className="text-[10px] text-white/35">التوفر:</span>
                         <Switch
                           checked={dish.isAvailable}
                           onCheckedChange={() => toggleDishAvailability(dish.id, dish.isAvailable)}
+                          className="data-[state=checked]:bg-[#C8A24D]"
                         />
                       </div>
                       <div className="flex gap-1">
-                        <Button size="icon" variant="outline" className="h-8 w-8 text-blue-600" onClick={() => openEditDish(dish)}>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 rounded-lg" onClick={() => openEditDish(dish)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="outline" className="h-8 w-8 text-red-600" onClick={() => deleteDish(dish.id)}>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg" onClick={() => deleteDish(dish.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -467,13 +487,16 @@ export default function AdminView({
             </div>
           </TabsContent>
 
-          {/* CATEGORIES TAB */}
-          <TabsContent value="categories" className="space-y-4">
+          {/* ═══════ CATEGORIES TAB ═══════ */}
+          <TabsContent value="categories" className="space-y-5">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">إدارة الفئات ({categories.length})</h2>
-              <Button onClick={openAddCategory} className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl">
-                <Plus className="h-4 w-4 ml-1" />
-                <span>إضافة فئة جديدة</span>
+              <div>
+                <h2 className="text-xl font-bold text-white">إدارة الفئات</h2>
+                <p className="text-xs text-white/35 mt-0.5">{categories.length} فئة</p>
+              </div>
+              <Button onClick={openAddCategory} className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl h-10 px-4">
+                <Plus className="h-4 w-4 ml-1.5" />
+                <span>إضافة فئة</span>
               </Button>
             </div>
 
@@ -482,21 +505,21 @@ export default function AdminView({
                 const IconComponent = iconMap[cat.icon] || Utensils;
                 const dishCount = dishes.filter((d) => d.category === cat.id).length;
                 return (
-                  <div key={cat.id} className="bg-white p-4 rounded-2xl border border-gray-200 flex items-center justify-between shadow-xs">
+                  <div key={cat.id} className="bg-white/[0.03] p-4 rounded-2xl border border-white/[0.06] flex items-center justify-between hover:border-white/[0.10] transition-all">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+                      <div className="h-11 w-11 rounded-xl bg-[#C8A24D]/10 flex items-center justify-center text-[#C8A24D] border border-[#C8A24D]/20">
                         <IconComponent className="h-5 w-5" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-gray-900">{cat.nameAr}</h3>
-                        <p className="text-xs text-gray-500">{cat.nameFr} • {dishCount} أطباق</p>
+                        <h3 className="font-bold text-white text-sm">{cat.nameAr}</h3>
+                        <p className="text-xs text-white/35">{cat.nameFr} • {dishCount} أطباق</p>
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-600" onClick={() => openEditCategory(cat)}>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 rounded-lg" onClick={() => openEditCategory(cat)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={() => deleteCategory(cat.id)}>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg" onClick={() => deleteCategory(cat.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -506,128 +529,135 @@ export default function AdminView({
             </div>
           </TabsContent>
 
-          {/* SETTINGS TAB */}
-          <TabsContent value="settings" className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* ═══════ SETTINGS TAB ═══════ */}
+          <TabsContent value="settings" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Config Form */}
-            <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-200 shadow-xs space-y-6">
-              <h2 className="text-xl font-bold text-gray-900 border-b pb-3">تخصيص معلومات ومظهر المطعم</h2>
+            <div className="lg:col-span-2 bg-white/[0.03] p-6 rounded-2xl border border-white/[0.06] space-y-6">
+              <div className="border-b border-white/[0.06] pb-4">
+                <h2 className="text-lg font-bold text-white">تخصيص معلومات ومظهر المطعم</h2>
+                <p className="text-xs text-white/35 mt-1">قم بتعديل الاسم، الألوان، ومعلومات الاتصال</p>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>اسم المطعم (بالعربية)</Label>
+                  <Label className="text-white/60 text-xs">اسم المطعم (بالعربية)</Label>
                   <Input
                     value={configForm.nameAr}
                     onChange={(e) => setConfigForm({ ...configForm, nameAr: e.target.value })}
-                    className="mt-1"
+                    className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm"
                   />
                 </div>
                 <div>
-                  <Label>اسم المطعم (بالفرنسية)</Label>
+                  <Label className="text-white/60 text-xs">اسم المطعم (بالفرنسية)</Label>
                   <Input
                     value={configForm.nameFr}
                     onChange={(e) => setConfigForm({ ...configForm, nameFr: e.target.value })}
-                    className="mt-1"
+                    className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm"
                   />
                 </div>
                 <div>
-                  <Label>شعار المطعم (بالعربية)</Label>
+                  <Label className="text-white/60 text-xs">الشعار (بالعربية)</Label>
                   <Input
                     value={configForm.sloganAr}
                     onChange={(e) => setConfigForm({ ...configForm, sloganAr: e.target.value })}
-                    className="mt-1"
+                    className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm"
                   />
                 </div>
                 <div>
-                  <Label>شعار المطعم (بالفرنسية)</Label>
+                  <Label className="text-white/60 text-xs">الشعار (بالفرنسية)</Label>
                   <Input
                     value={configForm.sloganFr}
                     onChange={(e) => setConfigForm({ ...configForm, sloganFr: e.target.value })}
-                    className="mt-1"
+                    className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm"
                   />
                 </div>
                 <div>
-                  <Label>ساعات العمل (بالعربية)</Label>
+                  <Label className="text-white/60 text-xs">ساعات العمل (بالعربية)</Label>
                   <Input
                     value={configForm.workingHoursAr}
                     onChange={(e) => setConfigForm({ ...configForm, workingHoursAr: e.target.value })}
-                    className="mt-1"
+                    className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm"
                   />
                 </div>
                 <div>
-                  <Label>ساعات العمل (بالفرنسية)</Label>
+                  <Label className="text-white/60 text-xs">ساعات العمل (بالفرنسية)</Label>
                   <Input
                     value={configForm.workingHoursFr}
                     onChange={(e) => setConfigForm({ ...configForm, workingHoursFr: e.target.value })}
-                    className="mt-1"
+                    className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm"
                   />
                 </div>
                 <div>
-                  <Label>رقم واتساب للطلبات (مع رمز الدولة بدون +)</Label>
+                  <Label className="text-white/60 text-xs">رقم واتساب (مع رمز الدولة)</Label>
                   <Input
                     value={configForm.whatsappNumber}
                     onChange={(e) => setConfigForm({ ...configForm, whatsappNumber: e.target.value })}
-                    className="mt-1"
-                    placeholder="966500000000"
+                    className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm"
+                    placeholder="212600000000"
                   />
                 </div>
                 <div>
-                  <Label>العملة (مثال: ر.س أو €)</Label>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
+                  <Label className="text-white/60 text-xs">العملة</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-1.5">
                     <Input
                       value={configForm.currencyAr}
                       onChange={(e) => setConfigForm({ ...configForm, currencyAr: e.target.value })}
-                      placeholder="ر.س"
+                      className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm"
+                      placeholder="درهم"
                     />
                     <Input
                       value={configForm.currencyFr}
                       onChange={(e) => setConfigForm({ ...configForm, currencyFr: e.target.value })}
-                      placeholder="SAR"
+                      className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm"
+                      placeholder="MAD"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+              {/* Color & Background */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 border-t border-white/[0.06]">
                 <div>
-                  <Label>اللون الرئيسي للمنيو</Label>
+                  <Label className="text-white/60 text-xs">اللون الرئيسي</Label>
                   <div className="flex gap-3 items-center mt-2">
                     <Input
                       type="color"
                       value={configForm.primaryColor}
                       onChange={(e) => setConfigForm({ ...configForm, primaryColor: e.target.value })}
-                      className="w-16 h-10 p-1 rounded-lg cursor-pointer"
+                      className="w-12 h-10 p-1 rounded-xl cursor-pointer border-white/10 bg-transparent"
                     />
                     <Input
                       type="text"
                       value={configForm.primaryColor}
                       onChange={(e) => setConfigForm({ ...configForm, primaryColor: e.target.value })}
-                      className="font-mono"
+                      className="font-mono bg-white/[0.04] border-white/[0.08] text-white rounded-xl h-10 text-sm"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label>نمط الخلفية</Label>
+                  <Label className="text-white/60 text-xs">نمط الخلفية</Label>
                   <Select
                     value={configForm.backgroundColor}
                     onValueChange={(val: any) => setConfigForm({ ...configForm, backgroundColor: val })}
                   >
-                    <SelectTrigger className="mt-2">
+                    <SelectTrigger className="mt-2 bg-white/[0.04] border-white/[0.08] text-white rounded-xl h-10 text-sm">
                       <SelectValue placeholder="اختر نمط الخلفية" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cream">كريمي دافئ (موصى به)</SelectItem>
-                      <SelectItem value="white">أبيض ناصع</SelectItem>
-                      <SelectItem value="dark">مظلم وعصري</SelectItem>
+                    <SelectContent className="bg-[#1A1A1A] border-white/[0.08] text-white">
+                      <SelectItem value="dark" className="focus:bg-white/[0.06] focus:text-white">مظلم وعصري (موصى به)</SelectItem>
+                      <SelectItem value="cream" className="focus:bg-white/[0.06] focus:text-white">كريمي دافئ</SelectItem>
+                      <SelectItem value="white" className="focus:bg-white/[0.06] focus:text-white">أبيض ناصع</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div className="space-y-2 pt-4 border-t">
-                <Label>شعار المطعم (صورة)</Label>
+              {/* Logo Upload */}
+              <div className="space-y-2 pt-4 border-t border-white/[0.06]">
+                <Label className="text-white/60 text-xs">شعار المطعم (صورة)</Label>
                 <div className="flex items-center gap-4 mt-1">
-                  <div className="h-16 w-16 rounded-full border overflow-hidden bg-gray-50 flex items-center justify-center">
+                  <div className="h-16 w-16 rounded-2xl border border-white/[0.08] overflow-hidden bg-white/[0.02] flex items-center justify-center flex-shrink-0">
                     <img src={configForm.logoUrl} alt="Logo Preview" className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1">
@@ -638,106 +668,107 @@ export default function AdminView({
                       className="hidden"
                       id="logo-upload"
                     />
-                    <Label htmlFor="logo-upload" className="cursor-pointer inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 px-4 py-2.5 rounded-xl border text-sm font-semibold">
+                    <Label htmlFor="logo-upload" className="cursor-pointer inline-flex items-center gap-2 bg-white/[0.04] hover:bg-white/[0.07] px-4 py-2.5 rounded-xl border border-white/[0.08] text-sm font-semibold text-white/70 hover:text-white transition-all">
                       <Upload className="h-4 w-4" />
                       <span>رفع شعار جديد</span>
                     </Label>
-                    <p className="text-xs text-gray-500 mt-1">يمكنك رفع صورة مباشرة من جهازك وسيتم حفظها محلياً</p>
+                    <p className="text-xs text-white/25 mt-1.5">يمكنك رفع صورة مباشرة من جهازك وحفظها محلياً</p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-between items-center pt-6 border-t">
-                <Button onClick={saveConfig} className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 py-5 rounded-xl">
-                  <Save className="h-4 w-4 ml-1" />
-                  <span>حفظ التغييرات</span>
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t border-white/[0.06]">
+                <Button onClick={saveConfig} className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold px-6 h-11 rounded-xl">
+                  <Save className="h-4 w-4 ml-1.5" />
+                  <span>حفظ جميع التغييرات</span>
                 </Button>
-                <Button variant="ghost" onClick={onReset} className="text-red-600 hover:bg-red-50">
-                  <RefreshCw className="h-4 w-4 ml-1" />
+                <Button variant="ghost" onClick={onReset} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl">
+                  <RefreshCw className="h-4 w-4 ml-1.5" />
                   <span>إعادة تعيين البيانات الافتراضية</span>
                 </Button>
               </div>
             </div>
 
-            {/* QR Code Generator Card */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xs flex flex-col items-center text-center justify-between h-fit space-y-6">
+            {/* QR Code Card */}
+            <div className="bg-white/[0.03] p-6 rounded-2xl border border-white/[0.06] flex flex-col items-center text-center h-fit space-y-6">
               <div>
-                <div className="mx-auto h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 mb-4">
+                <div className="mx-auto h-12 w-12 rounded-xl bg-[#C8A24D]/10 flex items-center justify-center text-[#C8A24D] mb-4 border border-[#C8A24D]/20">
                   <QrCode className="h-6 w-6" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">رمز QR الخاص بقائمتك</h3>
-                <p className="text-xs text-gray-500 mt-1">
-                  اطبع هذا الرمز وضعه على طاولات المطعم ليتمكن الزبائن من مسحه وفتح المنيو مباشرة
+                <h3 className="text-base font-bold text-white">رمز QR للقائمة</h3>
+                <p className="text-xs text-white/35 mt-1.5 leading-relaxed">
+                  اطبع هذا الرمز وضعه على طاولات المطعم ليتمكن الزبائن من مسحه وفتح المنيو
                 </p>
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-2xl border border-dashed border-gray-200">
+              <div className="bg-white/[0.02] p-4 rounded-2xl border border-dashed border-white/[0.08]">
                 <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(window.location.origin)}`} 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(window.location.origin)}&color=C8A24D&bgcolor=0D0D0D`} 
                   alt="QR Code" 
-                  className="w-48 h-48 mx-auto"
+                  className="w-44 h-44 mx-auto"
                 />
               </div>
 
-              <Button onClick={downloadQRCode} className="w-full py-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md">
-                <Download className="h-4 w-4 ml-1" />
-                <span>تنزيل رمز QR الخاص بي</span>
+              <Button onClick={downloadQRCode} className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20">
+                <Download className="h-4 w-4 ml-1.5" />
+                <span>تنزيل رمز QR</span>
               </Button>
             </div>
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* DISH DIALOG */}
+      {/* ═══════ DISH DIALOG ═══════ */}
       <Dialog open={isDishDialogOpen} onOpenChange={setIsDishDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-[#141414] border-white/[0.08] text-white rounded-2xl" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
+            <DialogTitle className="text-xl font-bold text-white">
               {editingDish ? "تعديل طبق" : "إضافة طبق جديد"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>الاسم (بالعربية) *</Label>
+                <Label className="text-white/60 text-xs">الاسم (بالعربية) *</Label>
                 <Input
                   value={dishForm.nameAr || ""}
                   onChange={(e) => setDishForm({ ...dishForm, nameAr: e.target.value })}
-                  className="mt-1"
+                  className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white rounded-xl h-10 text-sm"
                 />
               </div>
               <div>
-                <Label>الاسم (بالفرنسية) *</Label>
+                <Label className="text-white/60 text-xs">الاسم (بالفرنسية) *</Label>
                 <Input
                   value={dishForm.nameFr || ""}
                   onChange={(e) => setDishForm({ ...dishForm, nameFr: e.target.value })}
-                  className="mt-1"
+                  className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white rounded-xl h-10 text-sm"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>السعر *</Label>
+                <Label className="text-white/60 text-xs">السعر *</Label>
                 <Input
                   type="number"
                   value={dishForm.price || ""}
                   onChange={(e) => setDishForm({ ...dishForm, price: parseFloat(e.target.value) || 0 })}
-                  className="mt-1"
+                  className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white rounded-xl h-10 text-sm"
                 />
               </div>
               <div>
-                <Label>الفئة *</Label>
+                <Label className="text-white/60 text-xs">الفئة *</Label>
                 <Select
                   value={dishForm.category}
                   onValueChange={(val) => setDishForm({ ...dishForm, category: val })}
                 >
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white rounded-xl h-10 text-sm">
                     <SelectValue placeholder="اختر الفئة" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-[#1A1A1A] border-white/[0.08] text-white">
                     {categories.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nameAr}</SelectItem>
+                      <SelectItem key={c.id} value={c.id} className="focus:bg-white/[0.06] focus:text-white">{c.nameAr}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -745,29 +776,29 @@ export default function AdminView({
             </div>
 
             <div>
-              <Label>الوصف (بالعربية)</Label>
+              <Label className="text-white/60 text-xs">الوصف (بالعربية)</Label>
               <Textarea
                 value={dishForm.descriptionAr || ""}
                 onChange={(e) => setDishForm({ ...dishForm, descriptionAr: e.target.value })}
-                className="mt-1"
+                className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white rounded-xl text-sm"
                 rows={3}
               />
             </div>
 
             <div>
-              <Label>الوصف (بالفرنسية)</Label>
+              <Label className="text-white/60 text-xs">الوصف (بالفرنسية)</Label>
               <Textarea
                 value={dishForm.descriptionFr || ""}
                 onChange={(e) => setDishForm({ ...dishForm, descriptionFr: e.target.value })}
-                className="mt-1"
+                className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white rounded-xl text-sm"
                 rows={3}
               />
             </div>
 
             <div>
-              <Label>صورة الطبق</Label>
-              <div className="flex items-center gap-4 mt-1">
-                <div className="h-16 w-24 rounded-lg border overflow-hidden bg-gray-50 flex items-center justify-center">
+              <Label className="text-white/60 text-xs">صورة الطبق</Label>
+              <div className="flex items-center gap-4 mt-1.5">
+                <div className="h-16 w-24 rounded-xl border border-white/[0.08] overflow-hidden bg-white/[0.02] flex items-center justify-center flex-shrink-0">
                   <img src={dishForm.image} alt="Dish Preview" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 space-y-2">
@@ -776,7 +807,7 @@ export default function AdminView({
                     value={dishForm.image || ""}
                     onChange={(e) => setDishForm({ ...dishForm, image: e.target.value })}
                     placeholder="رابط الصورة (URL)"
-                    className="text-xs"
+                    className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 rounded-xl h-9 text-xs"
                   />
                   <div className="flex items-center gap-2">
                     <Input
@@ -786,114 +817,163 @@ export default function AdminView({
                       className="hidden"
                       id="dish-image-upload"
                     />
-                    <Label htmlFor="dish-image-upload" className="cursor-pointer inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg border text-xs font-semibold">
+                    <Label htmlFor="dish-image-upload" className="cursor-pointer inline-flex items-center gap-1.5 bg-white/[0.04] hover:bg-white/[0.07] px-3 py-1.5 rounded-lg border border-white/[0.08] text-xs font-semibold text-white/60 hover:text-white transition-all">
                       <Upload className="h-3.5 w-3.5" />
-                      <span>رفع صورة من الجهاز</span>
+                      <span>رفع من الجهاز</span>
                     </Label>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Badges Toggles */}
-            <div className="border-t pt-4 space-y-3">
-              <Label className="text-sm font-bold block mb-2">شارات الطبق (اختياري)</Label>
+            {/* Badges + Promo */}
+            <div className="border-t border-white/[0.06] pt-4 space-y-3">
+              <Label className="text-white/60 text-xs font-bold block">الشارات (اختياري)</Label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={dishForm.isNew || false}
                     onCheckedChange={(checked) => setDishForm({ ...dishForm, isNew: checked })}
+                    className="data-[state=checked]:bg-[#C8A24D]"
                   />
-                  <span className="text-xs font-medium">جديد</span>
+                  <span className="text-xs text-white/60">جديد</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={dishForm.isBestSeller || false}
                     onCheckedChange={(checked) => setDishForm({ ...dishForm, isBestSeller: checked })}
+                    className="data-[state=checked]:bg-[#C8A24D]"
                   />
-                  <span className="text-xs font-medium">الأكثر طلباً</span>
+                  <span className="text-xs text-white/60">الأكثر طلباً</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={dishForm.isVegetarian || false}
                     onCheckedChange={(checked) => setDishForm({ ...dishForm, isVegetarian: checked })}
+                    className="data-[state=checked]:bg-[#C8A24D]"
                   />
-                  <span className="text-xs font-medium">نباتي</span>
+                  <span className="text-xs text-white/60">نباتي</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={dishForm.isHalal || false}
                     onCheckedChange={(checked) => setDishForm({ ...dishForm, isHalal: checked })}
+                    className="data-[state=checked]:bg-[#C8A24D]"
                   />
-                  <span className="text-xs font-medium">حلال</span>
+                  <span className="text-xs text-white/60">حلال</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={dishForm.isGlutenFree || false}
                     onCheckedChange={(checked) => setDishForm({ ...dishForm, isGlutenFree: checked })}
+                    className="data-[state=checked]:bg-[#C8A24D]"
                   />
-                  <span className="text-xs font-medium">خالي من الغلوتين</span>
+                  <span className="text-xs text-white/60">خالي من الغلوتين</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={dishForm.isPromo || false}
+                    onCheckedChange={(checked) => setDishForm({ ...dishForm, isPromo: checked })}
+                    className="data-[state=checked]:bg-[#C8A24D]"
+                  />
+                  <span className="text-xs text-[#C8A24D] font-bold">عرض ترويجي</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={() => setIsDishDialogOpen(false)}>إلغاء</Button>
-              <Button onClick={saveDish} className="bg-amber-600 hover:bg-amber-700 text-white">حفظ الطبق</Button>
+            {/* Promo fields */}
+            {dishForm.isPromo && (
+              <div className="border-t border-[#C8A24D]/20 pt-4 space-y-3 bg-[#C8A24D]/5 -mx-0 px-3 py-3 rounded-xl">
+                <Label className="text-[#C8A24D] text-xs font-bold">تفاصيل العرض الترويجي</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    value={dishForm.promoLabelAr || ""}
+                    onChange={(e) => setDishForm({ ...dishForm, promoLabelAr: e.target.value })}
+                    placeholder="الشارة (بالعربية)"
+                    className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 rounded-xl h-9 text-xs"
+                  />
+                  <Input
+                    value={dishForm.promoLabelFr || ""}
+                    onChange={(e) => setDishForm({ ...dishForm, promoLabelFr: e.target.value })}
+                    placeholder="الشارة (بالفرنسية)"
+                    className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 rounded-xl h-9 text-xs"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    value={dishForm.promoTextAr || ""}
+                    onChange={(e) => setDishForm({ ...dishForm, promoTextAr: e.target.value })}
+                    placeholder="نص العرض (بالعربية)"
+                    className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 rounded-xl h-9 text-xs"
+                  />
+                  <Input
+                    value={dishForm.promoTextFr || ""}
+                    onChange={(e) => setDishForm({ ...dishForm, promoTextFr: e.target.value })}
+                    placeholder="نص العرض (بالفرنسية)"
+                    className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 rounded-xl h-9 text-xs"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-white/[0.06]">
+              <Button variant="ghost" onClick={() => setIsDishDialogOpen(false)} className="text-white/50 hover:text-white hover:bg-white/5 rounded-xl">إلغاء</Button>
+              <Button onClick={saveDish} className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl px-5">حفظ الطبق</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* CATEGORY DIALOG */}
+      {/* ═══════ CATEGORY DIALOG ═══════ */}
       <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
-        <DialogContent className="max-w-md" dir="rtl">
+        <DialogContent className="max-w-md bg-[#141414] border-white/[0.08] text-white rounded-2xl" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
+            <DialogTitle className="text-xl font-bold text-white">
               {editingCategory ? "تعديل الفئة" : "إضافة فئة جديدة"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label>اسم الفئة (بالعربية) *</Label>
+              <Label className="text-white/60 text-xs">اسم الفئة (بالعربية) *</Label>
               <Input
                 value={categoryForm.nameAr || ""}
                 onChange={(e) => setCategoryForm({ ...categoryForm, nameAr: e.target.value })}
-                className="mt-1"
+                className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white rounded-xl h-10 text-sm"
               />
             </div>
 
             <div>
-              <Label>اسم الفئة (بالفرنسية) *</Label>
+              <Label className="text-white/60 text-xs">اسم الفئة (بالفرنسية) *</Label>
               <Input
                 value={categoryForm.nameFr || ""}
                 onChange={(e) => setCategoryForm({ ...categoryForm, nameFr: e.target.value })}
-                className="mt-1"
+                className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white rounded-xl h-10 text-sm"
               />
             </div>
 
             <div>
-              <Label>أيقونة الفئة</Label>
+              <Label className="text-white/60 text-xs">أيقونة الفئة</Label>
               <Select
                 value={categoryForm.icon}
                 onValueChange={(val) => setCategoryForm({ ...categoryForm, icon: val })}
               >
-                <SelectTrigger className="mt-1">
+                <SelectTrigger className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white rounded-xl h-10 text-sm">
                   <SelectValue placeholder="اختر الأيقونة" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Sparkles">أطباق اليوم (نجوم)</SelectItem>
-                  <SelectItem value="Utensils">مقبلات (شوكة وسكين)</SelectItem>
-                  <SelectItem value="Beef">أطباق رئيسية (لحم)</SelectItem>
-                  <SelectItem value="Cake">حلويات (كعكة)</SelectItem>
-                  <SelectItem value="Coffee">مشروبات (كوب قهوة)</SelectItem>
+                <SelectContent className="bg-[#1A1A1A] border-white/[0.08] text-white">
+                  <SelectItem value="Sparkles" className="focus:bg-white/[0.06] focus:text-white">أطباق اليوم (نجوم)</SelectItem>
+                  <SelectItem value="Utensils" className="focus:bg-white/[0.06] focus:text-white">مقبلات (شوكة وسكين)</SelectItem>
+                  <SelectItem value="Beef" className="focus:bg-white/[0.06] focus:text-white">أطباق رئيسية (لحم)</SelectItem>
+                  <SelectItem value="Sandwich" className="focus:bg-white/[0.06] focus:text-white">وجبات خفيفة (ساندويتش)</SelectItem>
+                  <SelectItem value="Cake" className="focus:bg-white/[0.06] focus:text-white">حلويات (كعكة)</SelectItem>
+                  <SelectItem value="Coffee" className="focus:bg-white/[0.06] focus:text-white">مشروبات (كوب قهوة)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={() => setIsCategoryDialogOpen(false)}>إلغاء</Button>
-              <Button onClick={saveCategory} className="bg-amber-600 hover:bg-amber-700 text-white">حفظ الفئة</Button>
+            <div className="flex justify-end gap-3 pt-4 border-t border-white/[0.06]">
+              <Button variant="ghost" onClick={() => setIsCategoryDialogOpen(false)} className="text-white/50 hover:text-white hover:bg-white/5 rounded-xl">إلغاء</Button>
+              <Button onClick={saveCategory} className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl px-5">حفظ الفئة</Button>
             </div>
           </div>
         </DialogContent>

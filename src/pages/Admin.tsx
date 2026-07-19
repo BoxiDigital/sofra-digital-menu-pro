@@ -53,19 +53,19 @@ export default function Admin() {
 
   if (!config) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-pulse text-amber-600 font-bold text-lg">جاري تحميل لوحة التحكم...</div>
+      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
+        <div className="animate-pulse text-[#C8A24D] font-bold text-lg">جاري تحميل لوحة التحكم...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#0D0D0D]">
       {/* Top Bar to go back to Client View */}
-      <div className="bg-zinc-900 text-white py-2 px-4 text-xs flex justify-between items-center" dir="rtl">
+      <div className="bg-white/[0.03] border-b border-white/[0.06] text-white/70 py-2 px-4 text-xs flex justify-between items-center" dir="rtl">
         <span>أنت في وضع الإدارة والتعديل</span>
         <Link to="/">
-          <Button size="sm" variant="ghost" className="text-amber-400 hover:text-amber-300 hover:bg-white/10 h-7 gap-1">
+          <Button size="sm" variant="ghost" className="text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 h-7 gap-1">
             <Eye className="h-3.5 w-3.5" />
             <span>عرض المنيو كزبون</span>
           </Button>
