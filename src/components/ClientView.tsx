@@ -327,7 +327,16 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
 
       {/* ─── Category Tabs ─── */}
       <div className="max-w-lg mx-auto px-4 pb-6">
-        <div className="flex gap-2 overflow-x-auto scrollbar-none">
+        <div
+          className="flex gap-2 scrollbar-none"
+          style={{
+            overflowX: 'auto',
+            whiteSpace: 'nowrap',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            paddingRight: '20px'
+          }}
+        >
           <button
             onClick={() => setSelectedCategory("all")}
             className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ${
