@@ -29,8 +29,8 @@ export default function Index() {
 
   if (!config) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAF6F0]">
-        <div className="animate-pulse text-amber-600 font-bold text-lg">جاري تحميل القائمة...</div>
+      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
+              <div className="animate-pulse text-[#C8A24D] font-bold text-lg">جاري تحميل القائمة...</div>
       </div>
     );
   }

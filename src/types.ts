@@ -13,6 +13,11 @@ export interface Dish {
   isVegetarian?: boolean;
   isHalal?: boolean;
   isGlutenFree?: boolean;
+  isPromo?: boolean;
+  promoLabelAr?: string;
+  promoLabelFr?: string;
+  promoTextAr?: string;
+  promoTextFr?: string;
 }
 
 export interface Category {
