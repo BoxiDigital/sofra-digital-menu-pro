@@ -5,7 +5,7 @@ export interface Dish {
   descriptionAr: string;
   descriptionFr: string;
   price: number;
-  category: string; // category ID
+  category: string;
   image: string;
   isAvailable: boolean;
   isNew?: boolean;
@@ -19,7 +19,7 @@ export interface Category {
   id: string;
   nameAr: string;
   nameFr: string;
-  icon: string; // Lucide icon name
+  icon: string;
 }
 
 export interface RestaurantConfig {
@@ -33,7 +33,7 @@ export interface RestaurantConfig {
   whatsappNumber: string;
   whatsappMessageAr: string;
   whatsappMessageFr: string;
-  primaryColor: string; // hex color
+  primaryColor: string;
   backgroundColor: 'cream' | 'dark' | 'white';
   currencyAr: string;
   currencyFr: string;
