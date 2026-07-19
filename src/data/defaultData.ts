@@ -96,7 +96,7 @@ export const defaultDishes: Dish[] = [
     nameAr: 'بسطيلة ملكية بالدجاج واللوز',
     nameFr: 'Pastilla Royale au Poulet et Amandes',
     descriptionAr: 'طبقات مقرمشة من ورقة البسطيلة الذهبية محشوة بالدجاج المتبل، البيض، واللوز المجروش بنكهة ماء الزهر، مزينة بالقرفة والسكر الصقيل.',
-    descriptionFr: 'Feuilles de pastilla croustillantes dorées farcies de poulet épicé, d\'œufs et d'amandes concassées parfumées à l\'eau de fleur d\'oranger, décorées de cannelle et de sucre glace.',
+    descriptionFr: 'Feuilles de pastilla croustillantes dorées farcies de poulet épicé, d\'œufs et d\'amandes concassées parfumées à l\'eau de fleur d\'oranger, décorées de cannelle et de sucre glace.',
     price: 110,
     category: 'desserts',
     image: 'https://images.unsplash.com/photo-1608039829572-78524f79c4c7?auto=format&fit=crop&w=800&q=80',
