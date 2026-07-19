@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { DISHES, CATEGORIES, RestaurantConfig } from '@/data';
 import { Button, CardContent, CardHeader, Input, Label, Typography, Select, SelectContent, SelectItem, SelectTrigger, Textarea, Switch, Tabs, TabsContent, TabsList, TabsTrigger, SelectValue } from '@/components/ui';
 import { useToast } from '@/hooks/use-toast';
-import { useTranslation } from 'react-i18next';
 import { Download, Image as ImageIcon, Palette, QrCode, Plus, Settings, Edit2, Eye, Trash2, Loader2 } from 'lucide-react';
 
 const DEFAULT_CONFIG: RestaurantConfig = {
@@ -23,7 +22,6 @@ const DEFAULT_CONFIG: RestaurantConfig = {
 };
 
 const Admin = () => {
-  const { i18n } = useTranslation();
   const [dishes, setDishes] = useState(DISHES);
   const [selectedDish, setSelectedDish] = useState<typeof DISHES[0] | null>(null);
   const [newDish, setNewDish] = useState<Record<string, string | number | boolean>>({});
@@ -42,7 +40,6 @@ const Admin = () => {
 
   const handleLanguageChange = (lang: string) => {
     setSelectedLang(lang);
-    i18n.changeLanguage(lang);
   };
 
   const filteredDishes = dishes.filter(dish => {

@@ -3,10 +3,8 @@ import { DISHES, CATEGORIES, config, CartItem } from '@/data';
 import { Button, CardContent, CardHeader, Label, List, ListItem, ListItemText, Typography } from '@/components/ui';
 import { Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useTranslation } from 'react-i18next';
 
 const Index = () => {
-  const { i18n } = useTranslation();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -37,7 +35,6 @@ const Index = () => {
 
   const handleLanguageChange = (lang: string) => {
     setSelectedLang(lang);
-    i18n.changeLanguage(lang);
   };
 
   const getWhatsAppUrl = () => {
