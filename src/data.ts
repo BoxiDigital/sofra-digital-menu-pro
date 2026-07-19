@@ -1,39 +1,102 @@
+export interface Dish {
+  id: string;
+  nameAr: string;
+  nameFr: string;
+  descriptionAr: string;
+  descriptionFr: string;
+  price: number;
+  category: string;
+  image: string;
+  isAvailable: boolean;
+  isNew?: boolean;
+  isBestSeller?: boolean;
+  isVegetarian?: boolean;
+  isHalal?: boolean;
+  isGlutenFree?: boolean;
+}
+
+export interface Category {
+  id: string;
+  nameAr: string;
+  nameFr: string;
+  icon: string;
+}
+
+export interface CartItem {
+  dish: Dish;
+  quantity: number;
+}
+
+export interface RestaurantConfig {
+  nameAr: string;
+  nameFr: string;
+  sloganAr: string;
+  sloganFr: string;
+  logoUrl: string;
+  workingHoursAr: string;
+  workingHoursFr: string;
+  whatsappNumber: string;
+  whatsappMessageAr: string;
+  whatsappMessageFr: string;
+  primaryColor: string;
+  backgroundColor: 'cream' | 'dark' | 'white';
+  currencyAr: string;
+  currencyFr: string;
+}
+
+export const config: RestaurantConfig = {
+  nameAr: 'رياض النكهات',
+  nameFr: 'Riad des Saveurs',
+  sloganAr: 'مطعم تقليدي مغربي أصيل',
+  sloganFr: 'Restaurant marocain traditionnel authentique',
+  logoUrl: '/images/logo.png',
+  workingHoursAr: 'يومياً من 11:00 صباحاً حتى 11:00 مساءً',
+  workingHoursFr: 'Tous les jours de 11h00 à 23h00',
+  whatsappNumber: '+212600000000',
+  whatsappMessageAr: 'أرغب في طلب من قائمة رياض النكهات',
+  whatsappMessageFr: 'Je souhaite commander du menu Riad des Saveurs',
+  primaryColor: '#047857',
+  backgroundColor: 'cream',
+  currencyAr: 'درهم',
+  currencyFr: 'MAD',
+};
+
 export const CATEGORIES: Category[] = [
   {
     id: 'appetizers',
     nameAr: 'مقدمات مغربية',
     nameFr: 'Entrées Marocaines',
-    icon: 'chef-hat',
+    icon: '🥣',
   },
   {
     id: 'tagines',
     nameAr: 'طواجين',
     nameFr: 'Tagines',
-    icon: 'pot-steam',
+    icon: '🍲',
   },
   {
     id: 'couscous',
     nameAr: 'كسكس',
     nameFr: 'Couscous',
-    icon: 'wheat',
+    icon: '🌾',
   },
   {
     id: 'pastillas',
     nameAr: 'بسطيلات',
     nameFr: 'Pastillas',
-    icon: 'layer-group',
+    icon: '🥟',
   },
   {
     id: 'soups',
     nameAr: 'شوربة',
     nameFr: 'Soupe',
-    icon: 'bowl-food',
+    icon: '🍲',
   },
   {
     id: 'drinks',
     nameAr: 'مشروبات',
     nameFr: 'Boissons',
-    icon: 'coffee',
+    icon: '🍵',
   },
 ];
 
@@ -53,7 +116,7 @@ export const DISHES: Dish[] = [
   {
     id: 'tajine-lamb-prunes',
     nameAr: 'طاجين لحم بالبرقوق',
-    nameFr: 'Tajine d'Agneau aux Pruneaux',
+    nameFr: 'Tajine d\'Agneau aux Pruneaux',
     descriptionAr: 'طاجين لحم مغربي مع برقوق ولوز محمص، طعم أصيل ودافئ',
     descriptionFr: 'Agneau tagine with prunes and toasted almonds, flavor authentique et chaleureux',
     price: 85,
