@@ -414,72 +414,50 @@ export default function AdminView({
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
               {dishes.map((dish) => {
                 const cat = categories.find((c) => c.id === dish.category);
                 return (
-                  <div key={dish.id} className="bg-white/[0.03] rounded-2xl border border-white/[0.06] overflow-hidden flex flex-col justify-between hover:border-white/[0.10] transition-all">
-                    {/* Image */}
-                    <div>
-                      <div className="relative h-44 bg-white/[0.03]">
+                  <div key={dish.id} className="bg-white/[0.03] p-3 rounded-2xl border border-white/[0.06] flex items-center justify-between hover:border-white/[0.10] transition-all gap-3">
+                    {/* Right: Thumbnail + Info */}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="h-12 w-12 rounded-xl overflow-hidden flex-shrink-0 border border-white/10">
                         <img src={dish.image} alt={dish.nameAr} className="w-full h-full object-cover" />
-                        <div className="absolute top-3 right-3 flex gap-1.5 flex-wrap">
-                          <Badge className={`border-0 text-[10px] font-bold px-2.5 py-0.5 rounded-full ${dish.isAvailable ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}`}>
-                            {dish.isAvailable ? "متوفر" : "غير متوفر"}
-                          </Badge>
-                          {cat && (
-                            <Badge className="bg-white/10 text-white/70 border-0 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
-                              {cat.nameAr}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-bold text-white text-sm truncate">{dish.nameAr}</h3>
+                          {dish.isPromo && (
+                            <Badge className="bg-[#C8A24D]/20 text-[#C8A24D] border-0 text-[10px] font-bold px-1.5 py-0 rounded-full">
+                              عرض
                             </Badge>
                           )}
+                          {cat && (
+                            <span className="text-[10px] text-white/35">({cat.nameAr})</span>
+                          )}
                         </div>
-                        {dish.isPromo && (
-                          <div className="absolute top-3 left-3">
-                            <Badge className="bg-[#C8A24D] text-black border-0 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
-                              عرض خاص
-                            </Badge>
-                          </div>
-                        )}
-                      </div>
-                      {/* Content */}
-                      <div className="p-4 space-y-2">
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="min-w-0">
-                            <h3 className="font-bold text-white text-base truncate">{dish.nameAr}</h3>
-                            <p className="text-xs text-white/30 font-mono truncate">{dish.nameFr}</p>
-                          </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <Input
-                              type="number"
-                              value={dish.price}
-                              onChange={(e) => updateDishPrice(dish.id, parseFloat(e.target.value) || 0)}
-                              className="w-20 text-center font-bold h-8 px-1 bg-white/[0.04] border-white/[0.08] text-white rounded-lg"
-                            />
-                            <span className="text-xs text-white/40">{config.currencyAr}</span>
-                          </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[#C8A24D] font-bold text-sm">{dish.price} {config.currencyAr}</span>
+                          <span className={`text-[10px] font-medium ${dish.isAvailable ? "text-emerald-400/70" : "text-red-400/70"}`}>
+                            {dish.isAvailable ? "متوفر" : "غير متوفر"}
+                          </span>
                         </div>
-                        <p className="text-xs text-white/35 line-clamp-2 leading-relaxed">{dish.descriptionAr}</p>
                       </div>
                     </div>
 
-                    {/* Footer */}
-                    <div className="p-3 border-t border-white/[0.05] bg-white/[0.01] flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-white/35">التوفر:</span>
-                        <Switch
-                          checked={dish.isAvailable}
-                          onCheckedChange={() => toggleDishAvailability(dish.id, dish.isAvailable)}
-                          className="data-[state=checked]:bg-[#C8A24D]"
-                        />
-                      </div>
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 rounded-lg" onClick={() => openEditDish(dish)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg" onClick={() => deleteDish(dish.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                    {/* Left: Actions */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Switch
+                        checked={dish.isAvailable}
+                        onCheckedChange={() => toggleDishAvailability(dish.id, dish.isAvailable)}
+                        className="data-[state=checked]:bg-[#C8A24D]"
+                      />
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 rounded-lg" onClick={() => openEditDish(dish)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg" onClick={() => deleteDish(dish.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 );
