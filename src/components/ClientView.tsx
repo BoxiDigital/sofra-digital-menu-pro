@@ -51,8 +51,11 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
 
   const isRtl = lang === "ar";
 
+  // Filter out unavailable dishes entirely for client view
+  const availableDishes = useMemo(() => dishes.filter((d) => d.isAvailable), [dishes]);
+
   const filteredDishes = useMemo(() => {
-    return dishes.filter((dish) => {
+    return availableDishes.filter((dish) => {
       const matchesCategory = selectedCategory === "all" || dish.category === selectedCategory;
       const name = lang === "ar" ? dish.nameAr : dish.nameFr;
       const desc = lang === "ar" ? dish.descriptionAr : dish.descriptionFr;
@@ -61,7 +64,7 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
         desc.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [dishes, selectedCategory, searchQuery, lang]);
+  }, [availableDishes, selectedCategory, searchQuery, lang]);
 
   const regularDishes = useMemo(() => filteredDishes.filter((d) => !d.isPromo), [filteredDishes]);
   const promoDishes = useMemo(() => filteredDishes.filter((d) => d.isPromo), [filteredDishes]);
@@ -511,14 +514,6 @@ function DishCard({
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
           <Maximize2 className="h-4 w-4 text-white" />
         </div>
-
-        {!dish.isAvailable && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-            <span className="text-[10px] text-red-400 font-bold">
-              {lang === "ar" ? "نفد" : "Épuisé"}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Info + Actions */}
@@ -555,11 +550,7 @@ function DishCard({
                   <span className="text-[#C8A24D] font-bold text-sm">
                     {dish.price} {currency}
                   </span>
-                  {!dish.isAvailable ? (
-                    <span className="text-xs text-red-400/50 font-medium">
-                      {lang === "ar" ? "غير متوفر حالياً" : "Indisponible"}
-                    </span>
-                  ) : cartItem ? (
+                  {cartItem ? (
                     <div className="flex items-center gap-1 bg-white/[0.06] rounded-full p-0.5">
                       <button
                         onClick={() => updateQuantity(dish.id, -1)}
@@ -656,15 +647,14 @@ function PromoCard({
           </span>
         </div>
 
-        {dish.isAvailable && !cartItem && (
+        {!cartItem ? (
           <button
             onClick={() => addToCart(dish)}
             className="w-full py-3 rounded-xl bg-[#C8A24D] text-black font-bold text-sm hover:bg-[#D4B35D] transition-colors active:scale-[0.98]"
           >
             + {lang === "ar" ? "إضافة للسلة" : "Ajouter au panier"}
           </button>
-        )}
-        {dish.isAvailable && cartItem && (
+        ) : (
           <div className="flex items-center justify-center gap-3 bg-white/[0.04] rounded-xl p-2 w-full">
             <button
               onClick={() => updateQuantity(dish.id, -1)}
@@ -680,11 +670,6 @@ function PromoCard({
               <Plus className="h-4 w-4" />
             </button>
           </div>
-        )}
-        {!dish.isAvailable && (
-          <span className="block text-center text-red-400/60 text-sm font-medium py-2">
-            {lang === "ar" ? "نفدت الكمية" : "Épuisé"}
-          </span>
         )}
 
         {promoText && (
