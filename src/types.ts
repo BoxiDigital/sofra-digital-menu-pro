@@ -33,6 +33,7 @@ export interface RestaurantConfig {
   sloganAr: string;
   sloganFr: string;
   logoUrl: string;
+  coverUrl?: string;
   workingHoursAr: string;
   workingHoursFr: string;
   whatsappNumber: string;

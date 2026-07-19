@@ -161,8 +161,19 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
       dir={isRtl ? "rtl" : "ltr"}
     >
       {/* ─── Header ─── */}
-      <header className="sticky top-0 z-40 bg-[#0D0D0D]/95 backdrop-blur-sm border-b border-white/5">
-        <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
+            <header className="sticky top-0 z-40 border-b border-white/5 relative overflow-hidden">
+              {/* Cover Background */}
+              {config.coverUrl && (
+                <>
+                  <img
+                    src={config.coverUrl}
+                    alt="Cover"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/50" />
+                </>
+              )}
+              <div className={`relative max-w-lg mx-auto px-4 py-5 flex items-center justify-between ${!config.coverUrl ? 'bg-[#0D0D0D]/95 backdrop-blur-sm' : ''}`}>
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-[#C8A24D] flex-shrink-0">
               <img

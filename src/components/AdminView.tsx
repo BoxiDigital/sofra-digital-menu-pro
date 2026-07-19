@@ -97,18 +97,20 @@ export default function AdminView({
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "dish" | "logo") => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      if (type === "dish") {
-        setDishForm((prev) => ({ ...prev, image: base64String }));
-      } else {
-        setConfigForm((prev) => ({ ...prev, logoUrl: base64String }));
-      }
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "dish" | "logo" | "cover") => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+  
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        if (type === "dish") {
+          setDishForm((prev) => ({ ...prev, image: base64String }));
+        } else if (type === "cover") {
+          setConfigForm((prev) => ({ ...prev, coverUrl: base64String }));
+        } else {
+          setConfigForm((prev) => ({ ...prev, logoUrl: base64String }));
+        }
       toast({
         title: "تم رفع الصورة بنجاح",
         description: "تم تحويل الصورة وحفظها محلياً",
@@ -632,28 +634,54 @@ export default function AdminView({
               </div>
 
               {/* Logo Upload */}
-              <div className="space-y-2 pt-4 border-t border-white/[0.06]">
-                <Label className="text-white/60 text-xs">شعار المطعم (صورة)</Label>
-                <div className="flex items-center gap-4 mt-1">
-                  <div className="h-16 w-16 rounded-2xl border border-white/[0.08] overflow-hidden bg-white/[0.02] flex items-center justify-center flex-shrink-0">
-                    <img src={configForm.logoUrl} alt="Logo Preview" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="flex-1">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleImageUpload(e, "logo")}
-                      className="hidden"
-                      id="logo-upload"
-                    />
-                    <Label htmlFor="logo-upload" className="cursor-pointer inline-flex items-center gap-2 bg-white/[0.04] hover:bg-white/[0.07] px-4 py-2.5 rounded-xl border border-white/[0.08] text-sm font-semibold text-white/70 hover:text-white transition-all">
-                      <Upload className="h-4 w-4" />
-                      <span>رفع شعار جديد</span>
-                    </Label>
-                    <p className="text-xs text-white/25 mt-1.5">يمكنك رفع صورة مباشرة من جهازك وحفظها محلياً</p>
-                  </div>
-                </div>
-              </div>
+                            <div className="space-y-2 pt-4 border-t border-white/[0.06]">
+                              <Label className="text-white/60 text-xs">شعار المطعم (صورة)</Label>
+                              <div className="flex items-center gap-4 mt-1">
+                                <div className="h-16 w-16 rounded-2xl border border-white/[0.08] overflow-hidden bg-white/[0.02] flex items-center justify-center flex-shrink-0">
+                                  <img src={configForm.logoUrl} alt="Logo Preview" className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1">
+                                  <Input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => handleImageUpload(e, "logo")}
+                                    className="hidden"
+                                    id="logo-upload"
+                                  />
+                                  <Label htmlFor="logo-upload" className="cursor-pointer inline-flex items-center gap-2 bg-white/[0.04] hover:bg-white/[0.07] px-4 py-2.5 rounded-xl border border-white/[0.08] text-sm font-semibold text-white/70 hover:text-white transition-all">
+                                    <Upload className="h-4 w-4" />
+                                    <span>رفع شعار جديد</span>
+                                  </Label>
+                                  <p className="text-xs text-white/25 mt-1.5">يمكنك رفع صورة مباشرة من جهازك وحفظها محلياً</p>
+                                </div>
+                              </div>
+                            </div>
+              
+                            {/* Cover Upload */}
+                            <div className="space-y-2 pt-4 border-t border-white/[0.06]">
+                              <Label className="text-white/60 text-xs">غلاف المطعم (صورة عريضة)</Label>
+                              <div className="space-y-3 mt-1">
+                                {configForm.coverUrl && (
+                                  <div className="h-28 w-full rounded-xl border border-white/[0.08] overflow-hidden bg-white/[0.02]">
+                                    <img src={configForm.coverUrl} alt="Cover Preview" className="w-full h-full object-cover" />
+                                  </div>
+                                )}
+                                <div>
+                                  <Input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => handleImageUpload(e, "cover")}
+                                    className="hidden"
+                                    id="cover-upload"
+                                  />
+                                  <Label htmlFor="cover-upload" className="cursor-pointer inline-flex items-center gap-2 bg-white/[0.04] hover:bg-white/[0.07] px-4 py-2.5 rounded-xl border border-white/[0.08] text-sm font-semibold text-white/70 hover:text-white transition-all">
+                                    <Upload className="h-4 w-4" />
+                                    <span>رفع غلاف جديد</span>
+                                  </Label>
+                                  <p className="text-xs text-white/25 mt-1.5">صورة عريضة تظهر كخلفية لأعلى واجهة الزبون</p>
+                                </div>
+                              </div>
+                            </div>
 
               {/* Actions */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t border-white/[0.06]">
