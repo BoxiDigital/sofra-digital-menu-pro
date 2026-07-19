@@ -101,14 +101,6 @@
 }
 
 @layer utilities {
-  .scrollbar-none {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
-  }
-
   .category-fade-mask {
     -webkit-mask-image: linear-gradient(
       to right,
@@ -128,5 +120,24 @@
       rgba(0, 0, 0, 0.12) 97%,
       transparent 100%
     );
+  }
+
+  .category-scrollbar::-webkit-scrollbar {
+    height: 6px;
+  }
+  .category-scrollbar::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 9999px;
+  }
+  .category-scrollbar::-webkit-scrollbar-thumb {
+    background: #C8A24D;
+    border-radius: 9999px;
+  }
+  .category-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #D4B35D;
+  }
+  .category-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #C8A24D #1a1a1a;
   }
 }

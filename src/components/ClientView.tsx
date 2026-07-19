@@ -328,13 +328,9 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
       {/* ─── Category Tabs ─── */}
       <div className="max-w-lg mx-auto px-4 pb-6">
         <div
-          className="flex gap-2 scrollbar-none"
+          className="flex gap-2 overflow-x-auto category-scrollbar"
           style={{
-            overflowX: 'auto',
-            whiteSpace: 'nowrap',
             WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none',
-            paddingRight: '20px'
           }}
         >
           <button
