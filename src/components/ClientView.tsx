@@ -1,39 +1,19 @@
-import React, { useState, useMemo } from "react";
-import { Dish, Category, RestaurantConfig, CartItem } from "../types";
-import {
-  Search,
-  ShoppingBag,
-  Plus,
-  Minus,
-  Trash2,
-  Globe,
+import { useState } from "react";
+import { Category, Dish, RestaurantConfig, CartItem } from "../types";
+import { 
+  ShoppingBag, 
+  Plus, 
+  Minus, 
+  X, 
+  Sparkles,
+  Leaf,
+  Wheat,
+  Star,
   Clock,
-  Phone,
-  X,
-  Sparkles,
-  Utensils,
-  Beef,
-  Sandwich,
-  Coffee,
-  AlertTriangle,
-  Menu,
-  MapPin,
-  MessageCircle,
-  Maximize2,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { useToast } from "@/hooks/use-toast";
-
-const iconMap: Record<string, React.ComponentType<any>> = {
-  Sparkles,
-  Utensils,
-  Beef,
-  Sandwich,
-  Coffee,
-};
+import { showSuccess } from "@/utils/toast";
 
 interface ClientViewProps {
   categories: Category[];
@@ -41,33 +21,103 @@ interface ClientViewProps {
   config: RestaurantConfig;
 }
 
+const iconMap: Record<string, React.ComponentType<any>> = {
+  Sparkles: Sparkles,
+  Utensils: ({ className }: { className?: string }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/>
+      <path d="M7 2v20"/>
+      <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
+    </svg>
+  ),
+  Beef: ({ className }: { className?: string }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 6v6l4 2"/>
+    </svg>
+  ),
+  Sandwich: ({ className }: { className?: string }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="4" rx="1"/>
+      <rect x="3" y="10" width="18" height="4" rx="1"/>
+      <rect x="3" y="16" width="18" height="3" rx="1"/>
+    </svg>
+  ),
+  Cake: ({ className }: { className?: string }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/>
+      <path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/>
+      <path d="M2 21h20"/>
+      <path d="M7 8v2"/>
+      <path d="M12 8v2"/>
+      <path d="M17 8v2"/>
+      <path d="M7 4h.01"/>
+      <path d="M12 4h.01"/>
+      <path d="M17 4h.01"/>
+    </svg>
+  ),
+  Coffee: ({ className }: { className?: string }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 8h1a4 4 0 1 1 0 8h-1"/>
+      <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/>
+      <line x1="6" x2="6" y1="2" y2="4"/>
+      <line x1="10" x2="10" y1="2" y2="4"/>
+      <line x1="14" x2="14" y1="2" y2="4"/>
+    </svg>
+  ),
+};
+
+const bgColors = {
+  dark: "bg-[#0D0D0D]",
+  cream: "bg-[#F5F0E8]",
+  white: "bg-white",
+};
+
+const cardBgColors = {
+  dark: "bg-white/[0.03] border-white/[0.06]",
+  cream: "bg-white/80 border-amber-200/40",
+  white: "bg-white border-gray-200",
+};
+
+const textColors = {
+  dark: { primary: "text-white", secondary: "text-white/60", muted: "text-white/35" },
+  cream: { primary: "text-stone-800", secondary: "text-stone-500", muted: "text-stone-400" },
+  white: { primary: "text-gray-800", secondary: "text-gray-500", muted: "text-gray-400" },
+};
+
+const catBgColors = {
+  dark: "bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white",
+  cream: "bg-amber-100/60 text-stone-600 hover:bg-amber-200/80 hover:text-stone-800",
+  white: "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800",
+};
+
+const catActiveBgColors = {
+  dark: "bg-[#C8A24D] text-black shadow-lg shadow-[#C8A24D]/20",
+  cream: "bg-[#C8A24D] text-black shadow-lg shadow-[#C8A24D]/20",
+  white: "bg-[#C8A24D] text-white shadow-lg shadow-[#C8A24D]/20",
+};
+
 export default function ClientView({ categories, dishes, config }: ClientViewProps) {
-  const [lang, setLang] = useState<"ar" | "fr">("fr");
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-  const { toast } = useToast();
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
-  const isRtl = lang === "ar";
+  const bg = bgColors[config.backgroundColor] || bgColors.dark;
+  const cardBg = cardBgColors[config.backgroundColor] || cardBgColors.dark;
+  const txt = textColors[config.backgroundColor] || textColors.dark;
+  const catBg = catBgColors[config.backgroundColor] || catBgColors.dark;
+  const catActiveBg = catActiveBgColors[config.backgroundColor] || catActiveBgColors.dark;
 
-  const filteredDishes = useMemo(() => {
-    return dishes.filter((dish) => {
-      const matchesCategory = selectedCategory === "all" || dish.category === selectedCategory;
-      const name = lang === "ar" ? dish.nameAr : dish.nameFr;
-      const desc = lang === "ar" ? dish.descriptionAr : dish.descriptionFr;
-      const matchesSearch =
-        name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        desc.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
-    });
-  }, [dishes, selectedCategory, searchQuery, lang]);
+  const filteredDishes = selectedCategory === "all"
+    ? dishes
+    : dishes.filter((d) => d.category === selectedCategory);
 
-  const regularDishes = useMemo(() => filteredDishes.filter((d) => !d.isPromo), [filteredDishes]);
-  const promoDishes = useMemo(() => filteredDishes.filter((d) => d.isPromo), [filteredDishes]);
+  const handleImageError = (dishId: string) => {
+    setImageErrors((prev) => ({ ...prev, [dishId]: true }));
+  };
 
   const addToCart = (dish: Dish) => {
-    if (!dish.isAvailable) return;
     setCart((prev) => {
       const existing = prev.find((item) => item.dish.id === dish.id);
       if (existing) {
@@ -77,626 +127,361 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
       }
       return [...prev, { dish, quantity: 1 }];
     });
-    toast({
-      title: lang === "ar" ? "تم الإضافة للسلة" : "Ajouté au panier",
-      description: lang === "ar" ? `${dish.nameAr} تمت إضافته بنجاح` : `${dish.nameFr} a été ajouté`,
-      duration: 1500,
-    });
-  };
-
-  const updateQuantity = (dishId: string, delta: number) => {
-    setCart((prev) => {
-      return prev
-        .map((item) => {
-          if (item.dish.id === dishId) {
-            const newQty = item.quantity + delta;
-            return newQty > 0 ? { ...item, quantity: newQty } : null;
-          }
-          return item;
-        })
-        .filter(Boolean) as CartItem[];
-    });
+    showSuccess(`تمت إضافة "${dish.nameAr}" إلى السلة`);
   };
 
   const removeFromCart = (dishId: string) => {
     setCart((prev) => prev.filter((item) => item.dish.id !== dishId));
   };
 
-  const cartTotal = useMemo(() => {
-    return cart.reduce((sum, item) => sum + item.dish.price * item.quantity, 0);
-  }, [cart]);
-
-  const cartCount = useMemo(() => {
-    return cart.reduce((sum, item) => sum + item.quantity, 0);
-  }, [cart]);
-
-  const sendOrder = () => {
-    if (cart.length === 0) return;
-
-    const itemsText = cart
-      .map((item) => {
-        const name = lang === "ar" ? item.dish.nameAr : item.dish.nameFr;
-        return `- ${item.quantity}x ${name} (${item.dish.price * item.quantity} ${lang === "ar" ? config.currencyAr : config.currencyFr})`;
-      })
-      .join("\n");
-
-    const template = lang === "ar" ? config.whatsappMessageAr : config.whatsappMessageFr;
-    const totalText = `${cartTotal}`;
-
-    let message = template.replace("{items}", itemsText).replace("{total}", totalText);
-
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${config.whatsappNumber}?text=${encodedMessage}`;
-    window.open(whatsappUrl, "_blank");
+  const updateQuantity = (dishId: string, delta: number) => {
+    setCart((prev) =>
+      prev
+        .map((item) =>
+          item.dish.id === dishId ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item
+        )
+        .filter((item) => item.quantity > 0)
+    );
   };
 
-  const t = {
-    workingHours: lang === "ar" ? "ساعات العمل" : "Heures d'ouverture",
-    searchPlaceholder: lang === "ar" ? "ابحث عن طبقك المفضل..." : "Rechercher un plat...",
-    all: lang === "ar" ? "الكل" : "TOUS",
-    addToCart: lang === "ar" ? "إضافة" : "Ajouter",
-    outOfStock: lang === "ar" ? "نفدت الكمية" : "Épuisé",
-    cartTitle: lang === "ar" ? "سلة الطلبات" : "Votre Panier",
-    emptyCart: lang === "ar" ? "السلة فارغة حالياً" : "Votre panier est vide",
-    total: lang === "ar" ? "المجموع" : "Total",
-    sendOrder: lang === "ar" ? "إرسال الطلب عبر واتساب" : "Commander via WhatsApp",
-    currency: lang === "ar" ? config.currencyAr : config.currencyFr,
-    menuTitle: lang === "ar" ? "قائمة الطعام" : "Notre Menu",
-    restaurantName: lang === "ar" ? config.nameAr : config.nameFr,
-    subtitle: lang === "ar" ? config.sloganAr : config.sloganFr,
-    badges: {
-      new: lang === "ar" ? "جديد" : "Nouveau",
-      bestSeller: lang === "ar" ? "الأكثر طلباً" : "Populaire",
-      vegetarian: lang === "ar" ? "نباتي" : "Végétarien",
-      halal: lang === "ar" ? "حلال" : "Halal",
-      glutenFree: lang === "ar" ? "خالي من الغلوتين" : "Sans Gluten",
-    },
-    whatsappContact: lang === "ar" ? "واتساب" : "WhatsApp",
-    promoLabel: lang === "ar" ? "عرض خاص" : "Offre Spéciale",
+  const cartTotal = cart.reduce((sum, item) => sum + item.dish.price * item.quantity, 0);
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  const generateWhatsAppMessage = (): string => {
+    const itemsText = cart
+      .map((item) => `• ${item.dish.nameAr} x${item.quantity} = ${item.dish.price * item.quantity} ${config.currencyAr}`)
+      .join("\n");
+    return config.whatsappMessageAr
+      .replace("{items}", itemsText)
+      .replace("{total}", `${cartTotal} ${config.currencyAr}`);
+  };
+
+  const sendWhatsAppOrder = () => {
+    if (cart.length === 0) return;
+    const message = encodeURIComponent(generateWhatsAppMessage());
+    const url = `https://wa.me/${config.whatsappNumber}?text=${message}`;
+    window.open(url, "_blank");
+    setCart([]);
+    setIsCartOpen(false);
+    showSuccess("تم إرسال طلبك عبر واتساب بنجاح!");
+  };
+
+  const getCategoryIcon = (iconName: string) => {
+    const IconComponent = iconMap[iconName];
+    if (IconComponent) {
+      return <IconComponent className="h-4 w-4" />;
+    }
+    return <Sparkles className="h-4 w-4" />;
   };
 
   return (
-    <div
-      className="min-h-screen font-sans bg-[#0D0D0D] text-white"
-      dir={isRtl ? "rtl" : "ltr"}
-    >
-      {/* ─── Header ─── */}
-            <header className="sticky top-0 z-40 border-b border-white/5 relative overflow-hidden">
-              {/* Cover Background */}
-              {config.coverUrl && (
-                <>
-                  <img
-                    src={config.coverUrl}
-                    alt="Cover"
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/50" />
-                </>
-              )}
-              <div className={`relative max-w-lg mx-auto px-4 py-5 flex items-center justify-between ${!config.coverUrl ? 'bg-[#0D0D0D]/95 backdrop-blur-sm' : ''}`}>
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-[#C8A24D] flex-shrink-0">
+    <div className={`min-h-screen ${bg} font-sans`} dir="rtl">
+      {/* ─── Hero Cover ─── */}
+      <div className="relative w-full h-56 sm:h-64 md:h-72 overflow-hidden">
+        <img
+          src={config.coverUrl || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80"}
+          alt={config.nameAr}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0D] via-[#0D0D0D]/60 to-transparent" />
+        
+        {/* Restaurant Info */}
+        <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6">
+          <div className="flex items-end gap-4">
+            <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl overflow-hidden border-2 border-white/20 shadow-xl flex-shrink-0 bg-white/10 backdrop-blur-sm">
               <img
                 src={config.logoUrl}
                 alt="Logo"
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=150&h=150&q=80";
-                }}
               />
             </div>
-            <div>
-              <h1 className="text-white font-bold text-lg leading-tight tracking-wide">
-                {t.restaurantName}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white drop-shadow-lg">
+                {config.nameAr}
               </h1>
-              <p className="text-[#C8A24D] text-xs font-medium">{t.subtitle}</p>
+              <p className="text-sm sm:text-base text-white/70 mt-0.5">
+                {config.sloganAr}
+              </p>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setLang(lang === "ar" ? "fr" : "ar")}
-              className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
-            >
-              <Globe className="h-4 w-4 text-[#C8A24D]" />
-            </button>
-            <button className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
-              <Menu className="h-4 w-4 text-white/70" />
-            </button>
-            <Sheet>
-              <SheetTrigger asChild>
-                <button className="w-9 h-9 rounded-full bg-[#C8A24D] flex items-center justify-center hover:bg-[#B8933F] transition-colors relative">
-                  <ShoppingBag className="h-4 w-4 text-black" />
-                  {cartCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center">
-                      {cartCount}
-                    </span>
-                  )}
-                </button>
-              </SheetTrigger>
-              <SheetContent
-                side={isRtl ? "right" : "left"}
-                className="w-full max-w-md p-0 flex flex-col bg-[#121212] border-white/10 text-white"
-              >
-                <SheetHeader className="p-4 border-b border-white/10 flex flex-row items-center justify-between">
-                  <SheetTitle className="text-xl font-bold flex items-center gap-2 text-white">
-                    <ShoppingBag className="h-5 w-5 text-[#C8A24D]" />
-                    <span>{t.cartTitle}</span>
-                  </SheetTitle>
-                </SheetHeader>
-
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {cart.length === 0 ? (
-                    <div className="text-center py-16 text-gray-500">
-                      <ShoppingBag className="h-14 w-14 mx-auto mb-4 opacity-20" />
-                      <p className="text-lg">{t.emptyCart}</p>
-                    </div>
-                  ) : (
-                    cart.map((item) => (
-                      <div
-                        key={item.dish.id}
-                        className="flex gap-3 p-3 rounded-2xl border border-white/5 bg-white/[0.03]"
-                      >
-                        <img
-                          src={item.dish.image}
-                          alt={lang === "ar" ? item.dish.nameAr : item.dish.nameFr}
-                          className="w-16 h-16 object-cover rounded-xl flex-shrink-0"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80";
-                          }}
-                        />
-                        <div className="flex-1 flex flex-col justify-between min-w-0">
-                          <h4 className="font-bold text-sm text-white">
-                            {lang === "ar" ? item.dish.nameAr : item.dish.nameFr}
-                          </h4>
-                          <span className="text-xs font-semibold text-[#C8A24D]">
-                            {item.dish.price} {t.currency}
-                          </span>
-                          <div className="flex items-center justify-between mt-1">
-                            <div className="flex items-center gap-2 bg-white/[0.06] rounded-lg p-0.5">
-                              <button
-                                className="p-1 hover:bg-white/10 rounded transition-colors text-white/70"
-                                onClick={() => updateQuantity(item.dish.id, -1)}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </button>
-                              <span className="text-xs font-bold px-1 text-white">{item.quantity}</span>
-                              <button
-                                className="p-1 hover:bg-white/10 rounded transition-colors text-white/70"
-                                onClick={() => updateQuantity(item.dish.id, 1)}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </button>
-                            </div>
-                            <button
-                              className="text-red-400 hover:text-red-300 p-1 transition-colors"
-                              onClick={() => removeFromCart(item.dish.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {cart.length > 0 && (
-                  <div className="p-4 border-t border-white/10 space-y-4 bg-[#121212]">
-                    <div className="flex justify-between items-center font-bold text-lg text-white">
-                      <span>{t.total}</span>
-                      <span className="text-[#C8A24D]">
-                        {cartTotal} {t.currency}
-                      </span>
-                    </div>
-                    <Button
-                      className="w-full py-6 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2 shadow-lg transition-all text-base"
-                      onClick={sendOrder}
-                    >
-                      <MessageCircle className="h-5 w-5" />
-                      <span>{t.sendOrder}</span>
-                    </Button>
-                  </div>
-                )}
-              </SheetContent>
-            </Sheet>
+      {/* ─── Working Hours ─── */}
+      <div className={`${bg} -mt-1 relative z-10`}>
+        <div className="max-w-lg mx-auto px-4 pt-4">
+          <div className={`flex items-center justify-center gap-2 ${txt.secondary} text-xs py-2.5 rounded-xl ${cardBg} border`}>
+            <Clock className="h-3.5 w-3.5 text-[#C8A24D]" />
+            <span>{config.workingHoursAr}</span>
           </div>
         </div>
-      </header>
-
-      {/* ─── Working Hours Bar ─── */}
-      <div className="max-w-lg mx-auto px-4 pt-1 pb-3">
-        <div className="flex items-center gap-2 text-xs text-white/40">
-          <Clock className="h-3.5 w-3.5" />
-          <span>{lang === "ar" ? config.workingHoursAr : config.workingHoursFr}</span>
-        </div>
       </div>
 
-      {/* ─── Menu Section Title ─── */}
-      <div className="max-w-lg mx-auto px-4 pb-4">
-        <div className="flex items-center gap-2">
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-          <h2 className="text-[#C8A24D] text-sm font-semibold tracking-widest uppercase whitespace-nowrap">
-            {t.menuTitle}
-          </h2>
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-        </div>
-      </div>
-
-      {/* ─── Category Tabs ─── */}
-      <div className="max-w-lg mx-auto px-4 pb-6">
-        <div
-          className="flex gap-2 scrollbar-none"
-          style={{
-            overflowX: 'auto',
-            whiteSpace: 'nowrap',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none',
-            paddingRight: '20px'
-          }}
-        >
-          <button
-            onClick={() => setSelectedCategory("all")}
-            className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ${
-              selectedCategory === "all"
-                ? "bg-[#C8A24D] text-black shadow-lg shadow-[#C8A24D]/20"
-                : "bg-white/[0.04] text-white/60 hover:text-white hover:bg-white/[0.08]"
-            }`}
+      {/* ─── Category Navigation with Mask ─── */}
+      <div className={`${bg} sticky top-0 z-30 pt-4 pb-2`}>
+        <div className="max-w-lg mx-auto px-1">
+          <div 
+            className="flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-none px-1"
+            style={{
+              maskImage: "linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent)",
+              WebkitMaskImage: "linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent)",
+            }}
           >
-            {t.all}
-          </button>
-          {categories.map((cat) => {
-            const IconComponent = iconMap[cat.icon] || Utensils;
-            const isSelected = selectedCategory === cat.id;
-            return (
+            <button
+              onClick={() => setSelectedCategory("all")}
+              className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ${
+                selectedCategory === "all"
+                  ? catActiveBg
+                  : catBg
+              }`}
+            >
+              ✨ الكل
+            </button>
+            {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${
-                  isSelected
-                    ? "bg-[#C8A24D] text-black shadow-lg shadow-[#C8A24D]/20"
-                    : "bg-white/[0.04] text-white/60 hover:text-white hover:bg-white/[0.08]"
+                className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 inline-flex items-center gap-2 ${
+                  selectedCategory === cat.id
+                    ? catActiveBg
+                    : catBg
                 }`}
               >
-                <IconComponent className="h-3.5 w-3.5" />
-                <span>{lang === "ar" ? cat.nameAr : cat.nameFr}</span>
+                {getCategoryIcon(cat.icon)}
+                <span>{cat.nameAr}</span>
               </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ─── Regular Dishes ─── */}
-      <div className="max-w-lg mx-auto px-4 space-y-4 pb-6">
-        {filteredDishes.length === 0 && (
-          <div className="text-center py-16">
-            <AlertTriangle className="h-12 w-12 mx-auto text-[#C8A24D]/40 mb-4" />
-            <p className="text-white/40 text-lg">
-              {lang === "ar"
-                ? "لا توجد أطباق تطابق بحثك"
-                : "Aucun plat ne correspond"}
-            </p>
+            ))}
           </div>
-        )}
-
-        {regularDishes.map((dish) => (
-          <DishCard
-            key={dish.id}
-            dish={dish}
-            lang={lang}
-            currency={t.currency}
-            addToCart={addToCart}
-            cart={cart}
-            updateQuantity={updateQuantity}
-            onImageClick={(img) => setLightboxImage(img)}
-          />
-        ))}
+        </div>
       </div>
 
-      {/* ─── Promo Dishes ─── */}
-      {promoDishes.length > 0 && (
-        <div className="max-w-lg mx-auto px-4 pb-24 space-y-4">
-          {promoDishes.map((dish) => (
-            <PromoCard
-              key={dish.id}
-              dish={dish}
-              lang={lang}
-              currency={t.currency}
-              addToCart={addToCart}
-              cart={cart}
-              updateQuantity={updateQuantity}
-              onImageClick={(img) => setLightboxImage(img)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* ─── Lightbox Modal ─── */}
-      {lightboxImage && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setLightboxImage(null)}
-        >
-          <button
-            onClick={() => setLightboxImage(null)}
-            className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors z-10"
-          >
-            <X className="h-5 w-5 text-white" />
-          </button>
-          <img
-            src={lightboxImage}
-            alt="Dish preview"
-            className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
-
-      {/* ─── Floating WhatsApp Button ─── */}
-      <a
-        href={`https://wa.me/${config.whatsappNumber}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center shadow-2xl shadow-green-500/25 transition-all hover:scale-110 active:scale-95"
-      >
-        <MessageCircle className="h-6 w-6 text-white" fill="white" />
-      </a>
-
-      {/* ─── Floating Cart Bar ─── */}
-      {cartCount > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 z-40">
-          <Sheet>
-            <SheetTrigger asChild>
-              <button className="w-full text-black rounded-2xl p-4 shadow-2xl flex items-center justify-between transition-all hover:scale-[1.02] active:scale-[0.98] bg-[#C8A24D]">
-                <div className="flex items-center gap-3">
-                  <div className="bg-black/20 p-2.5 rounded-xl relative">
-                    <ShoppingBag className="h-5 w-5" />
-                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center">
-                      {cartCount}
-                    </span>
+      {/* ─── Dishes Grid ─── */}
+      <div className={`${bg} pt-1 pb-24`}>
+        <div className="max-w-lg mx-auto px-4">
+          {filteredDishes.length === 0 ? (
+            <div className="text-center py-16">
+              <div className={`text-6xl mb-4 opacity-30`}>🍽️</div>
+              <p className={`${txt.secondary} font-medium`}>
+                لا توجد أطباق في هذه الفئة حالياً
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredDishes.map((dish) => (
+                <div
+                  key={dish.id}
+                  className={`${cardBg} border rounded-2xl p-3 flex gap-3 hover:border-[#C8A24D]/20 transition-all duration-200 group relative overflow-hidden`}
+                >
+                  {/* Labels */}
+                  <div className="absolute top-3 right-3 flex gap-1.5 z-10">
+                    {dish.isNew && (
+                      <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm">
+                        جديد
+                      </span>
+                    )}
+                    {dish.isBestSeller && (
+                      <span className="bg-amber-500/20 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm">
+                        ⭐ الأكثر طلباً
+                      </span>
+                    )}
+                    {dish.isPromo && (
+                      <span className="bg-[#C8A24D]/20 text-[#C8A24D] text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm">
+                        {dish.promoLabelAr || "عرض"}
+                      </span>
+                    )}
                   </div>
-                  <div className={isRtl ? "text-right" : "text-left"}>
-                    <span className="text-xs opacity-70 block">{t.cartTitle}</span>
-                    <span className="font-bold text-base">
-                      {cartTotal} {t.currency}
+
+                  {/* Not Available Overlay */}
+                  {!dish.isAvailable && (
+                    <div className="absolute inset-0 bg-black/50 rounded-2xl z-20 flex items-center justify-center backdrop-blur-[2px]">
+                      <span className="text-white/80 font-bold text-sm bg-red-500/30 px-4 py-1.5 rounded-full">
+                        غير متوفر حالياً
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Image */}
+                  <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-xl overflow-hidden flex-shrink-0 border border-white/10 relative">
+                    {imageErrors[dish.id] ? (
+                      <div className="w-full h-full bg-white/[0.03] flex items-center justify-center">
+                        <span className="text-3xl opacity-40">🍽️</span>
+                      </div>
+                    ) : (
+                      <img
+                        src={dish.image}
+                        alt={dish.nameAr}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={() => handleImageError(dish.id)}
+                        loading="lazy"
+                      />
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-between">
+                    <div>
+                      <h3 className={`font-bold ${txt.primary} text-sm sm:text-base`}>
+                        {dish.nameAr}
+                      </h3>
+                      <p className={`${txt.muted} text-xs mt-0.5 leading-relaxed line-clamp-2`}>
+                        {dish.descriptionAr}
+                      </p>
+                      
+                      {/* Badges Row */}
+                      <div className="flex gap-1.5 mt-2 flex-wrap">
+                        {dish.isVegetarian && (
+                          <span className={`${txt.muted} inline-flex items-center gap-1 text-[10px]`}>
+                            <Leaf className="h-3 w-3 text-green-400" /> نباتي
+                          </span>
+                        )}
+                        {dish.isHalal && (
+                          <span className={`${txt.muted} inline-flex items-center gap-1 text-[10px]`}>
+                            <Star className="h-3 w-3 text-[#C8A24D]" /> حلال
+                          </span>
+                        )}
+                        {dish.isGlutenFree && (
+                          <span className={`${txt.muted} inline-flex items-center gap-1 text-[10px]`}>
+                            <Wheat className="h-3 w-3 text-amber-400" /> بدون غلوتين
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Promo Text */}
+                    {dish.isPromo && dish.promoTextAr && (
+                      <p className="text-[#C8A24D] text-[10px] font-medium mt-1">
+                        {dish.promoTextAr}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Price + Add Button */}
+                  <div className="flex flex-col items-end justify-between flex-shrink-0">
+                    <span className={`text-[#C8A24D] font-extrabold text-base sm:text-lg`}>
+                      {dish.price} <span className="text-xs">{config.currencyAr}</span>
                     </span>
+                    {dish.isAvailable && (
+                      <button
+                        onClick={() => addToCart(dish)}
+                        className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black h-8 w-8 sm:h-9 sm:w-9 rounded-xl flex items-center justify-center font-bold transition-all shadow-lg shadow-[#C8A24D]/15 hover:shadow-[#C8A24D]/25"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
-                <span className="font-bold text-sm">
-                  {lang === "ar" ? "عرض السلة ←" : "Voir panier →"}
-                </span>
-              </button>
-            </SheetTrigger>
-          </Sheet>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  );
-}
-
-/* ─── Dish Card (Image Top, Info Below) ─── */
-function DishCard({
-  dish,
-  lang,
-  currency,
-  addToCart,
-  cart,
-  updateQuantity,
-  onImageClick,
-}: {
-  dish: Dish;
-  lang: "ar" | "fr";
-  currency: string;
-  addToCart: (d: Dish) => void;
-  cart: CartItem[];
-  updateQuantity: (id: string, delta: number) => void;
-  onImageClick: (img: string) => void;
-}) {
-  const cartItem = cart.find((item) => item.dish.id === dish.id);
-
-  return (
-    <div className="flex gap-3 p-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] hover:border-white/[0.10] transition-all duration-200">
-      {/* Square Image on the side */}
-      <div
-        className="w-28 h-28 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer group relative"
-        onClick={() => onImageClick(dish.image)}
-      >
-        <img
-          src={dish.image}
-          alt={lang === "ar" ? dish.nameAr : dish.nameFr}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src =
-              "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80";
-          }}
-        />
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-          <Maximize2 className="h-4 w-4 text-white" />
-        </div>
-
-        {!dish.isAvailable && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-            <span className="text-[10px] text-red-400 font-bold">
-              {lang === "ar" ? "نفد" : "Épuisé"}
-            </span>
-          </div>
-        )}
       </div>
 
-      {/* Info + Actions */}
-            <div className="flex-1 min-w-0 flex flex-col justify-between">
-              <div>
-                              <h3 className="text-white font-bold text-sm leading-snug">
-                                {lang === "ar" ? dish.nameAr : dish.nameFr}
-                              </h3>
-                              <p className="text-white/35 text-xs mt-1 line-clamp-2 leading-relaxed">
-                                {lang === "ar" ? dish.descriptionAr : dish.descriptionFr}
-                              </p>
-          {/* Badges */}
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {dish.isNew && (
-              <Badge className="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-1.5 py-0 rounded-full border-0">
-                {lang === "ar" ? "جديد" : "Nouveau"}
-              </Badge>
-            )}
-            {dish.isBestSeller && (
-              <Badge className="bg-[#C8A24D]/20 text-[#C8A24D] text-[10px] font-bold px-1.5 py-0 rounded-full border-0">
-                {lang === "ar" ? "الأكثر طلباً" : "Populaire"}
-              </Badge>
-            )}
-            {dish.isVegetarian && (
-              <Badge className="bg-green-500/15 text-green-400 text-[10px] font-bold px-1.5 py-0 rounded-full border-0">
-                {lang === "ar" ? "نباتي" : "Végétarien"}
-              </Badge>
-            )}
-          </div>
+      {/* ─── Cart FAB ─── */}
+      {cartCount > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold px-6 py-3.5 rounded-2xl shadow-2xl shadow-[#C8A24D]/30 flex items-center gap-3 transition-all active:scale-95"
+          >
+            <div className="relative">
+              <ShoppingBag className="h-5 w-5" />
+              <span className="absolute -top-2 -right-2 bg-black text-[#C8A24D] text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                {cartCount}
+              </span>
+            </div>
+            <span>عرض السلة</span>
+            <span className="text-sm opacity-80">{cartTotal} {config.currencyAr}</span>
+          </button>
         </div>
+      )}
 
-        {/* Action */}
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-[#C8A24D] font-bold text-sm">
-                    {dish.price} {currency}
-                  </span>
-                  {!dish.isAvailable ? (
-                    <span className="text-xs text-red-400/50 font-medium">
-                      {lang === "ar" ? "غير متوفر حالياً" : "Indisponible"}
-                    </span>
-                  ) : cartItem ? (
-                    <div className="flex items-center gap-1 bg-white/[0.06] rounded-full p-0.5">
+      {/* ─── Cart Drawer ─── */}
+      {isCartOpen && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCartOpen(false)} />
+          <div className="absolute bottom-0 left-0 right-0 bg-[#141414] rounded-t-3xl max-h-[75vh] flex flex-col border-t border-white/[0.08] shadow-2xl">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
+              <h2 className="text-white font-bold text-lg">سلة الطلبات</h2>
+              <button
+                onClick={() => setIsCartOpen(false)}
+                className="text-white/40 hover:text-white/70 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Items */}
+            <div className="flex-1 overflow-y-auto px-5 py-3 space-y-3">
+              {cart.length === 0 ? (
+                <div className="text-center py-10">
+                  <ShoppingBag className="h-10 w-10 text-white/15 mx-auto mb-3" />
+                  <p className="text-white/40 text-sm">السلة فارغة</p>
+                </div>
+              ) : (
+                cart.map((item) => (
+                  <div key={item.dish.id} className="flex items-center gap-3 bg-white/[0.03] rounded-xl p-2.5 border border-white/[0.05]">
+                    <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
+                      <img src={item.dish.image} alt={item.dish.nameAr} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-white text-sm font-bold truncate">{item.dish.nameAr}</h4>
+                      <p className="text-[#C8A24D] text-xs font-semibold">{item.dish.price} {config.currencyAr}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <button
-                        onClick={() => updateQuantity(dish.id, -1)}
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                        onClick={() => updateQuantity(item.dish.id, -1)}
+                        className="w-7 h-7 rounded-lg bg-white/[0.06] text-white/60 hover:text-white hover:bg-white/[0.10] flex items-center justify-center transition-all"
                       >
-                        <Minus className="h-3 w-3" />
+                        <Minus className="h-3.5 w-3.5" />
                       </button>
-                      <span className="text-xs font-bold text-white px-1 min-w-[18px] text-center">
-                        {cartItem.quantity}
-                      </span>
+                      <span className="text-white font-bold text-sm w-6 text-center">{item.quantity}</span>
                       <button
-                        onClick={() => updateQuantity(dish.id, 1)}
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                        onClick={() => updateQuantity(item.dish.id, 1)}
+                        className="w-7 h-7 rounded-lg bg-[#C8A24D]/20 text-[#C8A24D] hover:bg-[#C8A24D]/30 flex items-center justify-center transition-all"
                       >
-                        <Plus className="h-3 w-3" />
+                        <Plus className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                  ) : (
                     <button
-                      onClick={() => addToCart(dish)}
-                      className="text-xs font-semibold text-[#C8A24D] hover:text-[#D4B35D] transition-colors"
+                      onClick={() => removeFromCart(item.dish.id)}
+                      className="text-white/25 hover:text-red-400 transition-colors flex-shrink-0"
                     >
-                      + {lang === "ar" ? "إضافة" : "Ajouter"}
+                      <X className="h-4 w-4" />
                     </button>
-                  )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            {cart.length > 0 && (
+              <div className="border-t border-white/[0.06] px-5 py-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-white/60 text-sm">المجموع</span>
+                  <span className="text-[#C8A24D] font-extrabold text-xl">
+                    {cartTotal} <span className="text-sm">{config.currencyAr}</span>
+                  </span>
                 </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Promo Card ─── */
-function PromoCard({
-  dish,
-  lang,
-  currency,
-  addToCart,
-  cart,
-  updateQuantity,
-  onImageClick,
-}: {
-  dish: Dish;
-  lang: "ar" | "fr";
-  currency: string;
-  addToCart: (d: Dish) => void;
-  cart: CartItem[];
-  updateQuantity: (id: string, delta: number) => void;
-  onImageClick: (img: string) => void;
-}) {
-  const cartItem = cart.find((item) => item.dish.id === dish.id);
-  const promoLabel = lang === "ar" ? (dish.promoLabelAr || "عرض خاص") : (dish.promoLabelFr || "Offre Spéciale");
-  const promoText = lang === "ar" ? (dish.promoTextAr || "") : (dish.promoTextFr || "");
-
-  return (
-    <div className="rounded-2xl overflow-hidden border border-[#C8A24D]/20 bg-[#1A1A1A]">
-      {/* Image */}
-      <div
-        className="relative h-52 w-full overflow-hidden cursor-pointer group"
-        onClick={() => onImageClick(dish.image)}
-      >
-        <img
-          src={dish.image}
-          alt={lang === "ar" ? dish.nameAr : dish.nameFr}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src =
-              "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80";
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-[#1A1A1A]/30 to-transparent" />
-        <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <Maximize2 className="h-3.5 w-3.5 text-white" />
-        </div>
-        <div className="absolute top-3 left-3">
-          <Badge className="bg-[#C8A24D] text-black border-0 text-xs font-bold px-3 py-1 rounded-full">
-            {promoLabel}
-          </Badge>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-5 space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h3 className="text-white font-bold text-lg">
-              {lang === "ar" ? dish.nameAr : dish.nameFr}
-            </h3>
-            <p className="text-white/35 text-sm mt-1 leading-relaxed">
-              {lang === "ar" ? dish.descriptionAr : dish.descriptionFr}
-            </p>
+                <button
+                  onClick={sendWhatsAppOrder}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20"
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+                  </svg>
+                  <span>اطلب عبر واتساب</span>
+                </button>
+              </div>
+            )}
           </div>
-          <span className="text-[#C8A24D] font-bold text-lg flex-shrink-0">
-            {dish.price} {currency}
-          </span>
         </div>
-
-        {dish.isAvailable && !cartItem && (
-          <button
-            onClick={() => addToCart(dish)}
-            className="w-full py-3 rounded-xl bg-[#C8A24D] text-black font-bold text-sm hover:bg-[#D4B35D] transition-colors active:scale-[0.98]"
-          >
-            + {lang === "ar" ? "إضافة للسلة" : "Ajouter au panier"}
-          </button>
-        )}
-        {dish.isAvailable && cartItem && (
-          <div className="flex items-center justify-center gap-3 bg-white/[0.04] rounded-xl p-2 w-full">
-            <button
-              onClick={() => updateQuantity(dish.id, -1)}
-              className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <Minus className="h-4 w-4" />
-            </button>
-            <span className="font-bold text-white text-base">{cartItem.quantity}</span>
-            <button
-              onClick={() => updateQuantity(dish.id, 1)}
-              className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-        {!dish.isAvailable && (
-          <span className="block text-center text-red-400/60 text-sm font-medium py-2">
-            {lang === "ar" ? "نفدت الكمية" : "Épuisé"}
-          </span>
-        )}
-
-        {promoText && (
-          <div className="bg-[#C8A24D]/10 border border-[#C8A24D]/30 rounded-xl p-4 text-center">
-            <p className="text-[#C8A24D] font-bold text-sm">{promoText}</p>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
