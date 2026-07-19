@@ -11,7 +11,7 @@ import {
 } from "../utils/storage";
 import { Category, Dish, RestaurantConfig } from "../types";
 import AdminView from "../components/AdminView";
-import { ArrowLeft, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Admin() {
@@ -61,7 +61,6 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-[#0D0D0D]">
-      {/* Top Bar to go back to Client View */}
       <div className="bg-white/[0.03] border-b border-white/[0.06] text-white/70 py-2 px-4 text-xs flex justify-between items-center" dir="rtl">
         <span>أنت في وضع الإدارة والتعديل</span>
         <Link to="/">
