@@ -637,9 +637,21 @@ export default function AdminView({
                             <div className="space-y-2 pt-4 border-t border-white/[0.06]">
                               <Label className="text-white/60 text-xs">شعار المطعم (صورة)</Label>
                               <div className="flex items-center gap-4 mt-1">
-                                <div className="h-16 w-16 rounded-2xl border border-white/[0.08] overflow-hidden bg-white/[0.02] flex items-center justify-center flex-shrink-0">
-                                  <img src={configForm.logoUrl} alt="Logo Preview" className="w-full h-full object-cover" />
-                                </div>
+                                                              <div className="h-16 w-16 rounded-2xl border border-white/[0.08] overflow-hidden bg-white/[0.02] flex items-center justify-center flex-shrink-0 relative group">
+                                                                {configForm.logoUrl ? (
+                                                                  <>
+                                                                    <img src={configForm.logoUrl} alt="Logo Preview" className="w-full h-full object-cover" />
+                                                                    <button
+                                                                      onClick={() => setConfigForm({ ...configForm, logoUrl: "" })}
+                                                                      className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-red-500/80 hover:bg-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                    >
+                                                                      <X className="h-3 w-3 text-white" />
+                                                                    </button>
+                                                                  </>
+                                                                ) : (
+                                                                  <ImageIcon className="h-6 w-6 text-white/15" />
+                                                                )}
+                                                              </div>
                                 <div className="flex-1">
                                   <Input
                                     type="file"
@@ -662,10 +674,16 @@ export default function AdminView({
                               <Label className="text-white/60 text-xs">غلاف المطعم (صورة عريضة)</Label>
                               <div className="space-y-3 mt-1">
                                 {configForm.coverUrl && (
-                                  <div className="h-28 w-full rounded-xl border border-white/[0.08] overflow-hidden bg-white/[0.02]">
-                                    <img src={configForm.coverUrl} alt="Cover Preview" className="w-full h-full object-cover" />
-                                  </div>
-                                )}
+                                                                  <div className="h-28 w-full rounded-xl border border-white/[0.08] overflow-hidden bg-white/[0.02] relative group">
+                                                                    <img src={configForm.coverUrl} alt="Cover Preview" className="w-full h-full object-cover" />
+                                                                    <button
+                                                                      onClick={() => setConfigForm({ ...configForm, coverUrl: "" })}
+                                                                      className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500/80 hover:bg-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                    >
+                                                                      <X className="h-3.5 w-3.5 text-white" />
+                                                                    </button>
+                                                                  </div>
+                                                                )}
                                 <div>
                                   <Input
                                     type="file"
@@ -804,9 +822,21 @@ export default function AdminView({
             <div>
               <Label className="text-white/60 text-xs">صورة الطبق</Label>
               <div className="flex items-center gap-4 mt-1.5">
-                <div className="h-16 w-24 rounded-xl border border-white/[0.08] overflow-hidden bg-white/[0.02] flex items-center justify-center flex-shrink-0">
-                  <img src={dishForm.image} alt="Dish Preview" className="w-full h-full object-cover" />
-                </div>
+                <div className="h-16 w-24 rounded-xl border border-white/[0.08] overflow-hidden bg-white/[0.02] flex items-center justify-center flex-shrink-0 relative group">
+                                  {dishForm.image ? (
+                                    <>
+                                      <img src={dishForm.image} alt="Dish Preview" className="w-full h-full object-cover" />
+                                      <button
+                                        onClick={() => setDishForm({ ...dishForm, image: "" })}
+                                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500/80 hover:bg-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                      >
+                                        <X className="h-3 w-3 text-white" />
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <ImageIcon className="h-5 w-5 text-white/15" />
+                                  )}
+                                </div>
                 <div className="flex-1 space-y-2">
                   <Input
                     type="text"
