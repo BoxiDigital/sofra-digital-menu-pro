@@ -506,19 +506,17 @@ function DishCard({
       </div>
 
       {/* Info + Actions */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between">
-        <div>
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="text-white font-bold text-sm leading-snug">
-              {lang === "ar" ? dish.nameAr : dish.nameFr}
-            </h3>
-            <span className="text-[#C8A24D] font-bold text-sm flex-shrink-0">
-              {dish.price} {currency}
-            </span>
-          </div>
-          <p className="text-white/35 text-xs mt-1 line-clamp-2 leading-relaxed">
-            {lang === "ar" ? dish.descriptionAr : dish.descriptionFr}
-          </p>
+            <div className="flex-1 min-w-0 flex flex-col justify-between">
+              <div>
+                <h3 className="text-white font-bold text-sm leading-snug">
+                  {lang === "ar" ? dish.nameAr : dish.nameFr}
+                </h3>
+                <span className="text-[#C8A24D] font-bold text-xs mt-1 block">
+                  {dish.price} {currency}
+                </span>
+                <p className="text-white/35 text-xs mt-1 line-clamp-2 leading-relaxed">
+                  {lang === "ar" ? dish.descriptionAr : dish.descriptionFr}
+                </p>
           {/* Badges */}
           <div className="flex flex-wrap gap-1 mt-1.5">
             {dish.isNew && (
