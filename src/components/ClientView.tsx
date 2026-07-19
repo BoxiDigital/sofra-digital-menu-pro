@@ -19,6 +19,7 @@ import {
   Menu,
   MapPin,
   MessageCircle,
+  Maximize2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const { toast } = useToast();
 
   const isRtl = lang === "ar";
@@ -161,7 +163,6 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
       {/* ─── Header ─── */}
       <header className="sticky top-0 z-40 bg-[#0D0D0D]/95 backdrop-blur-sm border-b border-white/5">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
-          {/* Left: Logo + Name */}
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-[#C8A24D] flex-shrink-0">
               <img
@@ -182,7 +183,6 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
             </div>
           </div>
 
-          {/* Right: Icons */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => setLang(lang === "ar" ? "fr" : "ar")}
@@ -237,7 +237,7 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
                           }}
                         />
                         <div className="flex-1 flex flex-col justify-between min-w-0">
-                          <h4 className="font-bold text-sm truncate text-white">
+                          <h4 className="font-bold text-sm text-white">
                             {lang === "ar" ? item.dish.nameAr : item.dish.nameFr}
                           </h4>
                           <span className="text-xs font-semibold text-[#C8A24D]">
@@ -349,7 +349,7 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
       </div>
 
       {/* ─── Regular Dishes ─── */}
-      <div className="max-w-lg mx-auto px-4 space-y-3 pb-6">
+      <div className="max-w-lg mx-auto px-4 space-y-4 pb-6">
         {filteredDishes.length === 0 && (
           <div className="text-center py-16">
             <AlertTriangle className="h-12 w-12 mx-auto text-[#C8A24D]/40 mb-4" />
@@ -370,13 +370,14 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
             addToCart={addToCart}
             cart={cart}
             updateQuantity={updateQuantity}
+            onImageClick={(img) => setLightboxImage(img)}
           />
         ))}
       </div>
 
       {/* ─── Promo Dishes ─── */}
       {promoDishes.length > 0 && (
-        <div className="max-w-lg mx-auto px-4 pb-24 space-y-3">
+        <div className="max-w-lg mx-auto px-4 pb-24 space-y-4">
           {promoDishes.map((dish) => (
             <PromoCard
               key={dish.id}
@@ -386,8 +387,30 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
               addToCart={addToCart}
               cart={cart}
               updateQuantity={updateQuantity}
+              onImageClick={(img) => setLightboxImage(img)}
             />
           ))}
+        </div>
+      )}
+
+      {/* ─── Lightbox Modal ─── */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            onClick={() => setLightboxImage(null)}
+            className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors z-10"
+          >
+            <X className="h-5 w-5 text-white" />
+          </button>
+          <img
+            src={lightboxImage}
+            alt="Dish preview"
+            className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
 
@@ -433,7 +456,7 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
   );
 }
 
-/* ─── Dish Card (Horizontal, Circular Image) ─── */
+/* ─── Dish Card (Image Top, Info Below) ─── */
 function DishCard({
   dish,
   lang,
@@ -441,6 +464,7 @@ function DishCard({
   addToCart,
   cart,
   updateQuantity,
+  onImageClick,
 }: {
   dish: Dish;
   lang: "ar" | "fr";
@@ -448,90 +472,109 @@ function DishCard({
   addToCart: (d: Dish) => void;
   cart: CartItem[];
   updateQuantity: (id: string, delta: number) => void;
+  onImageClick: (img: string) => void;
 }) {
   const cartItem = cart.find((item) => item.dish.id === dish.id);
-  const isRtl = lang === "ar";
 
   return (
-    <div className="group flex items-center gap-4 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.05] hover:border-white/[0.08] transition-all duration-200">
-      {/* Circular Image */}
-      <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 border-2 border-white/10 group-hover:border-[#C8A24D]/40 transition-colors">
+    <div className="rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.03] hover:border-white/[0.10] transition-all duration-200">
+      {/* Square Image */}
+      <div
+        className="relative w-full aspect-square overflow-hidden cursor-pointer group"
+        onClick={() => onImageClick(dish.image)}
+      >
         <img
           src={dish.image}
           alt={lang === "ar" ? dish.nameAr : dish.nameFr}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           onError={(e) => {
             (e.target as HTMLImageElement).src =
               "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80";
           }}
         />
+        {/* Zoom icon hint */}
+        <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <Maximize2 className="h-3.5 w-3.5 text-white" />
+        </div>
+
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+          {dish.isNew && (
+            <Badge className="bg-emerald-500/90 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full border-0">
+              {lang === "ar" ? "جديد" : "Nouveau"}
+            </Badge>
+          )}
+          {dish.isBestSeller && (
+            <Badge className="bg-[#C8A24D]/90 text-black text-[10px] font-bold px-2.5 py-0.5 rounded-full border-0">
+              {lang === "ar" ? "الأكثر طلباً" : "Populaire"}
+            </Badge>
+          )}
+        </div>
+
+        {/* Out of Stock Overlay */}
+        {!dish.isAvailable && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+            <span className="bg-red-600 text-white font-bold px-5 py-2 rounded-full text-sm shadow-lg">
+              {lang === "ar" ? "نفدت الكمية" : "Épuisé"}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-white font-bold text-base truncate">
-                {lang === "ar" ? dish.nameAr : dish.nameFr}
-              </h3>
-              {dish.isNew && (
-                <Badge className="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border-0">
-                  {lang === "ar" ? "جديد" : "Nouveau"}
-                </Badge>
-              )}
-              {dish.isBestSeller && (
-                <Badge className="bg-[#C8A24D]/20 text-[#C8A24D] text-[10px] font-bold px-2 py-0.5 rounded-full border-0">
-                  {lang === "ar" ? "الأكثر طلباً" : "Populaire"}
-                </Badge>
-              )}
-            </div>
-            <p className="text-white/35 text-xs mt-1 line-clamp-2 leading-relaxed">
-              {lang === "ar" ? dish.descriptionAr : dish.descriptionFr}
-            </p>
-          </div>
-          <span className="text-[#C8A24D] font-bold text-base flex-shrink-0">
+      <div className="p-4 space-y-3">
+        {/* Full Name + Price */}
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-white font-bold text-base leading-snug">
+            {lang === "ar" ? dish.nameAr : dish.nameFr}
+          </h3>
+          <span className="text-[#C8A24D] font-bold text-lg flex-shrink-0 leading-snug">
             {dish.price} {currency}
           </span>
         </div>
 
+        {/* Description */}
+        <p className="text-white/35 text-sm leading-relaxed line-clamp-2">
+          {lang === "ar" ? dish.descriptionAr : dish.descriptionFr}
+        </p>
+
         {/* Action */}
-        <div className="mt-2">
-          {!dish.isAvailable ? (
-            <span className="text-xs text-red-400/60 font-medium">{lang === "ar" ? "نفدت الكمية" : "Épuisé"}</span>
-          ) : cartItem ? (
-            <div className="flex items-center gap-1 bg-white/[0.06] rounded-full p-0.5 w-fit">
-              <button
-                onClick={() => updateQuantity(dish.id, -1)}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <Minus className="h-3 w-3" />
-              </button>
-              <span className="text-xs font-bold text-white px-1 min-w-[20px] text-center">
-                {cartItem.quantity}
-              </span>
-              <button
-                onClick={() => updateQuantity(dish.id, 1)}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <Plus className="h-3 w-3" />
-              </button>
-            </div>
-          ) : (
+        {!dish.isAvailable ? (
+          <span className="block text-center text-red-400/50 text-sm font-medium py-2">
+            {lang === "ar" ? "الطبق غير متوفر حالياً" : "Plat indisponible"}
+          </span>
+        ) : cartItem ? (
+          <div className="flex items-center justify-center gap-2 bg-white/[0.06] rounded-full p-1">
             <button
-              onClick={() => addToCart(dish)}
-              className="text-xs font-semibold text-[#C8A24D] hover:text-[#D4B35D] transition-colors"
+              onClick={() => updateQuantity(dish.id, -1)}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
             >
-              + {lang === "ar" ? "إضافة" : "Ajouter"}
+              <Minus className="h-4 w-4" />
             </button>
-          )}
-        </div>
+            <span className="text-sm font-bold text-white px-2 min-w-[24px] text-center">
+              {cartItem.quantity}
+            </span>
+            <button
+              onClick={() => updateQuantity(dish.id, 1)}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => addToCart(dish)}
+            className="w-full py-3 rounded-xl bg-[#C8A24D] text-black font-bold text-sm hover:bg-[#D4B35D] transition-colors active:scale-[0.98]"
+          >
+            + {lang === "ar" ? "إضافة للسلة" : "Ajouter au panier"}
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-/* ─── Promo Card (Full Width) ─── */
+/* ─── Promo Card ─── */
 function PromoCard({
   dish,
   lang,
@@ -539,6 +582,7 @@ function PromoCard({
   addToCart,
   cart,
   updateQuantity,
+  onImageClick,
 }: {
   dish: Dish;
   lang: "ar" | "fr";
@@ -546,6 +590,7 @@ function PromoCard({
   addToCart: (d: Dish) => void;
   cart: CartItem[];
   updateQuantity: (id: string, delta: number) => void;
+  onImageClick: (img: string) => void;
 }) {
   const cartItem = cart.find((item) => item.dish.id === dish.id);
   const promoLabel = lang === "ar" ? (dish.promoLabelAr || "عرض خاص") : (dish.promoLabelFr || "Offre Spéciale");
@@ -553,18 +598,24 @@ function PromoCard({
 
   return (
     <div className="rounded-2xl overflow-hidden border border-[#C8A24D]/20 bg-[#1A1A1A]">
-      {/* Full-width Image */}
-      <div className="relative h-48 w-full overflow-hidden">
+      {/* Image */}
+      <div
+        className="relative h-52 w-full overflow-hidden cursor-pointer group"
+        onClick={() => onImageClick(dish.image)}
+      >
         <img
           src={dish.image}
           alt={lang === "ar" ? dish.nameAr : dish.nameFr}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           onError={(e) => {
             (e.target as HTMLImageElement).src =
               "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80";
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-[#1A1A1A]/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-[#1A1A1A]/30 to-transparent" />
+        <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <Maximize2 className="h-3.5 w-3.5 text-white" />
+        </div>
         <div className="absolute top-3 left-3">
           <Badge className="bg-[#C8A24D] text-black border-0 text-xs font-bold px-3 py-1 rounded-full">
             {promoLabel}
@@ -588,11 +639,10 @@ function PromoCard({
           </span>
         </div>
 
-        {/* Action */}
         {dish.isAvailable && !cartItem && (
           <button
             onClick={() => addToCart(dish)}
-            className="w-full py-3 rounded-xl bg-[#C8A24D] text-black font-bold text-sm hover:bg-[#D4B35D] transition-colors"
+            className="w-full py-3 rounded-xl bg-[#C8A24D] text-black font-bold text-sm hover:bg-[#D4B35D] transition-colors active:scale-[0.98]"
           >
             + {lang === "ar" ? "إضافة للسلة" : "Ajouter au panier"}
           </button>
@@ -620,7 +670,6 @@ function PromoCard({
           </span>
         )}
 
-        {/* Promo Text Box */}
         {promoText && (
           <div className="bg-[#C8A24D]/10 border border-[#C8A24D]/30 rounded-xl p-4 text-center">
             <p className="text-[#C8A24D] font-bold text-sm">{promoText}</p>
