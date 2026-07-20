@@ -153,7 +153,10 @@ export default function Login() {
           </form>
 
           <p className="text-center text-xs text-white/25">
-            نظام إدارة المطاعم • Sofra SaaS v1.0
+            مطعم جديد؟{" "}
+            <Link to="/register" className="text-[#C8A24D] hover:text-[#D4B35D] font-semibold transition-colors">
+              سجل مطعمك الآن
+            </Link>
           </p>
         </div>
       </div>

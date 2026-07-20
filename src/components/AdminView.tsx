@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Dish, Category, RestaurantConfig } from "../types";
-import AdminLogin from "./admin/AdminLogin";
 import AdminHeader from "./admin/AdminHeader";
 import AdminDishesTab from "./admin/AdminDishesTab";
 import AdminCategoriesTab from "./admin/AdminCategoriesTab";
@@ -14,6 +13,7 @@ interface AdminViewProps {
   categories: Category[];
   dishes: Dish[];
   config: RestaurantConfig;
+  restaurantId?: string;
   onUpdateCategories: (categories: Category[]) => void;
   onUpdateDishes: (dishes: Dish[]) => void;
   onUpdateConfig: (config: RestaurantConfig) => void;
@@ -24,12 +24,12 @@ export default function AdminView({
   categories,
   dishes,
   config,
+  restaurantId,
   onUpdateCategories,
   onUpdateDishes,
   onUpdateConfig,
   onReset,
 }: AdminViewProps) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { toast } = useToast();
 
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
@@ -63,7 +63,11 @@ export default function AdminView({
       updatedDishes = dishes.map((d) => (d.id === editingDish.id ? (form as Dish) : d));
       toast({ title: "تم التعديل", description: "تم تعديل الطبق بنجاح" });
     } else {
-      const newDish: Dish = { ...(form as Dish), id: `dish_${Date.now()}` };
+      const newDish: Dish = {
+        ...(form as Dish),
+        id: `dish_${Date.now()}`,
+        restaurantId: restaurantId || form.restaurantId || "rest_001",
+      };
       updatedDishes = [...dishes, newDish];
       toast({ title: "تم الإضافة", description: "تم إضافة الطبق الجديد بنجاح" });
     }
@@ -108,18 +112,22 @@ export default function AdminView({
   };
 
   const saveCategory = (form: Partial<Category>) => {
-    let updatedCategories: Category[];
-    if (editingCategory) {
-      updatedCategories = categories.map((c) => (c.id === editingCategory.id ? (form as Category) : c));
-      toast({ title: "تم التعديل", description: "تم تعديل الفئة بنجاح" });
-    } else {
-      const newCategory: Category = { ...(form as Category), id: `cat_${Date.now()}` };
-      updatedCategories = [...categories, newCategory];
-      toast({ title: "تم الإضافة", description: "تم إضافة الفئة الجديدة بنجاح" });
-    }
-    onUpdateCategories(updatedCategories);
-    setIsCategoryDialogOpen(false);
-  };
+      let updatedCategories: Category[];
+      if (editingCategory) {
+        updatedCategories = categories.map((c) => (c.id === editingCategory.id ? (form as Category) : c));
+        toast({ title: "تم التعديل", description: "تم تعديل الفئة بنجاح" });
+      } else {
+        const newCategory: Category = {
+          ...(form as Category),
+          id: `cat_${Date.now()}`,
+          restaurantId: restaurantId || form.restaurantId || "rest_001",
+        };
+        updatedCategories = [...categories, newCategory];
+        toast({ title: "تم الإضافة", description: "تم إضافة الفئة الجديدة بنجاح" });
+      }
+      onUpdateCategories(updatedCategories);
+      setIsCategoryDialogOpen(false);
+    };
 
   const deleteCategory = (id: string) => {
     const hasDishes = dishes.some((d) => d.category === id);
@@ -133,13 +141,9 @@ export default function AdminView({
     }
   };
 
-  if (!isLoggedIn) {
-    return <AdminLogin onLogin={() => setIsLoggedIn(true)} />;
-  }
-
   return (
     <div className="min-h-screen bg-[#0D0D0D] pb-12" dir="rtl">
-      <AdminHeader onLogout={() => setIsLoggedIn(false)} />
+      <AdminHeader />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         <Tabs defaultValue="dishes" className="space-y-6">

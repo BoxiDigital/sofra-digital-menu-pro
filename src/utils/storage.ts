@@ -1,93 +1,291 @@
-import { Category, Dish, RestaurantConfig } from "../types";
+import { Category, Dish, RestaurantConfig, Restaurant, AuthUser } from "../types";
 import { defaultCategories, defaultDishes, defaultRestaurantConfig } from "../data/defaultData";
 
-const CATEGORIES_KEY = "sofra_categories";
-const DISHES_KEY = "sofra_dishes";
-const CONFIG_KEY = "sofra_config";
-
 // ═══════════════════════════════════════════
-// دوال عامة (تستخدم حالياً مع localStorage)
-// سيتم استبدالها بدوال Supabase عند تفعيل Agent Mode
+// محاكاة Supabase متعددة المستأجرين
+// هيكلية التخزين:
+//   sofra_users          → { [email]: AuthUser & { passwordHash: string } }
+//   sofra_restaurants    → { [id]: Restaurant }
+//   sofra__<id>__cats    → Category[]
+//   sofra__<id>__dishes  → Dish[]
+//   sofra__<id>__config  → RestaurantConfig
 // ═══════════════════════════════════════════
 
-export const getCategories = (): Category[] => {
-  const data = localStorage.getItem(CATEGORIES_KEY);
-  if (!data) {
-    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(defaultCategories));
-    return defaultCategories;
+const USERS_KEY = "sofra_users";
+const RESTAURANTS_KEY = "sofra_restaurants";
+
+function catsKey(restaurantId: string) { return `sofra__${restaurantId}__cats`; }
+function dishesKey(restaurantId: string) { return `sofra__${restaurantId}__dishes`; }
+function configKey(restaurantId: string) { return `sofra__${restaurantId}__config`; }
+
+// ───────────────────────────────────────────
+// دوال المستخدمين
+// ───────────────────────────────────────────
+
+interface StoredUser extends AuthUser {
+  passwordHash: string;
+}
+
+function hashPassword(password: string): string {
+  // محاكاة بسيطة للتشفير (تُستبدل بـ bcrypt عند تفعيل Supabase)
+  let hash = 0;
+  const str = `sofra_salt_${password}`;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
   }
-  return JSON.parse(data);
-};
+  return `hash_${Math.abs(hash).toString(36)}`;
+}
 
-export const saveCategories = (categories: Category[]) => {
-  localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
-};
+function getUsers(): Record<string, StoredUser> {
+  const raw = localStorage.getItem(USERS_KEY);
+  return raw ? JSON.parse(raw) : {};
+}
 
-export const getDishes = (): Dish[] => {
-  const data = localStorage.getItem(DISHES_KEY);
-  if (!data) {
-    localStorage.setItem(DISHES_KEY, JSON.stringify(defaultDishes));
-    return defaultDishes;
+function saveUsers(users: Record<string, StoredUser>) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
+
+export function registerUser(
+  email: string,
+  password: string,
+  restaurantNameAr: string,
+  restaurantNameFr: string,
+): AuthUser {
+  const users = getUsers();
+  const emailKey = email.toLowerCase().trim();
+
+  if (users[emailKey]) {
+    throw new Error("هذا البريد الإلكتروني مسجل مسبقاً");
   }
-  return JSON.parse(data);
-};
 
-export const saveDishes = (dishes: Dish[]) => {
-  localStorage.setItem(DISHES_KEY, JSON.stringify(dishes));
-};
-
-export const getRestaurantConfig = (): RestaurantConfig => {
-  const data = localStorage.getItem(CONFIG_KEY);
-  if (!data) {
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(defaultRestaurantConfig));
-    return defaultRestaurantConfig;
+  // إنشاء restaurantId تلقائي
+  const allRestaurants = getRestaurantsMap();
+  const existingIds = Object.keys(allRestaurants);
+  let nextNum = 1;
+  let newId = "rest_001";
+  while (existingIds.includes(newId)) {
+    nextNum++;
+    newId = `rest_${String(nextNum).padStart(3, "0")}`;
   }
-  return JSON.parse(data);
-};
 
-export const saveRestaurantConfig = (config: RestaurantConfig) => {
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-};
+  const slug = restaurantNameAr
+    .replace(/\s+/g, "-")
+    .replace(/[^\u0600-\u06FFa-zA-Z0-9-]/g, "")
+    .toLowerCase();
 
-export const resetToDefault = () => {
-  localStorage.setItem(CATEGORIES_KEY, JSON.stringify(defaultCategories));
-  localStorage.setItem(DISHES_KEY, JSON.stringify(defaultDishes));
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(defaultRestaurantConfig));
-};
+  const userId = `user_${Date.now()}`;
 
-// ═══════════════════════════════════════════
-// دوال مهيأة لتعدد المطاعم (للربط مع Supabase مستقبلاً)
-// تقبل restaurantId كمعامل - حالياً تتجاهله مؤقتاً
-// ═══════════════════════════════════════════
+  const storeUser: StoredUser = {
+    id: userId,
+    email: emailKey,
+    restaurantId: newId,
+    passwordHash: hashPassword(password),
+  };
 
-export const getCategoriesByRestaurant = (restaurantId: string): Category[] => {
-  // TODO: عند تفعيل Agent Mode → استبدل بـ supabase.from('categories').select('*').eq('restaurant_id', restaurantId)
-  return getCategories();
-};
+  users[emailKey] = storeUser;
+  saveUsers(users);
 
-export const saveCategoriesForRestaurant = (restaurantId: string, categories: Category[]) => {
-  // TODO: عند تفعيل Agent Mode → حفظ مع restaurant_id
-  const enriched = categories.map((c) => ({ ...c, restaurantId }));
-  saveCategories(enriched);
-};
+  // إنشاء المطعم
+  const newRestaurant: Restaurant = {
+    id: newId,
+    nameAr: restaurantNameAr,
+    nameFr: restaurantNameFr,
+    slug,
+    sloganAr: "أجود الأطباق",
+    sloganFr: "Le meilleur de la cuisine",
+    logoUrl: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=150&h=150&q=80",
+    workingHoursAr: "يومياً من 12:00 ظهراً حتى 11:00 مساءً",
+    workingHoursFr: "Tous les jours de 12h00 à 23h00",
+    whatsappNumber: "",
+    whatsappMessageAr: "مرحباً، أود طلب:\n\n{items}\n\nالمجموع: {total}",
+    whatsappMessageFr: "Bonjour, je souhaite commander:\n\n{items}\n\nTotal: {total}",
+    primaryColor: "#C8A24D",
+    backgroundColor: "dark",
+    currencyAr: "درهم",
+    currencyFr: "MAD",
+  };
 
-export const getDishesByRestaurant = (restaurantId: string): Dish[] => {
-  // TODO: عند تفعيل Agent Mode → استبدل بـ supabase.from('dishes').select('*').eq('restaurant_id', restaurantId)
-  return getDishes();
-};
+  saveRestaurant(newId, newRestaurant);
 
-export const saveDishesForRestaurant = (restaurantId: string, dishes: Dish[]) => {
-  // TODO: عند تفعيل Agent Mode → حفظ مع restaurant_id
-  const enriched = dishes.map((d) => ({ ...d, restaurantId }));
-  saveDishes(enriched);
-};
+  // نسخ البيانات الافتراضية مع restaurantId الجديد
+  const userCategories = defaultCategories.map((c) => ({ ...c, restaurantId: newId }));
+  const userDishes = defaultDishes.map((d) => ({ ...d, restaurantId: newId }));
+  const userConfig: RestaurantConfig = { ...defaultRestaurantConfig, nameAr: restaurantNameAr, nameFr: restaurantNameFr };
 
-export const getConfigByRestaurant = (restaurantId: string): RestaurantConfig => {
-  // TODO: عند تفعيل Agent Mode → استبدل بـ supabase.from('restaurants').select('config').eq('id', restaurantId).single()
-  return getRestaurantConfig();
-};
+  localStorage.setItem(catsKey(newId), JSON.stringify(userCategories));
+  localStorage.setItem(dishesKey(newId), JSON.stringify(userDishes));
+  localStorage.setItem(configKey(newId), JSON.stringify(userConfig));
 
-export const saveConfigForRestaurant = (restaurantId: string, config: RestaurantConfig) => {
-  // TODO: عند تفعيل Agent Mode → حفظ مع restaurant_id
-  saveRestaurantConfig(config);
-};
+  return { id: userId, email: emailKey, restaurantId: newId };
+}
+
+export function loginUser(email: string, password: string): AuthUser {
+  const users = getUsers();
+  const emailKey = email.toLowerCase().trim();
+  const user = users[emailKey];
+
+  if (!user) {
+    throw new Error("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+  }
+
+  if (user.passwordHash !== hashPassword(password)) {
+    throw new Error("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+  }
+
+  return { id: user.id, email: user.email, restaurantId: user.restaurantId };
+}
+
+export function isSuperAdmin(email: string): boolean {
+  return email === "admin@sofra.com";
+}
+
+// ───────────────────────────────────────────
+// دوال المطاعم (للإدارة العامة)
+// ───────────────────────────────────────────
+
+function getRestaurantsMap(): Record<string, Restaurant> {
+  const raw = localStorage.getItem(RESTAURANTS_KEY);
+  return raw ? JSON.parse(raw) : {};
+}
+
+function saveRestaurant(id: string, restaurant: Restaurant) {
+  const map = getRestaurantsMap();
+  map[id] = restaurant;
+  localStorage.setItem(RESTAURANTS_KEY, JSON.stringify(map));
+}
+
+export function getRestaurants(): Restaurant[] {
+  return Object.values(getRestaurantsMap());
+}
+
+export function getRestaurantById(id: string): Restaurant | undefined {
+  return getRestaurantsMap()[id];
+}
+
+export function deleteRestaurant(id: string) {
+  const map = getRestaurantsMap();
+  delete map[id];
+  localStorage.setItem(RESTAURANTS_KEY, JSON.stringify(map));
+
+  // حذف بيانات المطعم
+  localStorage.removeItem(catsKey(id));
+  localStorage.removeItem(dishesKey(id));
+  localStorage.removeItem(configKey(id));
+
+  // حذف المستخدم المرتبط
+  const users = getUsers();
+  for (const [email, u] of Object.entries(users)) {
+    if (u.restaurantId === id) {
+      delete users[email];
+      break;
+    }
+  }
+  saveUsers(users);
+}
+
+export function updateRestaurant(id: string, updates: Partial<Restaurant>) {
+  const map = getRestaurantsMap();
+  if (map[id]) {
+    map[id] = { ...map[id], ...updates };
+    localStorage.setItem(RESTAURANTS_KEY, JSON.stringify(map));
+  }
+}
+
+// ───────────────────────────────────────────
+// دوال البيانات الخاصة بكل مطعم
+// ───────────────────────────────────────────
+
+export function getCategories(restaurantId?: string): Category[] {
+  if (!restaurantId) return defaultCategories;
+  const raw = localStorage.getItem(catsKey(restaurantId));
+  return raw ? JSON.parse(raw) : defaultCategories.map((c) => ({ ...c, restaurantId }));
+}
+
+export function saveCategories(restaurantId: string, categories: Category[]) {
+  localStorage.setItem(catsKey(restaurantId), JSON.stringify(categories));
+}
+
+export function getDishes(restaurantId?: string): Dish[] {
+  if (!restaurantId) return defaultDishes;
+  const raw = localStorage.getItem(dishesKey(restaurantId));
+  return raw ? JSON.parse(raw) : defaultDishes.map((d) => ({ ...d, restaurantId }));
+}
+
+export function saveDishes(restaurantId: string, dishes: Dish[]) {
+  localStorage.setItem(dishesKey(restaurantId), JSON.stringify(dishes));
+}
+
+export function getRestaurantConfig(restaurantId?: string): RestaurantConfig {
+  if (!restaurantId) return defaultRestaurantConfig;
+  const raw = localStorage.getItem(configKey(restaurantId));
+  return raw ? JSON.parse(raw) : defaultRestaurantConfig;
+}
+
+export function saveRestaurantConfig(restaurantId: string, config: RestaurantConfig) {
+  localStorage.setItem(configKey(restaurantId), JSON.stringify(config));
+}
+
+export function resetToDefault(restaurantId: string) {
+  const r = getRestaurantById(restaurantId);
+  const nameAr = r?.nameAr || defaultRestaurantConfig.nameAr;
+  const nameFr = r?.nameFr || defaultRestaurantConfig.nameFr;
+
+  localStorage.setItem(catsKey(restaurantId), JSON.stringify(
+    defaultCategories.map((c) => ({ ...c, restaurantId }))
+  ));
+  localStorage.setItem(dishesKey(restaurantId), JSON.stringify(
+    defaultDishes.map((d) => ({ ...d, restaurantId }))
+  ));
+  localStorage.setItem(configKey(restaurantId), JSON.stringify({
+    ...defaultRestaurantConfig,
+    nameAr,
+    nameFr,
+  }));
+}
+
+// ───────────────────────────────────────────
+// تهيئة: إنشاء المستخدم الإداري الافتراضي
+// ───────────────────────────────────────────
+
+export function seedDefaultAdmin() {
+  const users = getUsers();
+  if (!users["admin@sofra.com"]) {
+    users["admin@sofra.com"] = {
+      id: "user_superadmin",
+      email: "admin@sofra.com",
+      restaurantId: "rest_001",
+      passwordHash: hashPassword("admin123"),
+    };
+    saveUsers(users);
+  }
+
+  const map = getRestaurantsMap();
+  if (!map["rest_001"]) {
+    map["rest_001"] = {
+      id: "rest_001",
+      nameAr: defaultRestaurantConfig.nameAr,
+      nameFr: defaultRestaurantConfig.nameFr,
+      slug: "chez-nous",
+      sloganAr: defaultRestaurantConfig.sloganAr,
+      sloganFr: defaultRestaurantConfig.sloganFr,
+      logoUrl: defaultRestaurantConfig.logoUrl,
+      coverUrl: defaultRestaurantConfig.coverUrl,
+      workingHoursAr: defaultRestaurantConfig.workingHoursAr,
+      workingHoursFr: defaultRestaurantConfig.workingHoursFr,
+      whatsappNumber: defaultRestaurantConfig.whatsappNumber,
+      whatsappMessageAr: defaultRestaurantConfig.whatsappMessageAr,
+      whatsappMessageFr: defaultRestaurantConfig.whatsappMessageFr,
+      primaryColor: defaultRestaurantConfig.primaryColor,
+      backgroundColor: defaultRestaurantConfig.backgroundColor,
+      currencyAr: defaultRestaurantConfig.currencyAr,
+      currencyFr: defaultRestaurantConfig.currencyFr,
+    };
+    saveRestaurant("rest_001", map["rest_001"]);
+
+    localStorage.setItem(catsKey("rest_001"), JSON.stringify(defaultCategories));
+    localStorage.setItem(dishesKey("rest_001"), JSON.stringify(defaultDishes));
+    localStorage.setItem(configKey("rest_001"), JSON.stringify(defaultRestaurantConfig));
+  }
+}

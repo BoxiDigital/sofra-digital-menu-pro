@@ -8,6 +8,8 @@ import AuthGuard from "./components/AuthGuard";
 import Index from "./pages/Index";
 import Admin from "./pages/Admin";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
+import SuperAdmin from "./pages/SuperAdmin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,11 +24,20 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route
               path="/admin"
               element={
                 <AuthGuard>
                   <Admin />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/super-admin"
+              element={
+                <AuthGuard>
+                  <SuperAdmin />
                 </AuthGuard>
               }
             />

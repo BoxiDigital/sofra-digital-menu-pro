@@ -3,7 +3,7 @@ import { Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface AdminHeaderProps {
-  onLogout: () => void;
+  onLogout?: () => void;
 }
 
 export default function AdminHeader({ onLogout }: AdminHeaderProps) {
@@ -20,11 +20,13 @@ export default function AdminHeader({ onLogout }: AdminHeaderProps) {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-white/30 hidden sm:block">مرحباً، مدير المطعم</span>
-          <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl" onClick={onLogout}>
-            <LogOut className="h-4 w-4 ml-1.5" /><span>خروج</span>
-          </Button>
-        </div>
+                  <span className="text-xs text-white/30 hidden sm:block">مرحباً، مدير المطعم</span>
+                  {onLogout && (
+                    <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl" onClick={onLogout}>
+                      <LogOut className="h-4 w-4 ml-1.5" /><span>خروج</span>
+                    </Button>
+                  )}
+                </div>
       </div>
     </header>
   );
