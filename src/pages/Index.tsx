@@ -58,12 +58,12 @@ export default function Index() {
             </p>
           </div>
           <div className="flex gap-3 justify-center">
-            <Link to={`/?restaurant=${restaurantId}`}>
-                          <Button variant="ghost" className="text-white/50 hover:text-white/70 border border-white/[0.08] rounded-xl">
-                            المنيو الرئيسي
-                          </Button>
-                        </Link>
-                        <Link to={`/admin?as=${restaurantId}`}>
+            <Link to="/">
+              <Button variant="ghost" className="text-white/50 hover:text-white/70 border border-white/[0.08] rounded-xl">
+                المنيو الرئيسي
+              </Button>
+            </Link>
+            <Link to="/admin">
               <Button className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl">
                 لوحة التحكم
               </Button>
@@ -97,9 +97,9 @@ export default function Index() {
           <p>© {new Date().getFullYear()} {config.nameAr}. جميع الحقوق محفوظة.</p>
           <div className="flex justify-center gap-4">
             <Link
-                          to={`/admin?as=${restaurantId}`}
-                          className="inline-flex items-center gap-1 text-amber-500 hover:text-amber-400 font-semibold transition-colors"
-                        >
+              to="/admin"
+              className="inline-flex items-center gap-1 text-amber-500 hover:text-amber-400 font-semibold transition-colors"
+            >
               <Settings className="h-3.5 w-3.5" />
               <span>لوحة تحكم المدير</span>
             </Link>

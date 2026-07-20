@@ -143,7 +143,7 @@ export default function AdminView({
 
   return (
     <div className="min-h-screen bg-[#0D0D0D] pb-12" dir="rtl">
-      <AdminHeader restaurantId={restaurantId} />
+      <AdminHeader />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         <Tabs defaultValue="dishes" className="space-y-6">
