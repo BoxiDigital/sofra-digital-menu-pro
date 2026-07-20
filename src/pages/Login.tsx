@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Lock, Mail, Eye, EyeOff, AlertCircle, ArrowLeft, Coffee } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { isSuperAdmin } from "../utils/storage";
 
 export default function Login() {
   const [email, setEmail] = useState("admin@sofra.com");
@@ -14,9 +15,29 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const { login, user } = useAuth();
+    const navigate = useNavigate();
+    const { toast } = useToast();
+  
+    // رابط "العودة للقائمة" — للمستخدم المسجل، يذهب إلى منيو مطعمه
+    const homeLink = useMemo(() => {
+      // أولاً، جرب المستخدم الحالي (مسجل الدخول)
+      if (user && !isSuperAdmin(user.email)) {
+        return `/?restaurant=${user.restaurantId}`;
+      }
+      // ثانياً، جرب المستخدم المخزن في localStorage
+      try {
+        const stored = localStorage.getItem("sofra_auth_user");
+        if (stored) {
+          const storedUser = JSON.parse(stored);
+          if (storedUser?.restaurantId && !isSuperAdmin(storedUser.email)) {
+            return `/?restaurant=${storedUser.restaurantId}`;
+          }
+        }
+      } catch {}
+      // وإلا، الصفحة الرئيسية الافتراضية
+      return "/";
+    }, [user]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,12 +66,12 @@ export default function Login() {
       </div>
 
       <Link
-        to="/"
-        className="absolute top-6 right-6 flex items-center gap-2 text-white/40 hover:text-white/70 transition-colors text-sm"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        <span>العودة للقائمة</span>
-      </Link>
+              to={homeLink}
+              className="absolute top-6 right-6 flex items-center gap-2 text-white/40 hover:text-white/70 transition-colors text-sm"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>العودة للقائمة</span>
+            </Link>
 
       <div className="max-w-md w-full relative z-10">
         <div className="text-center mb-8">

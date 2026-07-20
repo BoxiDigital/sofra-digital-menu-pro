@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   getCategories,
@@ -7,6 +7,7 @@ import {
   getRestaurantById,
   restaurantExists,
   subscribeToDataChanges,
+  isSuperAdmin,
 } from "../utils/storage";
 import { Category, Dish, RestaurantConfig } from "../types";
 import ClientView from "../components/ClientView";
@@ -20,7 +21,21 @@ export default function Index() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
-  const [notFound, setNotFound] = useState(false);
+    const [notFound, setNotFound] = useState(false);
+  
+    // رابط "المنيو الرئيسي" عند صفحة "غير موجود" — يحاول إيجاد مطعم مستخدم المخزن
+    const homeLink = useMemo(() => {
+      try {
+        const stored = localStorage.getItem("sofra_auth_user");
+        if (stored) {
+          const storedUser = JSON.parse(stored);
+          if (storedUser?.restaurantId && !isSuperAdmin(storedUser.email) && restaurantExists(storedUser.restaurantId)) {
+            return `/?restaurant=${storedUser.restaurantId}`;
+          }
+        }
+      } catch {}
+      return "/";
+    }, [restaurantId]);
 
   useEffect(() => {
     // تأكد من وجود المطعم
@@ -58,11 +73,11 @@ export default function Index() {
             </p>
           </div>
           <div className="flex gap-3 justify-center">
-            <Link to="/">
-              <Button variant="ghost" className="text-white/50 hover:text-white/70 border border-white/[0.08] rounded-xl">
-                المنيو الرئيسي
-              </Button>
-            </Link>
+            <Link to={homeLink}>
+                          <Button variant="ghost" className="text-white/50 hover:text-white/70 border border-white/[0.08] rounded-xl">
+                            المنيو الرئيسي
+                          </Button>
+                        </Link>
             <Link to="/admin">
               <Button className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl">
                 لوحة التحكم
