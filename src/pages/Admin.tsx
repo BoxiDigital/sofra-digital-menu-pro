@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   getCategories,
   getDishes,
@@ -9,47 +9,54 @@ import {
   saveRestaurantConfig,
   resetToDefault,
   getRestaurantById,
+  getRestaurants,
 } from "../utils/storage";
 import { Category, Dish, RestaurantConfig } from "../types";
 import AdminView from "../components/AdminView";
-import { Eye, LogOut, Shield } from "lucide-react";
+import { Eye, LogOut, Shield, Store, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Admin() {
   const { user, logout, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // يسمح للـ super admin بتبديل المطعم عبر ?as=rest_XXX
+  const effectiveRestaurantId = isSuperAdmin
+    ? searchParams.get("as") || user?.restaurantId || "rest_001"
+    : user?.restaurantId || "rest_001";
+
+  const restaurant = getRestaurantById(effectiveRestaurantId);
+  const allRestaurants = isSuperAdmin ? getRestaurants() : [];
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
 
-  const restaurantId = user?.restaurantId || "rest_001";
-  const restaurant = restaurantId ? getRestaurantById(restaurantId) : undefined;
-
   const loadData = () => {
-    setCategories(getCategories(restaurantId));
-    setDishes(getDishes(restaurantId));
-    setConfig(getRestaurantConfig(restaurantId));
+    setCategories(getCategories(effectiveRestaurantId));
+    setDishes(getDishes(effectiveRestaurantId));
+    setConfig(getRestaurantConfig(effectiveRestaurantId));
   };
 
   useEffect(() => {
     loadData();
-  }, [restaurantId]);
+  }, [effectiveRestaurantId]);
 
   const handleUpdateCategories = (newCategories: Category[]) => {
     setCategories(newCategories);
-    saveCategories(restaurantId, newCategories);
+    saveCategories(effectiveRestaurantId, newCategories);
   };
 
   const handleUpdateDishes = (newDishes: Dish[]) => {
     setDishes(newDishes);
-    saveDishes(restaurantId, newDishes);
+    saveDishes(effectiveRestaurantId, newDishes);
   };
 
   const handleUpdateConfig = (newConfig: RestaurantConfig) => {
     setConfig(newConfig);
-    saveRestaurantConfig(restaurantId, newConfig);
+    saveRestaurantConfig(effectiveRestaurantId, newConfig);
   };
 
   const handleReset = () => {
@@ -58,7 +65,7 @@ export default function Admin() {
         "هل أنت متأكد من إعادة تعيين جميع البيانات إلى القيم الافتراضية؟ سيتم فقدان أي تغييرات قمت بها."
       )
     ) {
-      resetToDefault(restaurantId);
+      resetToDefault(effectiveRestaurantId);
       loadData();
     }
   };
@@ -68,11 +75,26 @@ export default function Admin() {
     navigate("/login", { replace: true });
   };
 
+  const switchRestaurant = (id: string) => {
+    setSearchParams({ as: id });
+  };
+
   if (!config) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
-        <div className="animate-pulse text-[#C8A24D] font-bold text-lg">
-          جاري تحميل لوحة التحكم...
+        <div className="text-center space-y-4">
+          <div className="animate-pulse text-[#C8A24D] font-bold text-lg">
+            جاري تحميل لوحة التحكم...
+          </div>
+          <p className="text-white/25 text-sm">
+            المطعم <code className="bg-white/[0.05] px-2 py-0.5 rounded">{effectiveRestaurantId}</code> غير مهيأ بعد
+          </p>
+          <Button
+            onClick={() => resetToDefault(effectiveRestaurantId)}
+            className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl mt-2"
+          >
+            تهيئة المطعم ببيانات افتراضية
+          </Button>
         </div>
       </div>
     );
@@ -82,17 +104,41 @@ export default function Admin() {
     <div className="min-h-screen bg-[#0D0D0D]">
       {/* شريط علوي */}
       <div
-        className="bg-white/[0.03] border-b border-white/[0.06] text-white/70 py-2 px-4 text-xs flex justify-between items-center"
+        className="bg-white/[0.03] border-b border-white/[0.06] text-white/70 py-2 px-4 text-xs flex justify-between items-center flex-wrap gap-2"
         dir="rtl"
       >
         <div className="flex items-center gap-3">
+          {/* مبدّل المطاعم للـ Super Admin */}
+          {isSuperAdmin && allRestaurants.length > 0 && (
+            <div className="relative flex items-center gap-2">
+              <Store className="h-3.5 w-3.5 text-[#C8A24D]" />
+              <select
+                value={effectiveRestaurantId}
+                onChange={(e) => switchRestaurant(e.target.value)}
+                className="bg-white/[0.05] border border-white/[0.1] text-white/80 rounded-lg px-2.5 py-1 text-xs font-semibold cursor-pointer hover:border-[#C8A24D]/40 focus:outline-none focus:border-[#C8A24D] transition-colors appearance-none pr-6"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23C8A24D' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "left 6px center",
+                }}
+              >
+                {allRestaurants.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.nameAr} ({r.id})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <span>
             {restaurant?.nameAr || "المطعم"}{" "}
-            <span className="text-white/30">• {user?.email} • {restaurantId}</span>
+            <span className="text-white/30">• {user?.email} • {effectiveRestaurantId}</span>
           </span>
         </div>
+
         <div className="flex items-center gap-2">
-          <Link to={`/?restaurant=${restaurantId}`} target="_blank">
+          <Link to={`/?restaurant=${effectiveRestaurantId}`} target="_blank">
             <Button
               size="sm"
               variant="ghost"
@@ -127,15 +173,15 @@ export default function Admin() {
       </div>
 
       <AdminView
-              categories={categories}
-              dishes={dishes}
-              config={config}
-              restaurantId={restaurantId}
-              onUpdateCategories={handleUpdateCategories}
-              onUpdateDishes={handleUpdateDishes}
-              onUpdateConfig={handleUpdateConfig}
-              onReset={handleReset}
-            />
+        categories={categories}
+        dishes={dishes}
+        config={config}
+        restaurantId={effectiveRestaurantId}
+        onUpdateCategories={handleUpdateCategories}
+        onUpdateDishes={handleUpdateDishes}
+        onUpdateConfig={handleUpdateConfig}
+        onReset={handleReset}
+      />
     </div>
   );
 }

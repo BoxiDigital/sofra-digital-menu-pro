@@ -185,6 +185,10 @@ export function deleteRestaurant(id: string) {
   saveUsers(users);
 }
 
+export function restaurantExists(id: string): boolean {
+  return !!getRestaurantsMap()[id];
+}
+
 export function updateRestaurant(id: string, updates: Partial<Restaurant>) {
   const map = getRestaurantsMap();
   if (map[id]) {
@@ -197,13 +201,9 @@ export function updateRestaurant(id: string, updates: Partial<Restaurant>) {
 // دوال البيانات الخاصة بكل مطعم
 // ───────────────────────────────────────────
 
-export function getCategories(restaurantId?: string): Category[] {
-  const id = restaurantId || "rest_001";
-  const raw = localStorage.getItem(catsKey(id));
-  if (!raw) {
-    // فقط لو ما فيهاش بيانات مخزنة نرجع الافتراضية
-    return defaultCategories.map((c) => ({ ...c, restaurantId: id }));
-  }
+export function getCategories(restaurantId: string): Category[] {
+  const raw = localStorage.getItem(catsKey(restaurantId));
+  if (!raw) return [];
   return JSON.parse(raw);
 }
 
@@ -212,12 +212,9 @@ export function saveCategories(restaurantId: string, categories: Category[]) {
   dispatchDataChange(restaurantId);
 }
 
-export function getDishes(restaurantId?: string): Dish[] {
-  const id = restaurantId || "rest_001";
-  const raw = localStorage.getItem(dishesKey(id));
-  if (!raw) {
-    return defaultDishes.map((d) => ({ ...d, restaurantId: id }));
-  }
+export function getDishes(restaurantId: string): Dish[] {
+  const raw = localStorage.getItem(dishesKey(restaurantId));
+  if (!raw) return [];
   return JSON.parse(raw);
 }
 
@@ -226,12 +223,9 @@ export function saveDishes(restaurantId: string, dishes: Dish[]) {
   dispatchDataChange(restaurantId);
 }
 
-export function getRestaurantConfig(restaurantId?: string): RestaurantConfig {
-  const id = restaurantId || "rest_001";
-  const raw = localStorage.getItem(configKey(id));
-  if (!raw) {
-    return { ...defaultRestaurantConfig };
-  }
+export function getRestaurantConfig(restaurantId: string): RestaurantConfig | null {
+  const raw = localStorage.getItem(configKey(restaurantId));
+  if (!raw) return null;
   return JSON.parse(raw);
 }
 
@@ -256,6 +250,7 @@ export function resetToDefault(restaurantId: string) {
     nameAr,
     nameFr,
   }));
+  dispatchDataChange(restaurantId);
 }
 
 // ───────────────────────────────────────────

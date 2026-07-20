@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, Store, Trash2, ExternalLink,
-    Users, Shield, AlertTriangle,
-    Search, Eye, LogOut, Plus,
+  Users, Shield, AlertTriangle,
+  Search, Eye, LogOut, Plus, Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -227,16 +227,25 @@ export default function SuperAdmin() {
                         <span className="text-white/60 font-semibold">{r.categoriesCount}</span>
                       </td>
                       <td className="py-3.5 px-5">
-                        <div className="flex items-center justify-center gap-1">
-                          <Link to={`/?restaurant=${r.id}`} target="_blank">
-                            <Button
-                              variant="ghost" size="sm"
-                              className="text-white/30 hover:text-white/60 hover:bg-white/5 h-8 w-8 p-0"
-                              title="عرض القائمة"
-                            >
-                              <ExternalLink className="h-3.5 w-3.5" />
-                            </Button>
-                          </Link>
+                                              <div className="flex items-center justify-center gap-1">
+                                                <Link to={`/?restaurant=${r.id}`} target="_blank">
+                                                  <Button
+                                                    variant="ghost" size="sm"
+                                                    className="text-white/30 hover:text-white/60 hover:bg-white/5 h-8 w-8 p-0"
+                                                    title="عرض المنيو"
+                                                  >
+                                                    <Eye className="h-3.5 w-3.5" />
+                                                  </Button>
+                                                </Link>
+                                                <Link to={`/admin?as=${r.id}`} target="_blank">
+                                                  <Button
+                                                    variant="ghost" size="sm"
+                                                    className="text-[#C8A24D]/60 hover:text-[#C8A24D] hover:bg-white/5 h-8 w-8 p-0"
+                                                    title="فتح لوحة التحكم"
+                                                  >
+                                                    <Settings className="h-3.5 w-3.5" />
+                                                  </Button>
+                                                </Link>
                           {selectedForDelete === r.id ? (
                             <div className="flex items-center gap-1">
                               <Button
