@@ -108,11 +108,17 @@ export function registerUser(
   };
 
   saveRestaurant(newId, newRestaurant);
-  
-    // إنشاء بيانات افتراضية للمطعم الجديد
-    seedDefaultData(newId, restaurantNameAr, restaurantNameFr);
-  
-    return { id: userId, email: emailKey, restaurantId: newId };
+
+  // نسخ البيانات الافتراضية مع restaurantId الجديد
+  const userCategories = defaultCategories.map((c) => ({ ...c, restaurantId: newId }));
+  const userDishes = defaultDishes.map((d) => ({ ...d, restaurantId: newId }));
+  const userConfig: RestaurantConfig = { ...defaultRestaurantConfig, nameAr: restaurantNameAr, nameFr: restaurantNameFr };
+
+  localStorage.setItem(catsKey(newId), JSON.stringify(userCategories));
+  localStorage.setItem(dishesKey(newId), JSON.stringify(userDishes));
+  localStorage.setItem(configKey(newId), JSON.stringify(userConfig));
+
+  return { id: userId, email: emailKey, restaurantId: newId };
 }
 
 export function loginUser(email: string, password: string): AuthUser {
@@ -228,32 +234,23 @@ export function saveRestaurantConfig(restaurantId: string, config: RestaurantCon
   dispatchDataChange(restaurantId);
 }
 
-export function seedDefaultData(
-  restaurantId: string,
-  nameAr?: string,
-  nameFr?: string,
-) {
-  const r = getRestaurantById(restaurantId);
-  const finalNameAr = nameAr || r?.nameAr || defaultRestaurantConfig.nameAr;
-  const finalNameFr = nameFr || r?.nameFr || defaultRestaurantConfig.nameFr;
-
-  const seededCategories = defaultCategories.map((c) => ({ ...c, restaurantId }));
-  const seededDishes = defaultDishes.map((d) => ({ ...d, restaurantId }));
-  const seededConfig: RestaurantConfig = {
-    ...defaultRestaurantConfig,
-    nameAr: finalNameAr,
-    nameFr: finalNameFr,
-  };
-
-  localStorage.setItem(catsKey(restaurantId), JSON.stringify(seededCategories));
-  localStorage.setItem(dishesKey(restaurantId), JSON.stringify(seededDishes));
-  localStorage.setItem(configKey(restaurantId), JSON.stringify(seededConfig));
-
-  dispatchDataChange(restaurantId);
-}
-
 export function resetToDefault(restaurantId: string) {
-  seedDefaultData(restaurantId);
+  const r = getRestaurantById(restaurantId);
+  const nameAr = r?.nameAr || defaultRestaurantConfig.nameAr;
+  const nameFr = r?.nameFr || defaultRestaurantConfig.nameFr;
+
+  localStorage.setItem(catsKey(restaurantId), JSON.stringify(
+    defaultCategories.map((c) => ({ ...c, restaurantId }))
+  ));
+  localStorage.setItem(dishesKey(restaurantId), JSON.stringify(
+    defaultDishes.map((d) => ({ ...d, restaurantId }))
+  ));
+  localStorage.setItem(configKey(restaurantId), JSON.stringify({
+    ...defaultRestaurantConfig,
+    nameAr,
+    nameFr,
+  }));
+  dispatchDataChange(restaurantId);
 }
 
 // ───────────────────────────────────────────
