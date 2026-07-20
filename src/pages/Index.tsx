@@ -4,7 +4,7 @@ import {
   getCategories,
   getDishes,
   getRestaurantConfig,
-  getRestaurantById,
+  subscribeToDataChanges,
 } from "../utils/storage";
 import { Category, Dish, RestaurantConfig } from "../types";
 import ClientView from "../components/ClientView";
@@ -12,27 +12,28 @@ import { Settings } from "lucide-react";
 
 export default function Index() {
   const [searchParams] = useSearchParams();
-  const requestedRestaurantId = searchParams.get("restaurant");
+  // استخدم rest_001 كافتراضي، وليس undefined (هذا هو الإصلاح الأساسي)
+  const restaurantId = searchParams.get("restaurant") || "rest_001";
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
 
   useEffect(() => {
-    const id = requestedRestaurantId || undefined;
-    setCategories(getCategories(id));
-    setDishes(getDishes(id));
-    setConfig(getRestaurantConfig(id));
-
-    const handleStorageChange = () => {
-      setCategories(getCategories(id));
-      setDishes(getDishes(id));
-      setConfig(getRestaurantConfig(id));
+    // دالة إعادة التحميل
+    const loadData = () => {
+      setCategories(getCategories(restaurantId));
+      setDishes(getDishes(restaurantId));
+      setConfig(getRestaurantConfig(restaurantId));
     };
 
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, [requestedRestaurantId]);
+    // تحميل أولي
+    loadData();
+
+    // اشتراك في حدث التزامن (يغطي: نفس التاب + تاب آخر + متصفح آخر)
+    const unsubscribe = subscribeToDataChanges(loadData);
+    return unsubscribe;
+  }, [restaurantId]);
 
   if (!config) {
     return (

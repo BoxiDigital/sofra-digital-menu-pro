@@ -198,33 +198,46 @@ export function updateRestaurant(id: string, updates: Partial<Restaurant>) {
 // ───────────────────────────────────────────
 
 export function getCategories(restaurantId?: string): Category[] {
-  if (!restaurantId) return defaultCategories;
-  const raw = localStorage.getItem(catsKey(restaurantId));
-  return raw ? JSON.parse(raw) : defaultCategories.map((c) => ({ ...c, restaurantId }));
+  const id = restaurantId || "rest_001";
+  const raw = localStorage.getItem(catsKey(id));
+  if (!raw) {
+    // فقط لو ما فيهاش بيانات مخزنة نرجع الافتراضية
+    return defaultCategories.map((c) => ({ ...c, restaurantId: id }));
+  }
+  return JSON.parse(raw);
 }
 
 export function saveCategories(restaurantId: string, categories: Category[]) {
   localStorage.setItem(catsKey(restaurantId), JSON.stringify(categories));
+  dispatchDataChange(restaurantId);
 }
 
 export function getDishes(restaurantId?: string): Dish[] {
-  if (!restaurantId) return defaultDishes;
-  const raw = localStorage.getItem(dishesKey(restaurantId));
-  return raw ? JSON.parse(raw) : defaultDishes.map((d) => ({ ...d, restaurantId }));
+  const id = restaurantId || "rest_001";
+  const raw = localStorage.getItem(dishesKey(id));
+  if (!raw) {
+    return defaultDishes.map((d) => ({ ...d, restaurantId: id }));
+  }
+  return JSON.parse(raw);
 }
 
 export function saveDishes(restaurantId: string, dishes: Dish[]) {
   localStorage.setItem(dishesKey(restaurantId), JSON.stringify(dishes));
+  dispatchDataChange(restaurantId);
 }
 
 export function getRestaurantConfig(restaurantId?: string): RestaurantConfig {
-  if (!restaurantId) return defaultRestaurantConfig;
-  const raw = localStorage.getItem(configKey(restaurantId));
-  return raw ? JSON.parse(raw) : defaultRestaurantConfig;
+  const id = restaurantId || "rest_001";
+  const raw = localStorage.getItem(configKey(id));
+  if (!raw) {
+    return { ...defaultRestaurantConfig };
+  }
+  return JSON.parse(raw);
 }
 
 export function saveRestaurantConfig(restaurantId: string, config: RestaurantConfig) {
   localStorage.setItem(configKey(restaurantId), JSON.stringify(config));
+  dispatchDataChange(restaurantId);
 }
 
 export function resetToDefault(restaurantId: string) {
@@ -243,6 +256,28 @@ export function resetToDefault(restaurantId: string) {
     nameAr,
     nameFr,
   }));
+}
+
+// ───────────────────────────────────────────
+// حدث مخصص للتزامن الفوري (حتى داخل نفس التاب)
+// ───────────────────────────────────────────
+
+export const DATA_CHANGE_EVENT = "sofra_data_change";
+
+function dispatchDataChange(restaurantId: string) {
+  window.dispatchEvent(
+    new CustomEvent(DATA_CHANGE_EVENT, { detail: { restaurantId } })
+  );
+}
+
+export function subscribeToDataChanges(callback: () => void): () => void {
+  const handler = () => callback();
+  window.addEventListener(DATA_CHANGE_EVENT, handler);
+  window.addEventListener("storage", handler);
+  return () => {
+    window.removeEventListener(DATA_CHANGE_EVENT, handler);
+    window.removeEventListener("storage", handler);
+  };
 }
 
 // ───────────────────────────────────────────
