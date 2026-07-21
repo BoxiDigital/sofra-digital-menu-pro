@@ -109,16 +109,10 @@ export function registerUser(
 
   saveRestaurant(newId, newRestaurant);
 
-  // نسخ البيانات الافتراضية مع restaurantId الجديد
-  const userCategories = defaultCategories.map((c) => ({ ...c, restaurantId: newId }));
-  const userDishes = defaultDishes.map((d) => ({ ...d, restaurantId: newId }));
-  const userConfig: RestaurantConfig = { ...defaultRestaurantConfig, nameAr: restaurantNameAr, nameFr: restaurantNameFr };
-
-  localStorage.setItem(catsKey(newId), JSON.stringify(userCategories));
-  localStorage.setItem(dishesKey(newId), JSON.stringify(userDishes));
-  localStorage.setItem(configKey(newId), JSON.stringify(userConfig));
-
-  return { id: userId, email: emailKey, restaurantId: newId };
+  // تهيئة بيانات المطعم الجديد (أطباق، فئات، إعدادات)
+    seedDefaultData(newId);
+  
+    return { id: userId, email: emailKey, restaurantId: newId };
 }
 
 export function loginUser(email: string, password: string): AuthUser {
@@ -189,6 +183,38 @@ export function restaurantExists(id: string): boolean {
   return !!getRestaurantsMap()[id];
 }
 
+/**
+ * تهيئة بيانات مطعم جديد بالبيانات الافتراضية (أطباق، فئات، إعدادات).
+ * تستخدم عند تسجيل مطعم جديد أو عند الحاجة لإعادة التهيئة.
+ */
+export function seedDefaultData(restaurantId: string): RestaurantConfig | null {
+  const r = getRestaurantById(restaurantId);
+  if (!r) {
+    console.warn(`seedDefaultData: المطعم ${restaurantId} غير موجود في السجل`);
+    return null;
+  }
+
+  const nameAr = r.nameAr;
+  const nameFr = r.nameFr;
+
+  localStorage.setItem(catsKey(restaurantId), JSON.stringify(
+    defaultCategories.map((c) => ({ ...c, restaurantId }))
+  ));
+  localStorage.setItem(dishesKey(restaurantId), JSON.stringify(
+    defaultDishes.map((d) => ({ ...d, restaurantId }))
+  ));
+
+  const config: RestaurantConfig = {
+    ...defaultRestaurantConfig,
+    nameAr,
+    nameFr,
+  };
+  localStorage.setItem(configKey(restaurantId), JSON.stringify(config));
+
+  dispatchDataChange(restaurantId);
+  return config;
+}
+
 export function updateRestaurant(id: string, updates: Partial<Restaurant>) {
   const map = getRestaurantsMap();
   if (map[id]) {
@@ -235,22 +261,7 @@ export function saveRestaurantConfig(restaurantId: string, config: RestaurantCon
 }
 
 export function resetToDefault(restaurantId: string) {
-  const r = getRestaurantById(restaurantId);
-  const nameAr = r?.nameAr || defaultRestaurantConfig.nameAr;
-  const nameFr = r?.nameFr || defaultRestaurantConfig.nameFr;
-
-  localStorage.setItem(catsKey(restaurantId), JSON.stringify(
-    defaultCategories.map((c) => ({ ...c, restaurantId }))
-  ));
-  localStorage.setItem(dishesKey(restaurantId), JSON.stringify(
-    defaultDishes.map((d) => ({ ...d, restaurantId }))
-  ));
-  localStorage.setItem(configKey(restaurantId), JSON.stringify({
-    ...defaultRestaurantConfig,
-    nameAr,
-    nameFr,
-  }));
-  dispatchDataChange(restaurantId);
+  seedDefaultData(restaurantId);
 }
 
 // ───────────────────────────────────────────
