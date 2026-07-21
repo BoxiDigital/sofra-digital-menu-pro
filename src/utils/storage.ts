@@ -108,18 +108,12 @@ export function registerUser(
   };
 
   saveRestaurant(newId, newRestaurant);
-
-  // نسخ البيانات الافتراضية مع restaurantId الجديد
-  const userCategories = defaultCategories.map((c) => ({ ...c, restaurantId: newId }));
-  const userDishes = defaultDishes.map((d) => ({ ...d, restaurantId: newId }));
-  const userConfig: RestaurantConfig = { ...defaultRestaurantConfig, nameAr: restaurantNameAr, nameFr: restaurantNameFr };
-
-  localStorage.setItem(catsKey(newId), JSON.stringify(userCategories));
-  localStorage.setItem(dishesKey(newId), JSON.stringify(userDishes));
-  localStorage.setItem(configKey(newId), JSON.stringify(userConfig));
-
-  return { id: userId, email: emailKey, restaurantId: newId };
-}
+  
+    // ملء المطعم الجديد ببيانات افتراضية فور التسجيل
+    seedDefaultData(newId, restaurantNameAr, restaurantNameFr);
+  
+    return { id: userId, email: emailKey, restaurantId: newId };
+  }
 
 export function loginUser(email: string, password: string): AuthUser {
   const users = getUsers();
@@ -234,23 +228,31 @@ export function saveRestaurantConfig(restaurantId: string, config: RestaurantCon
   dispatchDataChange(restaurantId);
 }
 
-export function resetToDefault(restaurantId: string) {
+export function seedDefaultData(
+  restaurantId: string,
+  nameAr?: string,
+  nameFr?: string,
+) {
   const r = getRestaurantById(restaurantId);
-  const nameAr = r?.nameAr || defaultRestaurantConfig.nameAr;
-  const nameFr = r?.nameFr || defaultRestaurantConfig.nameFr;
+  const finalNameAr = nameAr || r?.nameAr || defaultRestaurantConfig.nameAr;
+  const finalNameFr = nameFr || r?.nameFr || defaultRestaurantConfig.nameFr;
 
   localStorage.setItem(catsKey(restaurantId), JSON.stringify(
-    defaultCategories.map((c) => ({ ...c, restaurantId }))
+    defaultCategories.map((c) => ({ ...c, restaurantId })),
   ));
   localStorage.setItem(dishesKey(restaurantId), JSON.stringify(
-    defaultDishes.map((d) => ({ ...d, restaurantId }))
+    defaultDishes.map((d) => ({ ...d, restaurantId })),
   ));
   localStorage.setItem(configKey(restaurantId), JSON.stringify({
     ...defaultRestaurantConfig,
-    nameAr,
-    nameFr,
+    nameAr: finalNameAr,
+    nameFr: finalNameFr,
   }));
   dispatchDataChange(restaurantId);
+}
+
+export function resetToDefault(restaurantId: string) {
+  seedDefaultData(restaurantId);
 }
 
 // ───────────────────────────────────────────
@@ -313,9 +315,7 @@ export function seedDefaultAdmin() {
       currencyFr: defaultRestaurantConfig.currencyFr,
     };
     saveRestaurant("rest_001", map["rest_001"]);
-
-    localStorage.setItem(catsKey("rest_001"), JSON.stringify(defaultCategories));
-    localStorage.setItem(dishesKey("rest_001"), JSON.stringify(defaultDishes));
-    localStorage.setItem(configKey("rest_001"), JSON.stringify(defaultRestaurantConfig));
-  }
-}
+    
+        seedDefaultData("rest_001");
+      }
+    }
