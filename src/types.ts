@@ -1,32 +1,11 @@
-export interface Restaurant {
-  id: string;
-  nameAr: string;
-  nameFr: string;
-  slug: string;
-  sloganAr: string;
-  sloganFr: string;
-  logoUrl: string;
-  coverUrl?: string;
-  workingHoursAr: string;
-  workingHoursFr: string;
-  whatsappNumber: string;
-  whatsappMessageAr: string;
-  whatsappMessageFr: string;
-  primaryColor: string;
-  backgroundColor: "cream" | "dark" | "white";
-  currencyAr: string;
-  currencyFr: string;
-}
-
 export interface Dish {
   id: string;
-  restaurantId: string;
   nameAr: string;
   nameFr: string;
   descriptionAr: string;
   descriptionFr: string;
   price: number;
-  category: string;
+  category: string; // category ID
   image: string;
   isAvailable: boolean;
   isNew?: boolean;
@@ -43,10 +22,9 @@ export interface Dish {
 
 export interface Category {
   id: string;
-  restaurantId: string;
   nameAr: string;
   nameFr: string;
-  icon: string;
+  icon: string; // Lucide icon name
 }
 
 export interface RestaurantConfig {
@@ -61,8 +39,8 @@ export interface RestaurantConfig {
   whatsappNumber: string;
   whatsappMessageAr: string;
   whatsappMessageFr: string;
-  primaryColor: string;
-  backgroundColor: "cream" | "dark" | "white";
+  primaryColor: string; // hex color
+  backgroundColor: 'cream' | 'dark' | 'white';
   currencyAr: string;
   currencyFr: string;
 }
@@ -70,10 +48,4 @@ export interface RestaurantConfig {
 export interface CartItem {
   dish: Dish;
   quantity: number;
-}
-
-export interface AuthUser {
-  id: string;
-  email: string;
-  restaurantId: string;
 }
