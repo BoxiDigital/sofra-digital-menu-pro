@@ -8,7 +8,6 @@ import {
   saveDishes,
   saveRestaurantConfig,
   resetToDefault,
-  seedDefaultData,
   getRestaurantById,
   getRestaurants,
 } from "../utils/storage";
@@ -42,18 +41,8 @@ export default function Admin() {
   };
 
   useEffect(() => {
-      loadData();
-    }, [effectiveRestaurantId]);
-  
-    // تهيئة تلقائية للمطعم الجديد إذا لم تكن بياناته موجودة بعد
-    useEffect(() => {
-      if (config === null && restaurant) {
-        const seeded = seedDefaultData(effectiveRestaurantId);
-        if (seeded) {
-          loadData();
-        }
-      }
-    }, [config, restaurant, effectiveRestaurantId]);
+    loadData();
+  }, [effectiveRestaurantId]);
 
   const handleUpdateCategories = (newCategories: Category[]) => {
     setCategories(newCategories);
@@ -90,32 +79,26 @@ export default function Admin() {
     setSearchParams({ as: id });
   };
 
-  if (!restaurant) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
-          <div className="text-center space-y-4">
-            <div className="text-[#C8A24D] font-bold text-lg">
-              المطعم غير موجود
-            </div>
-            <p className="text-white/25 text-sm">
-              المطعم <code className="bg-white/[0.05] px-2 py-0.5 rounded">{effectiveRestaurantId}</code> غير مسجل في النظام
-            </p>
+  if (!config) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
+        <div className="text-center space-y-4">
+          <div className="animate-pulse text-[#C8A24D] font-bold text-lg">
+            جاري تحميل لوحة التحكم...
           </div>
+          <p className="text-white/25 text-sm">
+            المطعم <code className="bg-white/[0.05] px-2 py-0.5 rounded">{effectiveRestaurantId}</code> غير مهيأ بعد
+          </p>
+          <Button
+            onClick={() => resetToDefault(effectiveRestaurantId)}
+            className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl mt-2"
+          >
+            تهيئة المطعم ببيانات افتراضية
+          </Button>
         </div>
-      );
-    }
-  
-    if (!config) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
-          <div className="text-center space-y-4">
-            <div className="animate-pulse text-[#C8A24D] font-bold text-lg">
-              جاري تهيئة المطعم...
-            </div>
-          </div>
-        </div>
-      );
-    }
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0D0D0D]">
