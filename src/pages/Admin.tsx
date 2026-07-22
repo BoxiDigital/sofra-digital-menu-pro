@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { 
-  getCategories, 
-  getDishes, 
-  getRestaurantConfig, 
-  saveCategories, 
-  saveDishes, 
+import {
+  getCategories,
+  getDishes,
+  getRestaurantConfig,
+  saveCategories,
+  saveDishes,
   saveRestaurantConfig,
   resetToDefault
 } from "../utils/storage";
@@ -13,40 +13,44 @@ import { Category, Dish, RestaurantConfig } from "../types";
 import AdminView from "../components/AdminView";
 import { ArrowLeft, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Admin() {
+  const { user } = useAuth();
+  const restaurantId = user?.restaurantId || "rest_001";
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
 
   const loadData = () => {
-    setCategories(getCategories());
-    setDishes(getDishes());
-    setConfig(getRestaurantConfig());
+    setCategories(getCategories(restaurantId));
+    setDishes(getDishes(restaurantId));
+    setConfig(getRestaurantConfig(restaurantId));
   };
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [restaurantId]);
 
   const handleUpdateCategories = (newCategories: Category[]) => {
     setCategories(newCategories);
-    saveCategories(newCategories);
+    saveCategories(restaurantId, newCategories);
   };
 
   const handleUpdateDishes = (newDishes: Dish[]) => {
     setDishes(newDishes);
-    saveDishes(newDishes);
+    saveDishes(restaurantId, newDishes);
   };
 
   const handleUpdateConfig = (newConfig: RestaurantConfig) => {
     setConfig(newConfig);
-    saveRestaurantConfig(newConfig);
+    saveRestaurantConfig(restaurantId, newConfig);
   };
 
   const handleReset = () => {
     if (confirm("هل أنت متأكد من إعادة تعيين جميع البيانات إلى القيم الافتراضية؟ سيتم فقدان أي تغييرات قمت بها.")) {
-      resetToDefault();
+      resetToDefault(restaurantId);
       loadData();
     }
   };

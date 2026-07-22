@@ -1,31 +1,30 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { getCategories, getDishes, getRestaurantConfig } from "../utils/storage";
+import { Link, useSearchParams } from "react-router-dom";
+import { getCategories, getDishes, getRestaurantConfig, subscribeToDataChanges } from "../utils/storage";
 import { Category, Dish, RestaurantConfig } from "../types";
 import ClientView from "../components/ClientView";
 import { Settings } from "lucide-react";
 
 export default function Index() {
+  const [searchParams] = useSearchParams();
+  const restaurantId = searchParams.get("restaurant") || "rest_001";
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
 
   useEffect(() => {
-    // Load data from localStorage (will initialize with defaults if empty)
-    setCategories(getCategories());
-    setDishes(getDishes());
-    setConfig(getRestaurantConfig());
-
-    // Listen for storage changes (in case admin updates in another tab)
-    const handleStorageChange = () => {
-      setCategories(getCategories());
-      setDishes(getDishes());
-      setConfig(getRestaurantConfig());
+    const loadData = () => {
+      setCategories(getCategories(restaurantId));
+      setDishes(getDishes(restaurantId));
+      setConfig(getRestaurantConfig(restaurantId));
     };
 
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+    loadData();
+
+    const unsubscribe = subscribeToDataChanges(loadData);
+    return unsubscribe;
+  }, [restaurantId]);
 
   if (!config) {
     return (
