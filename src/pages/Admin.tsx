@@ -68,8 +68,8 @@ export default function Admin() {
       {/* Top Bar to go back to Client View */}
       <div className="bg-white/[0.03] border-b border-white/[0.06] text-white/70 py-2 px-4 text-xs flex justify-between items-center" dir="rtl">
         <span>أنت في وضع الإدارة والتعديل</span>
-        <Link to="/">
-          <Button size="sm" variant="ghost" className="text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 h-7 gap-1">
+        <Link to={`/?restaurant=${restaurantId}`}>
+                  <Button size="sm" variant="ghost" className="text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 h-7 gap-1">
             <Eye className="h-3.5 w-3.5" />
             <span>عرض المنيو كزبون</span>
           </Button>
