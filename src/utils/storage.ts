@@ -134,8 +134,9 @@ export function loginUser(email: string, password: string): AuthUser {
   return { id: user.id, email: user.email, restaurantId: user.restaurantId };
 }
 
-export function isSuperAdmin(email: string): boolean {
-  return email === "admin@sofra.com";
+// المدير العام هو مالك أول مطعم مسجل (rest_001)
+export function isSuperAdmin(restaurantId: string): boolean {
+  return restaurantId === "rest_001";
 }
 
 // ───────────────────────────────────────────
@@ -278,49 +279,4 @@ export function subscribeToDataChanges(callback: () => void): () => void {
     window.removeEventListener(DATA_CHANGE_EVENT, handler);
     window.removeEventListener("storage", handler);
   };
-}
-
-// ───────────────────────────────────────────
-// تهيئة: إنشاء المستخدم الإداري الافتراضي
-// ───────────────────────────────────────────
-
-export function seedDefaultAdmin() {
-  const users = getUsers();
-  if (!users["admin@sofra.com"]) {
-    users["admin@sofra.com"] = {
-      id: "user_superadmin",
-      email: "admin@sofra.com",
-      restaurantId: "rest_001",
-      passwordHash: hashPassword("admin123"),
-    };
-    saveUsers(users);
-  }
-
-  const map = getRestaurantsMap();
-  if (!map["rest_001"]) {
-    map["rest_001"] = {
-      id: "rest_001",
-      nameAr: defaultRestaurantConfig.nameAr,
-      nameFr: defaultRestaurantConfig.nameFr,
-      slug: "chez-nous",
-      sloganAr: defaultRestaurantConfig.sloganAr,
-      sloganFr: defaultRestaurantConfig.sloganFr,
-      logoUrl: defaultRestaurantConfig.logoUrl,
-      coverUrl: defaultRestaurantConfig.coverUrl,
-      workingHoursAr: defaultRestaurantConfig.workingHoursAr,
-      workingHoursFr: defaultRestaurantConfig.workingHoursFr,
-      whatsappNumber: defaultRestaurantConfig.whatsappNumber,
-      whatsappMessageAr: defaultRestaurantConfig.whatsappMessageAr,
-      whatsappMessageFr: defaultRestaurantConfig.whatsappMessageFr,
-      primaryColor: defaultRestaurantConfig.primaryColor,
-      backgroundColor: defaultRestaurantConfig.backgroundColor,
-      currencyAr: defaultRestaurantConfig.currencyAr,
-      currencyFr: defaultRestaurantConfig.currencyFr,
-    };
-    saveRestaurant("rest_001", map["rest_001"]);
-
-    localStorage.setItem(catsKey("rest_001"), JSON.stringify(defaultCategories));
-    localStorage.setItem(dishesKey("rest_001"), JSON.stringify(defaultDishes));
-    localStorage.setItem(configKey("rest_001"), JSON.stringify(defaultRestaurantConfig));
-  }
 }

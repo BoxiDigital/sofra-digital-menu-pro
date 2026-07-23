@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { AuthUser } from "../types";
-import { loginUser, registerUser, seedDefaultAdmin, isSuperAdmin } from "../utils/storage";
+import { loginUser, registerUser, isSuperAdmin } from "../utils/storage";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -19,15 +19,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // تهيئة المستخدم الإداري الافتراضي
-    seedDefaultAdmin();
-
-    const stored = localStorage.getItem("sofra_auth_user");
-    if (stored) {
-      setUser(JSON.parse(stored));
-    }
-    setIsLoading(false);
-  }, []);
+      const stored = localStorage.getItem("sofra_auth_user");
+      if (stored) {
+        setUser(JSON.parse(stored));
+      }
+      setIsLoading(false);
+    }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
@@ -76,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         isAuthenticated: !!user,
-        isSuperAdmin: user ? isSuperAdmin(user.email) : false,
+        isSuperAdmin: user ? isSuperAdmin(user.restaurantId) : false,
       }}
     >
       {children}

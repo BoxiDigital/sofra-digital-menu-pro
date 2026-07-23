@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { Link, useNavigate, Navigate } from "react-router-dom";
 import { Mail, Lock, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -135,9 +135,9 @@ export default function Login() {
 
         <div className="text-center text-xs text-white/25">
           لا تملك حساب؟{" "}
-          <a href="/register" className="text-[#C8A24D] hover:text-[#D4B35D] font-medium transition-colors">
+          <Link to="/register" className="text-[#C8A24D] hover:text-[#D4B35D] font-medium transition-colors">
             سجل مطعمك الآن
-          </a>
+          </Link>
         </div>
       </div>
     </div>
