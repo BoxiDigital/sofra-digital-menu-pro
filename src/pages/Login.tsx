@@ -16,11 +16,11 @@ export default function Login() {
 
   const { login, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   if (!isLoading && isAuthenticated) {
     return <Navigate to="/admin" replace />;
   }
-  const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

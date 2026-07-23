@@ -5,50 +5,50 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function Register() {
   const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [nameAr, setNameAr] = useState("");
-    const [nameFr, setNameFr] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [nameAr, setNameAr] = useState("");
+  const [nameFr, setNameFr] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const { register, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   if (!authLoading && isAuthenticated) {
     return <Navigate to="/admin" replace />;
   }
-  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setError("");
-  
-      if (password !== confirmPassword) {
-        setError("كلمة المرور غير متطابقة");
-        return;
-      }
-  
-      if (password.length < 6) {
-        setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
-        return;
-      }
-  
-      setIsSubmitting(true);
-  
-      try {
-        await register(email, password, nameAr, nameFr);
-        toast({
-          title: "تم التسجيل بنجاح",
-          description: "مرحباً بك في سفرة",
-        });
-        navigate("/admin");
-      } catch (err: any) {
-        setError(err.message || "حدث خطأ في التسجيل");
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
+    e.preventDefault();
+    setError("");
+
+    if (password !== confirmPassword) {
+      setError("كلمة المرور غير متطابقة");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await register(email, password, nameAr, nameFr);
+      toast({
+        title: "تم التسجيل بنجاح",
+        description: "مرحباً بك في سفرة",
+      });
+      navigate("/admin");
+    } catch (err: any) {
+      setError(err.message || "حدث خطأ في التسجيل");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
@@ -80,6 +80,38 @@ export default function Register() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="example@gmail.com"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="nameAr" className="block text-sm font-medium text-gray-700">
+                اسم المطعم (بالعربية)
+              </label>
+              <input
+                id="nameAr"
+                name="nameAr"
+                type="text"
+                required
+                value={nameAr}
+                onChange={(e) => setNameAr(e.target.value)}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="مطعم الأصالة"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="nameFr" className="block text-sm font-medium text-gray-700">
+                اسم المطعم (بالفرنسية)
+              </label>
+              <input
+                id="nameFr"
+                name="nameFr"
+                type="text"
+                required
+                value={nameFr}
+                onChange={(e) => setNameFr(e.target.value)}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Restaurant Al Asala"
               />
             </div>
 
