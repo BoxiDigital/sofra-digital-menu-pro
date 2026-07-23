@@ -17,11 +17,6 @@ import { useAuth } from "../contexts/AuthContext";
 
 export default function Admin() {
   const { user, isLoading } = useAuth();
-
-  if (!isLoading && !user) {
-    return <Navigate to="/login" replace />;
-  }
-
   const restaurantId = user?.restaurantId || "rest_001";
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -60,7 +55,12 @@ export default function Admin() {
     }
   };
 
-  if (!config) {
+  // All hooks called above — early returns below are safe
+  if (!isLoading && !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (isLoading || !config) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
         <div className="animate-pulse text-[#C8A24D] font-bold text-lg">جاري تحميل لوحة التحكم...</div>
