@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -9,11 +9,15 @@ export default function Register() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [nameAr, setNameAr] = useState("");
     const [nameFr, setNameFr] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
 
-  const { register } = useAuth();
+  const { register, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  if (!authLoading && isAuthenticated) {
+    return <Navigate to="/admin" replace />;
+  }
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,7 +34,7 @@ export default function Register() {
         return;
       }
   
-      setIsLoading(true);
+      setIsSubmitting(true);
   
       try {
         await register(email, password, nameAr, nameFr);
@@ -42,7 +46,7 @@ export default function Register() {
       } catch (err: any) {
         setError(err.message || "حدث خطأ في التسجيل");
       } finally {
-        setIsLoading(false);
+        setIsSubmitting(false);
       }
     };
 
@@ -117,10 +121,10 @@ export default function Register() {
           <div>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isSubmitting}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? (
+              {isSubmitting ? (
                 <span className="flex items-center">
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

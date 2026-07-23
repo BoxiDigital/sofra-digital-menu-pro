@@ -1,5 +1,7 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dish, Category, RestaurantConfig } from "../types";
+import { useAuth } from "../contexts/AuthContext";
 import { 
   Plus, 
   Edit, 
@@ -67,10 +69,14 @@ export default function AdminView({
   onUpdateConfig,
   onReset,
 }: AdminViewProps) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [email, setEmail] = useState("admin@sofra.com");
-  const [password, setPassword] = useState("admin123");
   const { toast } = useToast();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
   const [dishForm, setDishForm] = useState<Partial<Dish>>({});
@@ -84,16 +90,6 @@ export default function AdminView({
 
   const availableDishes = dishes.filter((d) => d.isAvailable);
   const unavailableDishes = dishes.filter((d) => !d.isAvailable);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email === "admin@sofra.com" && password === "admin123") {
-      setIsLoggedIn(true);
-      toast({ title: "تم تسجيل الدخول بنجاح", description: "مرحباً بك في لوحة تحكم مطعم شِي نُو" });
-    } else {
-      toast({ title: "خطأ في تسجيل الدخول", description: "البريد الإلكتروني أو كلمة المرور غير صحيحة", variant: "destructive" });
-    }
-  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "dish" | "logo" | "cover") => {
     const file = e.target.files?.[0];
@@ -218,43 +214,6 @@ export default function AdminView({
     }
   };
 
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D] px-4 py-12" dir="rtl">
-        <div className="max-w-md w-full space-y-8 bg-white/[0.03] p-8 rounded-2xl border border-white/[0.06] backdrop-blur-sm">
-          <div className="text-center">
-            <div className="mx-auto h-14 w-14 rounded-2xl bg-[#C8A24D]/15 flex items-center justify-center text-[#C8A24D] mb-5 border border-[#C8A24D]/20">
-              <Lock className="h-7 w-7" />
-            </div>
-            <h2 className="text-2xl font-extrabold text-white">لوحة تحكم المدير</h2>
-            <p className="mt-2 text-sm text-white/40">سجل الدخول لإدارة قائمة الطعام وتخصيص المظهر</p>
-          </div>
-          <form className="mt-8 space-y-5" onSubmit={handleLogin}>
-            <div className="space-y-4">
-              <div>
-                <Label className="text-white/70 text-sm">البريد الإلكتروني</Label>
-                <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 rounded-xl h-11" placeholder="admin@sofra.com" />
-              </div>
-              <div>
-                <Label className="text-white/70 text-sm">كلمة المرور</Label>
-                <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 rounded-xl h-11" placeholder="••••••••" />
-              </div>
-            </div>
-            <div className="bg-[#C8A24D]/10 border border-[#C8A24D]/20 rounded-xl p-3.5 text-xs text-[#C8A24D] flex items-start gap-2.5">
-              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold">بيانات الدخول التجريبية:</span><br />
-                البريد: <code className="font-mono text-white/60">admin@sofra.com</code><br />
-                الرمز: <code className="font-mono text-white/60">admin123</code>
-              </div>
-            </div>
-            <Button type="submit" className="w-full py-6 bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl text-base">تسجيل الدخول</Button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#0D0D0D] pb-12" dir="rtl">
       <header className="bg-white/[0.02] border-b border-white/[0.06] sticky top-0 z-40 backdrop-blur-sm">
@@ -270,9 +229,9 @@ export default function AdminView({
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-white/30 hidden sm:block">مرحباً، مدير المطعم</span>
-            <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl" onClick={() => setIsLoggedIn(false)}>
-              <LogOut className="h-4 w-4 ml-1.5" /><span>خروج</span>
-            </Button>
+                        <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl" onClick={handleLogout}>
+                          <LogOut className="h-4 w-4 ml-1.5" /><span>خروج</span>
+                        </Button>
           </div>
         </div>
       </header>

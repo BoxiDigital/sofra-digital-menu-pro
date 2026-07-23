@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import {
   getCategories,
   getDishes,
@@ -16,7 +16,12 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Admin() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  if (!isLoading && !user) {
+    return <Navigate to="/login" replace />;
+  }
+
   const restaurantId = user?.restaurantId || "rest_001";
 
   const [categories, setCategories] = useState<Category[]>([]);
