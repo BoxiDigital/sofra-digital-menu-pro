@@ -7,8 +7,6 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [nameAr, setNameAr] = useState("");
-  const [nameFr, setNameFr] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -37,7 +35,7 @@ export default function Register() {
     setIsSubmitting(true);
 
     try {
-      await register(email, password, nameAr, nameFr);
+      await register(email, password);
       toast({
         title: "تم التسجيل بنجاح",
         description: "مرحباً بك في سفرة",
@@ -80,38 +78,6 @@ export default function Register() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="example@gmail.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="nameAr" className="block text-sm font-medium text-gray-700">
-                اسم المطعم (بالعربية)
-              </label>
-              <input
-                id="nameAr"
-                name="nameAr"
-                type="text"
-                required
-                value={nameAr}
-                onChange={(e) => setNameAr(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="مطعم الأصالة"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="nameFr" className="block text-sm font-medium text-gray-700">
-                اسم المطعم (بالفرنسية)
-              </label>
-              <input
-                id="nameFr"
-                name="nameFr"
-                type="text"
-                required
-                value={nameFr}
-                onChange={(e) => setNameFr(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Restaurant Al Asala"
               />
             </div>
 

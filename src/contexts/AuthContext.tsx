@@ -6,7 +6,7 @@ interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, nameAr: string, nameFr: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isSuperAdmin: boolean;
@@ -44,16 +44,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const register = useCallback(async (
-    email: string,
-    password: string,
-    nameAr: string,
-    nameFr: string,
-  ) => {
+  const register = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     try {
+      const nameFromEmail = email.split("@")[0].replace(/[._-]/g, " ");
+      const nameAr = `مطعم ${nameFromEmail}`;
+      const nameFr = `Restaurant ${nameFromEmail}`;
       const authUser = registerUser(email, password, nameAr, nameFr);
       localStorage.setItem("sofra_auth_user", JSON.stringify(authUser));
       setUser(authUser);
