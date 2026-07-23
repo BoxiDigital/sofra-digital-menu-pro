@@ -254,29 +254,6 @@ export function saveRestaurantConfig(restaurantId: string, config: RestaurantCon
   dispatchDataChange(restaurantId);
 }
 
-export function seedDefaultData(
-  restaurantId: string,
-  nameAr?: string,
-  nameFr?: string,
-) {
-  const r = getRestaurantById(restaurantId);
-  const finalNameAr = nameAr || r?.nameAr || defaultRestaurantConfig.nameAr;
-  const finalNameFr = nameFr || r?.nameFr || defaultRestaurantConfig.nameFr;
-
-  localStorage.setItem(catsKey(restaurantId), JSON.stringify(
-    defaultCategories.map((c) => ({ ...c, restaurantId })),
-  ));
-  localStorage.setItem(dishesKey(restaurantId), JSON.stringify(
-    defaultDishes.map((d) => ({ ...d, restaurantId })),
-  ));
-  localStorage.setItem(configKey(restaurantId), JSON.stringify({
-    ...defaultRestaurantConfig,
-    nameAr: finalNameAr,
-    nameFr: finalNameFr,
-  }));
-  dispatchDataChange(restaurantId);
-}
-
 export function resetToDefault(restaurantId: string) {
   seedDefaultData(restaurantId);
 }
