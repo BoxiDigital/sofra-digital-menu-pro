@@ -112,10 +112,32 @@ export function registerUser(
 
   saveRestaurant(newId, newRestaurant);
 
-  // ملء المطعم الجديد ببيانات افتراضية فور التسجيل
   seedDefaultData(newId, restaurantNameAr, restaurantNameFr);
 
   return { id: userId, email: emailKey, restaurantId: newId };
+}
+
+export function seedDefaultData(
+  restaurantId: string,
+  nameAr?: string,
+  nameFr?: string,
+) {
+  const r = getRestaurantById(restaurantId);
+  const finalNameAr = nameAr || r?.nameAr || defaultRestaurantConfig.nameAr;
+  const finalNameFr = nameFr || r?.nameFr || defaultRestaurantConfig.nameFr;
+
+  localStorage.setItem(catsKey(restaurantId), JSON.stringify(
+    defaultCategories,
+  ));
+  localStorage.setItem(dishesKey(restaurantId), JSON.stringify(
+    defaultDishes,
+  ));
+  localStorage.setItem(configKey(restaurantId), JSON.stringify({
+    ...defaultRestaurantConfig,
+    nameAr: finalNameAr,
+    nameFr: finalNameFr,
+  }));
+  dispatchDataChange(restaurantId);
 }
 
 export function loginUser(email: string, password: string): AuthUser {

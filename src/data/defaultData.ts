@@ -142,7 +142,7 @@ export const defaultDishes: Dish[] = [
     descriptionFr: "Boulettes de viande hachée épicées dans une riche sauce tomate aux œufs et olives vertes - plat familial savoureux.",
     price: 75,
     category: "plats",
-    image: "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=800&q=80",
+    image: "https://images.unsixm.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=800&q=80",
     isAvailable: true,
     isHalal: true,
     isPromo: true,
