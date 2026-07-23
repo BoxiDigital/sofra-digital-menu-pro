@@ -1,5 +1,9 @@
 import React, { useState } from "react";
 import { Link, useNavigate, Navigate } from "react-router-dom";
+import { Mail, Lock, UserPlus, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,10 +41,10 @@ export default function Register() {
     try {
       await register(email, password);
       toast({
-        title: "تم التسجيل بنجاح",
-        description: "مرحباً بك في سفرة",
+        title: "🎉 تم التسجيل بنجاح",
+        description: "تم إنشاء حسابك وتوجيهك إلى لوحة التحكم",
       });
-      navigate("/admin");
+      navigate("/admin", { replace: true });
     } catch (err: any) {
       setError(err.message || "حدث خطأ في التسجيل");
     } finally {
@@ -49,101 +53,113 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D] px-4 py-12">
+      <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">إنشاء حساب جديد</h1>
-          <p className="mt-2 text-gray-600">سجل للانضمام إلى سفرة</p>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#C8A24D]/10 border border-[#C8A24D]/20 mb-6">
+            <UserPlus className="h-8 w-8 text-[#C8A24D]" />
+          </div>
+          <h2 className="text-2xl font-extrabold text-white">إنشاء حساب جديد</h2>
+          <p className="text-sm text-white/50">
+            سجل مطعمك الآن وابدأ في إدارة قائمتك الرقمية
+          </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                البريد الإلكتروني
-              </label>
-              <input
-                id="email"
-                name="email"
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-3">
+            <Label className="text-white/50 text-xs font-semibold mb-2 block">
+              البريد الإلكتروني
+            </Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
+              <Input
                 type="email"
                 autoComplete="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError("");
+                }}
+                className="block w-full pl-10 pr-4 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-12 text-sm focus:border-[#C8A24D]/40 focus:ring-[#C8A24D]/10 transition-all"
                 placeholder="example@gmail.com"
+                dir="ltr"
               />
             </div>
+          </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                كلمة المرور
-              </label>
-              <input
-                id="password"
-                name="password"
+          <div className="space-y-3">
+            <Label className="text-white/50 text-xs font-semibold mb-2 block">
+              كلمة المرور
+            </Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
+              <Input
                 type="password"
                 autoComplete="new-password"
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError("");
+                }}
+                className="block w-full pl-10 pr-4 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-12 text-sm focus:border-[#C8A24D]/40 focus:ring-[#C8A24D]/10 transition-all"
                 placeholder="••••••••"
+                dir="ltr"
               />
             </div>
+          </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                تأكيد كلمة المرور
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
+          <div className="space-y-3">
+            <Label className="text-white/50 text-xs font-semibold mb-2 block">
+              تأكيد كلمة المرور
+            </Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
+              <Input
                 type="password"
                 autoComplete="new-password"
                 required
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  setError("");
+                }}
+                className="block w-full pl-10 pr-4 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-12 text-sm focus:border-[#C8A24D]/40 focus:ring-[#C8A24D]/10 transition-all"
                 placeholder="••••••••"
+                dir="ltr"
               />
             </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  جاري التسجيل...
-                </span>
-              ) : (
-                "إنشاء الحساب"
-              )}
-            </button>
-          </div>
+          {error && (
+            <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-sm text-red-400">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full py-6 bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl text-base disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-lg shadow-[#C8A24D]/10"
+          >
+            {isSubmitting ? (
+              <span className="flex items-center gap-2">
+                <span className="w-5 h-5 border-2 border-black/30 border-t-black/80 rounded-full animate-spin" />
+                جاري إنشاء الحساب...
+              </span>
+            ) : (
+              "إنشاء الحساب"
+            )}
+          </Button>
         </form>
 
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            لديك حساب بالفعل؟{" "}
-            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              تسجيل الدخول
-            </Link>
-          </p>
+        <div className="text-center text-xs text-white/25">
+          لديك حساب بالفعل؟{" "}
+          <Link to="/login" className="text-[#C8A24D] hover:text-[#D4B35D] font-medium transition-colors">
+            تسجيل الدخول
+          </Link>
         </div>
       </div>
     </div>
