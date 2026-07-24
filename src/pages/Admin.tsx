@@ -4,11 +4,12 @@ import {
   getCategories,
   getDishes,
   getRestaurantConfig,
+  getRestaurant,
   saveCategories,
   saveDishes,
   saveRestaurantConfig,
   resetToDefault,
-  getRestaurantById,
+  RESTAURANT_ID,
 } from "../utils/storage";
 import { Category, Dish, RestaurantConfig } from "../types";
 import AdminView from "../components/AdminView";
@@ -17,61 +18,58 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Admin() {
-  const { user, isLoading: authLoading, logout, isSuperAdmin } = useAuth();
+  const { user, isLoading: authLoading, logout } = useAuth();
   const navigate = useNavigate();
-  const restaurantId = user?.restaurantId || "rest_001";
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
   const [isEmpty, setIsEmpty] = useState(false);
 
-  const restaurant = getRestaurantById(restaurantId);
+  const restaurant = getRestaurant();
 
   const loadData = () => {
-    const cats = getCategories(restaurantId);
-    const dsh = getDishes(restaurantId);
-    const cfg = getRestaurantConfig(restaurantId);
+    const cats = getCategories();
+    const dsh = getDishes();
+    const cfg = getRestaurantConfig();
 
     setCategories(cats);
     setDishes(dsh);
     setConfig(cfg);
-
-    // إذا البيانات غير مهيأة (لا فئات ولا أطباق ولا إعدادات)
     setIsEmpty(!cfg && cats.length === 0 && dsh.length === 0);
   };
 
   useEffect(() => {
     loadData();
-  }, [restaurantId]);
+  }, []);
 
   const handleUpdateCategories = (newCategories: Category[]) => {
     setCategories(newCategories);
-    saveCategories(restaurantId, newCategories);
+    saveCategories(newCategories);
     setIsEmpty(false);
   };
 
   const handleUpdateDishes = (newDishes: Dish[]) => {
     setDishes(newDishes);
-    saveDishes(restaurantId, newDishes);
+    saveDishes(newDishes);
     setIsEmpty(false);
   };
 
   const handleUpdateConfig = (newConfig: RestaurantConfig) => {
     setConfig(newConfig);
-    saveRestaurantConfig(restaurantId, newConfig);
+    saveRestaurantConfig(newConfig);
     setIsEmpty(false);
   };
 
   const handleReset = () => {
     if (confirm("هل أنت متأكد من إعادة تعيين جميع البيانات إلى القيم الافتراضية؟ سيتم فقدان أي تغييرات قمت بها.")) {
-      resetToDefault(restaurantId);
+      resetToDefault();
       loadData();
     }
   };
 
   const handleInitRestaurant = () => {
-    resetToDefault(restaurantId);
+    resetToDefault();
     loadData();
   };
 
@@ -105,8 +103,7 @@ export default function Admin() {
           <div>
             <h2 className="text-xl font-extrabold text-white mb-2">مطعم غير مهيأ</h2>
             <p className="text-white/35 text-sm leading-relaxed">
-              بيانات مطعمك <code className="bg-white/[0.05] px-2 py-0.5 rounded text-[#C8A24D] font-mono">{restaurantId}</code> فارغة.
-              اضغط الزر أدناه لتهيئتها ببيانات افتراضية.
+              بيانات مطعمك فارغة. اضغط الزر أدناه لتهيئتها ببيانات افتراضية.
             </p>
           </div>
           <Button
@@ -138,11 +135,12 @@ export default function Admin() {
         <div className="flex items-center gap-3">
           <span>
             {restaurant?.nameAr || config.nameAr}{" "}
-            <span className="text-white/30">• {user?.email} • {restaurantId}</span>
+            <span className="text-white/30">• {user?.email}</span>
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <Link to={`/?restaurant=${restaurantId}`} target="_blank">
+          {/* رابط عرض المنيو: يفتح نفس الرابط الرئيسي مباشرة */}
+          <a href="/" target="_blank" rel="noopener noreferrer">
             <Button
               size="sm"
               variant="ghost"
@@ -151,7 +149,7 @@ export default function Admin() {
               <Eye className="h-3.5 w-3.5" />
               <span>عرض المنيو</span>
             </Button>
-          </Link>
+          </a>
           <Button
             size="sm"
             variant="ghost"
@@ -165,14 +163,14 @@ export default function Admin() {
       </div>
 
       <AdminView
-              categories={categories}
-              dishes={dishes}
-              config={config}
-              onUpdateCategories={handleUpdateCategories}
-              onUpdateDishes={handleUpdateDishes}
-              onUpdateConfig={handleUpdateConfig}
-              onReset={handleReset}
-            />
+        categories={categories}
+        dishes={dishes}
+        config={config}
+        onUpdateCategories={handleUpdateCategories}
+        onUpdateDishes={handleUpdateDishes}
+        onUpdateConfig={handleUpdateConfig}
+        onReset={handleReset}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { AuthUser } from "../types";
-import { loginUser, registerUser, isSuperAdmin } from "../utils/storage";
+import { loginUser, registerUser, hasRegisteredUser } from "../utils/storage";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -19,15 +19,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-      const stored = localStorage.getItem("sofra_auth_user");
-      if (stored) {
+    const stored = localStorage.getItem("sofra_auth_user");
+    if (stored) {
+      try {
         setUser(JSON.parse(stored));
+      } catch {
+        localStorage.removeItem("sofra_auth_user");
       }
-      setIsLoading(false);
-    }, []);
+    }
+    setIsLoading(false);
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
+    // محاكاة تأخير الشبكة
     await new Promise((resolve) => setTimeout(resolve, 600));
 
     try {
@@ -73,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         isAuthenticated: !!user,
-        isSuperAdmin: user ? isSuperAdmin(user.restaurantId) : false,
+        isSuperAdmin: !!user && hasRegisteredUser(),
       }}
     >
       {children}
