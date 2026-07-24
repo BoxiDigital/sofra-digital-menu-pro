@@ -9,7 +9,7 @@ interface AuthContextType {
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
-  isSuperAdmin: boolean;
+  needsSetup: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,7 +32,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
-    // محاكاة تأخير الشبكة
     await new Promise((resolve) => setTimeout(resolve, 600));
 
     try {
@@ -51,10 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     try {
-      const nameFromEmail = email.split("@")[0].replace(/[._-]/g, " ");
-      const nameAr = `مطعم ${nameFromEmail}`;
-      const nameFr = `Restaurant ${nameFromEmail}`;
-      const authUser = registerUser(email, password, nameAr, nameFr);
+      const authUser = registerUser(email, password);
       localStorage.setItem("sofra_auth_user", JSON.stringify(authUser));
       setUser(authUser);
     } catch (err) {
@@ -69,6 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const needsSetup = !isLoading && !user;
+
   return (
     <AuthContext.Provider
       value={{
@@ -78,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         isAuthenticated: !!user,
-        isSuperAdmin: !!user && hasRegisteredUser(),
+        needsSetup,
       }}
     >
       {children}

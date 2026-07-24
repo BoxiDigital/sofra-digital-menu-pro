@@ -4,12 +4,12 @@ import {
   getCategories,
   getDishes,
   getRestaurantConfig,
-  getRestaurant,
   saveCategories,
   saveDishes,
   saveRestaurantConfig,
+  seedDefaultData,
   resetToDefault,
-  RESTAURANT_ID,
+  hasRegisteredUser,
 } from "../utils/storage";
 import { Category, Dish, RestaurantConfig } from "../types";
 import AdminView from "../components/AdminView";
@@ -25,8 +25,7 @@ export default function Admin() {
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
   const [isEmpty, setIsEmpty] = useState(false);
-
-  const restaurant = getRestaurant();
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const loadData = () => {
     const cats = getCategories();
@@ -40,8 +39,19 @@ export default function Admin() {
   };
 
   useEffect(() => {
+    // تهيئة البيانات الافتراضية تلقائياً إذا كان المستخدم مسجلاً والبيانات فارغة
+    if (user && hasRegisteredUser()) {
+      const cfg = getRestaurantConfig();
+      if (!cfg) {
+        setIsInitializing(true);
+        const email = user.email;
+        const nameFromEmail = email.split("@")[0].replace(/[._-]/g, " ");
+        seedDefaultData(`مطعم ${nameFromEmail}`, `Restaurant ${nameFromEmail}`);
+        setIsInitializing(false);
+      }
+    }
     loadData();
-  }, []);
+  }, [user]);
 
   const handleUpdateCategories = (newCategories: Category[]) => {
     setCategories(newCategories);
@@ -68,50 +78,22 @@ export default function Admin() {
     }
   };
 
-  const handleInitRestaurant = () => {
-    resetToDefault();
-    loadData();
-  };
-
   const handleLogout = async () => {
     await logout();
     navigate("/login", { replace: true });
   };
 
-  // حماية: التوجيه لتسجيل الدخول إذا لم يكن هناك مستخدم
+  // حماية: التوجيه لتسجيل الدخول
   if (!authLoading && !user) {
     return <Navigate to="/login" replace />;
   }
 
-  // حالة: تحميل
-  if (authLoading) {
+  // حالة التحميل
+  if (authLoading || isInitializing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
-        <div className="animate-pulse text-[#C8A24D] font-bold text-lg">جاري تحميل لوحة التحكم...</div>
-      </div>
-    );
-  }
-
-  // حالة: المطعم غير مهيأ بعد
-  if (isEmpty && !config) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D] px-4" dir="rtl">
-        <div className="max-w-md text-center space-y-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#C8A24D]/10 border border-[#C8A24D]/20">
-            <Store className="h-8 w-8 text-[#C8A24D]" />
-          </div>
-          <div>
-            <h2 className="text-xl font-extrabold text-white mb-2">مطعم غير مهيأ</h2>
-            <p className="text-white/35 text-sm leading-relaxed">
-              بيانات مطعمك فارغة. اضغط الزر أدناه لتهيئتها ببيانات افتراضية.
-            </p>
-          </div>
-          <Button
-            onClick={handleInitRestaurant}
-            className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl px-8 py-5"
-          >
-            تهيئة المطعم ببيانات افتراضية
-          </Button>
+        <div className="animate-pulse text-[#C8A24D] font-bold text-lg">
+          {isInitializing ? "جاري تهيئة بيانات المطعم..." : "جاري تحميل لوحة التحكم..."}
         </div>
       </div>
     );
@@ -127,19 +109,17 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-[#0D0D0D]">
-      {/* شريط علوي */}
       <div
         className="bg-white/[0.03] border-b border-white/[0.06] text-white/70 py-2 px-4 text-xs flex justify-between items-center flex-wrap gap-2"
         dir="rtl"
       >
         <div className="flex items-center gap-3">
           <span>
-            {restaurant?.nameAr || config.nameAr}{" "}
+            {config.nameAr}{" "}
             <span className="text-white/30">• {user?.email}</span>
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {/* رابط عرض المنيو: يفتح نفس الرابط الرئيسي مباشرة */}
           <a href="/" target="_blank" rel="noopener noreferrer">
             <Button
               size="sm"

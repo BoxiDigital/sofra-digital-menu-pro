@@ -1,24 +1,18 @@
 import { Category, Dish, RestaurantConfig, Restaurant, AuthUser } from "../types";
 import { defaultCategories, defaultDishes, defaultRestaurantConfig } from "../data/defaultData";
 
-// ═══════════════════════════════════════════
-// نموذج النسخة المستقلة (Stand-alone)
-// كل نسخة من المشروع = مطعم واحد فقط
-// المطعم الوحيد: rest_001
-// مستخدم واحد فقط لكل نسخة
-// ═══════════════════════════════════════════
-
 export const RESTAURANT_ID = "rest_001";
 
-const USERS_KEY = "sofra_user";
-const RESTAURANT_KEY = "sofra_restaurant";
 const CATS_KEY = "sofra_cats";
 const DISHES_KEY = "sofra_dishes";
 const CONFIG_KEY = "sofra_config";
 
 // ───────────────────────────────────────────
-// دوال المستخدم (مستخدم واحد فقط)
+// دوال المستخدم (نسخة 60: مستخدم واحد)
 // ───────────────────────────────────────────
+
+const USERS_KEY = "sofra_user";
+const AUTH_USER_KEY = "sofra_auth_user";
 
 interface StoredUser {
   id: string;
@@ -51,68 +45,38 @@ function saveStoredUser(user: StoredUser) {
   localStorage.setItem(USERS_KEY, JSON.stringify(user));
 }
 
+// التحقق: هل يوجد مطعم مسجل (مستخدم + بيانات)؟
 export function hasRegisteredUser(): boolean {
-  return getStoredUser() !== null;
+  const user = getStoredUser();
+  const cfg = localStorage.getItem(CONFIG_KEY);
+  return !!user && !!cfg;
 }
 
+// تسجيل مستخدم جديد (مطعم جديد) - مستخدم واحد فقط لكل نسخة
 export function registerUser(
   email: string,
   password: string,
-  restaurantNameAr: string,
-  restaurantNameFr: string,
 ): AuthUser {
-  // في نموذج النسخة المستقلة: مستخدم واحد فقط
-  if (getStoredUser()) {
+  const existingUser = getStoredUser();
+  if (existingUser) {
     throw new Error("هذه النسخة مسجلة مسبقاً. لا يمكن تسجيل أكثر من مطعم واحد لكل نسخة.");
   }
 
   const emailKey = email.toLowerCase().trim();
   const userId = `user_${Date.now()}`;
 
-  const storeUser: StoredUser = {
+  const storedUser: StoredUser = {
     id: userId,
     email: emailKey,
     passwordHash: hashPassword(password),
   };
 
-  saveStoredUser(storeUser);
-
-  // إنشاء المطعم الوحيد
-  const slug = restaurantNameAr
-    .replace(/\s+/g, "-")
-    .replace(/[^\u0600-\u06FFA-Za-z0-9-]/g, "")
-    .toLowerCase();
-
-  const restaurant: Restaurant = {
-    id: RESTAURANT_ID,
-    nameAr: restaurantNameAr,
-    nameFr: restaurantNameFr,
-    slug,
-    sloganAr: "أجود الأطباق",
-    sloganFr: "Le meilleur de la cuisine",
-    logoUrl: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=150&h=150&q=80",
-    workingHoursAr: "يومياً من 12:00 ظهراً حتى 11:00 مساءً",
-    workingHoursFr: "Tous les jours de 12h00 à 23h00",
-    whatsappNumber: "",
-    whatsappMessageAr: "مرحباً، أود طلب:\n\n{items}\n\nالمجموع: {total}",
-    whatsappMessageFr: "Bonjour, je souhaite commander:\n\n{items}\n\nTotal: {total}",
-    primaryColor: "#C8A24D",
-    backgroundColor: "dark",
-    currencyAr: "درهم",
-    currencyFr: "MAD",
-  };
-
-  localStorage.setItem(RESTAURANT_KEY, JSON.stringify(restaurant));
-
-  // تهيئة البيانات الافتراضية فوراً
-  seedDefaultData(restaurantNameAr, restaurantNameFr);
-
-  // إشعار بوجود مطعم الآن
-  dispatchDataChange();
+  saveStoredUser(storedUser);
 
   return { id: userId, email: emailKey, restaurantId: RESTAURANT_ID };
 }
 
+// تسجيل الدخول
 export function loginUser(email: string, password: string): AuthUser {
   const user = getStoredUser();
   const emailKey = email.toLowerCase().trim();
@@ -128,42 +92,18 @@ export function loginUser(email: string, password: string): AuthUser {
   return { id: user.id, email: user.email, restaurantId: RESTAURANT_ID };
 }
 
-export function isSuperAdmin(_restaurantId?: string): boolean {
-  // في النسخة المستقلة: أي مستخدم مسجل هو المدير الوحيد
-  return hasRegisteredUser();
-}
-
-// ───────────────────────────────────────────
-// المطعم (واحد فقط)
-// ───────────────────────────────────────────
-
-export function getRestaurant(): Restaurant | null {
-  const raw = localStorage.getItem(RESTAURANT_KEY);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-export function updateRestaurant(updates: Partial<Restaurant>) {
-  const existing = getRestaurant();
-  if (existing) {
-    const updated = { ...existing, ...updates };
-    localStorage.setItem(RESTAURANT_KEY, JSON.stringify(updated));
-    dispatchDataChange();
-  }
-}
-
 // ───────────────────────────────────────────
 // دوال البيانات (فئات، أطباق، إعدادات)
 // ───────────────────────────────────────────
 
 export function seedDefaultData(nameAr?: string, nameFr?: string) {
-  const restaurant = getRestaurant();
-  const finalNameAr = nameAr || restaurant?.nameAr || defaultRestaurantConfig.nameAr;
-  const finalNameFr = nameFr || restaurant?.nameFr || defaultRestaurantConfig.nameFr;
+  const email = getStoredUser()?.email || "";
+  const restaurantNameFromEmail = email.includes("@")
+    ? email.split("@")[0].replace(/[._-]/g, " ")
+    : "";
+
+  const finalNameAr = nameAr || `مطعم ${restaurantNameFromEmail}` || defaultRestaurantConfig.nameAr;
+  const finalNameFr = nameFr || `Restaurant ${restaurantNameFromEmail}` || defaultRestaurantConfig.nameFr;
 
   localStorage.setItem(CATS_KEY, JSON.stringify(defaultCategories));
   localStorage.setItem(DISHES_KEY, JSON.stringify(defaultDishes));
@@ -225,7 +165,7 @@ export function resetToDefault() {
 }
 
 // ───────────────────────────────────────────
-// حدث مخصص للتزامن الفوري
+// أحداث التزامن
 // ───────────────────────────────────────────
 
 export const DATA_CHANGE_EVENT = "sofra_data_change";

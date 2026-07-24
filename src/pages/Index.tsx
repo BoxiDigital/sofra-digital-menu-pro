@@ -4,7 +4,6 @@ import {
   getCategories,
   getDishes,
   getRestaurantConfig,
-  getRestaurant,
   hasRegisteredUser,
   subscribeToDataChanges,
 } from "../utils/storage";
@@ -72,15 +71,13 @@ export default function Index() {
   }
 
   // عرض قائمة المطعم للزوار
-  const restaurant = getRestaurant();
-
   return (
     <div className="relative min-h-screen">
       <ClientView categories={categories} dishes={dishes} config={config} />
 
       <footer className="bg-zinc-900 text-zinc-400 py-8 text-center text-xs border-t border-zinc-800">
         <div className="max-w-md mx-auto px-4 space-y-3">
-          <p className="text-white/60 font-semibold">{restaurant?.nameAr || config.nameAr}</p>
+          <p className="text-white/60 font-semibold">{config.nameAr}</p>
           <p>© {new Date().getFullYear()} {config.nameAr}. جميع الحقوق محفوظة.</p>
           <div className="flex justify-center gap-4">
             <Link
