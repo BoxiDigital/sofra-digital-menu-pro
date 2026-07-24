@@ -45,7 +45,7 @@ export default function Index() {
     );
   }
 
-  // لا يوجد مطعم مسجل بعد → صفحة الترحيب
+  // لا يوجد مطعم مسجل بعد → صفحة "قريباً" للزوار (بدون أزرار تسجيل!)
   if (!config || !hasRegisteredUser()) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D] px-4" dir="rtl">
@@ -54,23 +54,16 @@ export default function Index() {
             <Store className="h-10 w-10 text-[#C8A24D]" />
           </div>
           <div className="space-y-3">
-            <h2 className="text-2xl font-extrabold text-white">مرحباً بك في صفرة</h2>
+            <h2 className="text-2xl font-extrabold text-white">قريباً</h2>
             <p className="text-white/40 text-sm leading-relaxed">
-              منصة رقمية لعرض قائمة مطعمك ومشاركتها مع زبائنك.
+              جاري تجهيز القائمة الرقمية لهذا المطعم.
               <br />
-              سجّل مطعمك الآن وابدأ في إدارة قائمتك الرقمية بسهولة.
+              يرجى المسح مرة أخرى لاحقاً.
             </p>
           </div>
-          <div className="flex flex-col gap-3">
-            <Link to="/register">
-              <Button className="w-full py-6 bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl text-base shadow-lg shadow-[#C8A24D]/10">
-                سجل مطعمك الآن
-              </Button>
-            </Link>
-            <Link to="/login">
-              <Button variant="ghost" className="w-full text-white/40 hover:text-white/60 rounded-xl">
-                لدي حساب بالفعل
-              </Button>
+          <div className="pt-4">
+            <Link to="/login" className="text-white/10 hover:text-white/25 text-xs transition-colors">
+              دخول المدير
             </Link>
           </div>
         </div>
@@ -78,7 +71,7 @@ export default function Index() {
     );
   }
 
-  // عرض قائمة المطعم
+  // عرض قائمة المطعم للزوار
   const restaurant = getRestaurant();
 
   return (
