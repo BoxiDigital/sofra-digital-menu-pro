@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   getCategories,
   getDishes,
@@ -9,14 +9,14 @@ import {
 } from "../utils/storage";
 import { Category, Dish, RestaurantConfig } from "../types";
 import ClientView from "../components/ClientView";
-import { Settings, Store } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Settings } from "lucide-react";
 
 export default function Index() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   const loadData = () => {
     const cats = getCategories();
@@ -35,6 +35,13 @@ export default function Index() {
     return unsubscribe;
   }, []);
 
+  // توجيه الزائر الجديد إلى صفحة تسجيل المطعم إذا لم يكن هناك مطعم مسجل
+  useEffect(() => {
+    if (!isLoading && !hasRegisteredUser()) {
+      navigate("/register", { replace: true });
+    }
+  }, [isLoading, navigate]);
+
   // حالة التحميل
   if (isLoading) {
     return (
@@ -44,30 +51,9 @@ export default function Index() {
     );
   }
 
-  // لا يوجد مطعم مسجل بعد → صفحة "قريباً" للزوار (بدون أزرار تسجيل!)
+  // إذا لم يكن هناك مطعم مسجل، لا نعرض شيئاً (سيتم التوجيه لصفحة التسجيل)
   if (!config || !hasRegisteredUser()) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D] px-4" dir="rtl">
-        <div className="max-w-md text-center space-y-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-[#C8A24D]/10 border border-[#C8A24D]/20">
-            <Store className="h-10 w-10 text-[#C8A24D]" />
-          </div>
-          <div className="space-y-3">
-            <h2 className="text-2xl font-extrabold text-white">قريباً</h2>
-            <p className="text-white/40 text-sm leading-relaxed">
-              جاري تجهيز القائمة الرقمية لهذا المطعم.
-              <br />
-              يرجى المسح مرة أخرى لاحقاً.
-            </p>
-          </div>
-          <div className="pt-4">
-            <Link to="/login" className="text-white/10 hover:text-white/25 text-xs transition-colors">
-              دخول المدير
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   // عرض قائمة المطعم للزوار
