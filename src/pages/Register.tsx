@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate, Navigate } from "react-router-dom";
 import { Mail, Lock, UserPlus, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "../contexts/AuthContext";
-import { seedDefaultData } from "../utils/storage";
+import { seedDefaultData, hasRegisteredRestaurant } from "../utils/storage";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Register() {
@@ -16,14 +16,33 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [restaurantExists, setRestaurantExists] = useState<boolean | null>(null);
 
   const { register, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  useEffect(() => {
+    hasRegisteredRestaurant().then(setRestaurantExists);
+  }, []);
+
+  // إذا كان المطعم مسجلاً مسبقاً، وجه الزائر للصفحة الرئيسية
+  if (restaurantExists) {
+    return <Navigate to="/" replace />;
+  }
+
   // إذا كان مسجلاً بالفعل، وجهه للوحة التحكم
   if (!authLoading && isAuthenticated) {
     return <Navigate to="/admin" replace />;
+  }
+
+  // جاري التحقق من وجود مطعم
+  if (restaurantExists === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
+        <div className="animate-pulse text-[#C8A24D] font-bold text-lg">جاري التحقق...</div>
+      </div>
+    );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
