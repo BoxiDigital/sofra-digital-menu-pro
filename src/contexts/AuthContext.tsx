@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { AuthUser } from "../types";
-import { loginUser, registerUser, hasRegisteredUser } from "../utils/storage";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -18,50 +18,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // مراقبة جلسة Supabase Auth
   useEffect(() => {
-    const stored = localStorage.getItem("sofra_auth_user");
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored));
-      } catch {
-        localStorage.removeItem("sofra_auth_user");
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || "",
+          restaurantId: "rest_001",
+        });
+      } else {
+        setUser(null);
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    });
+
+    return () => {
+      data.subscription.unsubscribe();
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 600));
-
-    try {
-      const authUser = loginUser(email, password);
-      localStorage.setItem("sofra_auth_user", JSON.stringify(authUser));
-      setUser(authUser);
-    } catch (err) {
-      throw err;
-    } finally {
-      setIsLoading(false);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      throw new Error(error.message === "Invalid login credentials"
+        ? "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+        : error.message);
     }
   }, []);
 
   const register = useCallback(async (email: string, password: string) => {
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    try {
-      const authUser = registerUser(email, password);
-      localStorage.setItem("sofra_auth_user", JSON.stringify(authUser));
-      setUser(authUser);
-    } catch (err) {
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      const { data, error } = await supabase.auth.signUp({ email, password });
+  
+      if (error) {
+        throw new Error(error.message);
+      }
+  
+      // إذا تم تأكيد المستخدم تلقائياً (بدون بريد تحقق)، سجّل دخوله فوراً
+      if (data.session) {
+        setUser({
+          id: data.session.user.id,
+          email: data.session.user.email || "",
+          restaurantId: "rest_001",
+        });
+      }
+      // إذا احتاج تأكيد بريد إلكتروني، لا نرمي خطأ - نترك المستخدم يسجل دخوله بعد التأكيد
+    }, []);
 
   const logout = useCallback(async () => {
-    localStorage.removeItem("sofra_auth_user");
+    await supabase.auth.signOut();
     setUser(null);
   }, []);
 

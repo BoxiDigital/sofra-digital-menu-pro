@@ -4,7 +4,7 @@ import {
   getCategories,
   getDishes,
   getRestaurantConfig,
-  hasRegisteredUser,
+  hasRegisteredRestaurant,
   subscribeToDataChanges,
 } from "../utils/storage";
 import { Category, Dish, RestaurantConfig } from "../types";
@@ -16,31 +16,48 @@ export default function Index() {
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [needsRedirect, setNeedsRedirect] = useState(false);
   const navigate = useNavigate();
 
-  const loadData = () => {
-    const cats = getCategories();
-    const dsh = getDishes();
-    const cfg = getRestaurantConfig();
+  const loadData = async () => {
+    try {
+      const [cats, dsh, cfg, registered] = await Promise.all([
+        getCategories(),
+        getDishes(),
+        getRestaurantConfig(),
+        hasRegisteredRestaurant(),
+      ]);
 
-    setCategories(cats);
-    setDishes(dsh);
-    setConfig(cfg);
-    setIsLoading(false);
+      if (!registered) {
+        setNeedsRedirect(true);
+        setIsLoading(false);
+        return;
+      }
+
+      setCategories(cats);
+      setDishes(dsh);
+      setConfig(cfg);
+    } catch (err) {
+      console.error("[Index] Error loading data:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     loadData();
-    const unsubscribe = subscribeToDataChanges(loadData);
+    const unsubscribe = subscribeToDataChanges(() => {
+      loadData();
+    });
     return unsubscribe;
   }, []);
 
   // توجيه الزائر الجديد إلى صفحة تسجيل المطعم إذا لم يكن هناك مطعم مسجل
   useEffect(() => {
-    if (!isLoading && !hasRegisteredUser()) {
+    if (needsRedirect) {
       navigate("/register", { replace: true });
     }
-  }, [isLoading, navigate]);
+  }, [needsRedirect, navigate]);
 
   // حالة التحميل
   if (isLoading) {
@@ -52,7 +69,7 @@ export default function Index() {
   }
 
   // إذا لم يكن هناك مطعم مسجل، لا نعرض شيئاً (سيتم التوجيه لصفحة التسجيل)
-  if (!config || !hasRegisteredUser()) {
+  if (!config) {
     return null;
   }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import {
   getCategories,
   getDishes,
@@ -9,11 +9,10 @@ import {
   saveRestaurantConfig,
   seedDefaultData,
   resetToDefault,
-  hasRegisteredUser,
 } from "../utils/storage";
 import { Category, Dish, RestaurantConfig } from "../types";
 import AdminView from "../components/AdminView";
-import { Eye, LogOut, Store } from "lucide-react";
+import { Eye, LogOut, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -26,55 +25,50 @@ export default function Admin() {
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
   const [isEmpty, setIsEmpty] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const loadData = () => {
-    const cats = getCategories();
-    const dsh = getDishes();
-    const cfg = getRestaurantConfig();
+  const loadData = async () => {
+    const [cats, dsh, cfg] = await Promise.all([
+      getCategories(),
+      getDishes(),
+      getRestaurantConfig(),
+    ]);
 
     setCategories(cats);
     setDishes(dsh);
     setConfig(cfg);
-    setIsEmpty(!cfg && cats.length === 0 && dsh.length === 0);
+    setIsEmpty(!cfg || (cats.length === 0 && dsh.length === 0));
+    setIsLoading(false);
   };
 
   useEffect(() => {
-    // تهيئة البيانات الافتراضية تلقائياً إذا كان المستخدم مسجلاً والبيانات فارغة
-    if (user && hasRegisteredUser()) {
-      const cfg = getRestaurantConfig();
-      if (!cfg) {
-        setIsInitializing(true);
-        const email = user.email;
-        const nameFromEmail = email.split("@")[0].replace(/[._-]/g, " ");
-        seedDefaultData(`مطعم ${nameFromEmail}`, `Restaurant ${nameFromEmail}`);
-        setIsInitializing(false);
-      }
+    if (user) {
+      loadData();
     }
-    loadData();
   }, [user]);
 
-  const handleUpdateCategories = (newCategories: Category[]) => {
+  const handleUpdateCategories = async (newCategories: Category[]) => {
     setCategories(newCategories);
-    saveCategories(newCategories);
+    await saveCategories(newCategories);
     setIsEmpty(false);
   };
 
-  const handleUpdateDishes = (newDishes: Dish[]) => {
+  const handleUpdateDishes = async (newDishes: Dish[]) => {
     setDishes(newDishes);
-    saveDishes(newDishes);
+    await saveDishes(newDishes);
     setIsEmpty(false);
   };
 
-  const handleUpdateConfig = (newConfig: RestaurantConfig) => {
+  const handleUpdateConfig = async (newConfig: RestaurantConfig) => {
     setConfig(newConfig);
-    saveRestaurantConfig(newConfig);
+    await saveRestaurantConfig(newConfig);
     setIsEmpty(false);
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (confirm("هل أنت متأكد من إعادة تعيين جميع البيانات إلى القيم الافتراضية؟ سيتم فقدان أي تغييرات قمت بها.")) {
-      resetToDefault();
-      loadData();
+      await resetToDefault();
+      await loadData();
     }
   };
 
@@ -83,13 +77,22 @@ export default function Admin() {
     navigate("/login", { replace: true });
   };
 
+  const handleInitDefault = async () => {
+      if (!user?.email) return;
+      setIsInitializing(true);
+      const nameFromEmail = user.email.split("@")[0].replace(/[._-]/g, " ");
+      await seedDefaultData(`مطعم ${nameFromEmail}`, `Restaurant ${nameFromEmail}`);
+      setIsInitializing(false);
+      await loadData();
+    };
+
   // حماية: التوجيه لتسجيل الدخول
   if (!authLoading && !user) {
     return <Navigate to="/login" replace />;
   }
 
   // حالة التحميل
-  if (authLoading || isInitializing) {
+  if (authLoading || isInitializing || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
         <div className="animate-pulse text-[#C8A24D] font-bold text-lg">
@@ -99,10 +102,21 @@ export default function Admin() {
     );
   }
 
+  // إذا لم توجد بيانات، اعرض زر التهيئة
   if (!config) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
-        <div className="animate-pulse text-[#C8A24D] font-bold text-lg">جاري تحميل لوحة التحكم...</div>
+      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D] px-4">
+        <div className="text-center space-y-6">
+          <Building2 className="h-16 w-16 text-[#C8A24D] mx-auto" />
+          <h2 className="text-2xl font-bold text-white">لا توجد بيانات للمطعم</h2>
+          <p className="text-white/50">يبدو أنك بحاجة لتهيئة بيانات المطعم الافتراضية</p>
+          <Button
+            onClick={handleInitDefault}
+            className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold"
+          >
+            تهيئة البيانات الافتراضية
+          </Button>
+        </div>
       </div>
     );
   }

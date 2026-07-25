@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "../contexts/AuthContext";
-import { seedDefaultData, hasRegisteredUser } from "../utils/storage";
+import { seedDefaultData } from "../utils/storage";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Register() {
@@ -45,15 +45,24 @@ export default function Register() {
     try {
       await register(email, password);
 
-      // تهيئة البيانات الافتراضية للمطعم بعد التسجيل مباشرة
-      const nameFromEmail = email.split("@")[0].replace(/[._-]/g, " ");
-      seedDefaultData(`مطعم ${nameFromEmail}`, `Restaurant ${nameFromEmail}`);
+      try {
+        // محاولة تهيئة البيانات الافتراضية (تعمل فقط إذا كان المستخدم مسجلاً دخوله)
+        const nameFromEmail = email.split("@")[0].replace(/[._-]/g, " ");
+        await seedDefaultData(`مطعم ${nameFromEmail}`, `Restaurant ${nameFromEmail}`);
 
-      toast({
-        title: "🎉 تم التسجيل بنجاح",
-        description: "تم إنشاء حسابك وتجهيز القائمة الافتراضية لمطعمك",
-      });
-      navigate("/admin", { replace: true });
+        toast({
+          title: "🎉 تم التسجيل بنجاح",
+          description: "تم إنشاء حسابك وتجهيز القائمة الافتراضية لمطعمك",
+        });
+        navigate("/admin", { replace: true });
+      } catch {
+        // ربما يحتاج تأكيد البريد الإلكتروني - المستخدم سيُكمل لاحقاً
+        toast({
+          title: "🎉 تم إنشاء الحساب",
+          description: "يرجى تأكيد بريدك الإلكتروني ثم تسجيل الدخول لتهيئة بيانات المطعم",
+        });
+        navigate("/login", { replace: true });
+      }
     } catch (err: any) {
       setError(err.message || "حدث خطأ في التسجيل");
     } finally {
