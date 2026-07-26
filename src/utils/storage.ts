@@ -224,9 +224,17 @@ export async function saveMyCategories(categories: Category[]): Promise<void> {
   if (!restaurantId) throw new Error("المطعم غير موجود");
 
   const rows = categories.map((cat) => mapCategoryToDB(cat, restaurantId));
-  await supabase.from("categories").delete().eq("restaurant_id", restaurantId);
+
+  // حذف الفئات المحذوفة
+  const keptIds = categories.map((c) => c.id);
+  const { data: existing } = await supabase.from("categories").select("id").eq("restaurant_id", restaurantId);
+  const toDelete = (existing || []).filter((row) => !keptIds.includes(row.id)).map((row) => row.id);
+  if (toDelete.length > 0) {
+    await supabase.from("categories").delete().in("id", toDelete);
+  }
+
   if (rows.length > 0) {
-    const { error } = await supabase.from("categories").insert(rows);
+    const { error } = await supabase.from("categories").upsert(rows);
     if (error) throw error;
   }
   dispatchDataChange();
@@ -237,9 +245,17 @@ export async function saveMyDishes(dishes: Dish[]): Promise<void> {
   if (!restaurantId) throw new Error("المطعم غير موجود");
 
   const rows = dishes.map((dish) => mapDishToDB(dish, restaurantId));
-  await supabase.from("dishes").delete().eq("restaurant_id", restaurantId);
+
+  // حذف الأطباق المحذوفة
+  const keptIds = dishes.map((d) => d.id);
+  const { data: existing } = await supabase.from("dishes").select("id").eq("restaurant_id", restaurantId);
+  const toDelete = (existing || []).filter((row) => !keptIds.includes(row.id)).map((row) => row.id);
+  if (toDelete.length > 0) {
+    await supabase.from("dishes").delete().in("id", toDelete);
+  }
+
   if (rows.length > 0) {
-    const { error } = await supabase.from("dishes").insert(rows);
+    const { error } = await supabase.from("dishes").upsert(rows);
     if (error) throw error;
   }
   dispatchDataChange();
@@ -311,10 +327,18 @@ export async function resetMyToDefault(): Promise<void> {
   await supabase.from("dishes").delete().eq("restaurant_id", restaurantId);
   await supabase.from("categories").delete().eq("restaurant_id", restaurantId);
 
-  const catRows = defaultCategories.map((cat) => mapCategoryToDB(cat, restaurantId));
+  const catRows = defaultCategories.map((cat) => mapCategoryToDB({ ...cat, id: crypto.randomUUID() }, restaurantId));
   await supabase.from("categories").insert(catRows);
 
-  const dishRows = defaultDishes.map((dish) => mapDishToDB(dish, restaurantId));
+  // إعادة تعيين معرفات الأطباق لتشير للفئات الجديدة
+  const catMap = new Map<string, string>();
+  defaultCategories.forEach((oldCat, i) => {
+    catMap.set(oldCat.id, catRows[i].id);
+  });
+
+  const dishRows = defaultDishes.map((dish) =>
+    mapDishToDB({ ...dish, id: crypto.randomUUID(), category: catMap.get(dish.category) || dish.category }, restaurantId)
+  );
   await supabase.from("dishes").insert(dishRows);
 
   dispatchDataChange();
