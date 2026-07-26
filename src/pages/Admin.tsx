@@ -26,50 +26,59 @@ export default function Admin() {
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
   const [restaurantSlug, setRestaurantSlug] = useState<string>("");
   const [isInitializing, setIsInitializing] = useState(false);
-  const [initError, setInitError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
-    const [restaurant, cats, dsh] = await Promise.all([
-      getMyRestaurant(),
-      getMyCategories(),
-      getMyDishes(),
-    ]);
+    try {
+      const [restaurant, cats, dsh] = await Promise.all([
+        getMyRestaurant(),
+        getMyCategories(),
+        getMyDishes(),
+      ]);
 
-    if (restaurant) {
-      const { id, slug, ...cfg } = restaurant as any;
-      setConfig(cfg);
-      setRestaurantSlug(slug || "");
-      setCategories(cats);
-      setDishes(dsh);
-    } else {
-      setConfig(null);
-      setCategories([]);
-      setDishes([]);
+      if (restaurant) {
+        const { id, slug, ...cfg } = restaurant as any;
+        setConfig(cfg);
+        setRestaurantSlug(slug || "");
+        setCategories(cats);
+        setDishes(dsh);
+      } else {
+        // لا توجد بيانات → تهيئة تلقائية
+        setConfig(null);
+        setCategories([]);
+        setDishes([]);
+      }
+    } catch (err) {
+      console.error("[Admin] Error loading data:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user) loadData();
+    if (user) {
+      loadData();
+    }
   }, [user]);
 
-  // تهيئة تلقائية عند أول دخول (إذا لم يوجد مطعم)
+  // تهيئة تلقائية عند عدم وجود مطعم
   useEffect(() => {
-    if (authLoading || !user || config || isInitializing || autoInitDone.current) return;
-    autoInitDone.current = true;
-    setIsInitializing(true);
-    setInitError(false);
-
-    seedMyDefaultData()
-      .then((result) => {
-        setRestaurantSlug(result.slug);
-        return loadData();
-      })
-      .catch((err) => {
-        console.error("[Admin] Init failed:", err);
-        setInitError(true);
-      })
-      .finally(() => setIsInitializing(false));
-  }, [authLoading, user, config]);
+    if (!authLoading && user && !isLoading && !config && !isInitializing && !autoInitDone.current) {
+      autoInitDone.current = true;
+      setIsInitializing(true);
+      seedMyDefaultData()
+        .then((result) => {
+          setRestaurantSlug(result.slug);
+          return loadData();
+        })
+        .catch((err) => {
+          console.error("[Admin] Auto-init error:", err);
+        })
+        .finally(() => {
+          setIsInitializing(false);
+        });
+    }
+  }, [authLoading, user, isLoading, config, isInitializing]);
 
   const handleUpdateCategories = async (newCategories: Category[]) => {
     setCategories(newCategories);
@@ -87,39 +96,48 @@ export default function Admin() {
   };
 
   const handleReset = async () => {
-    if (confirm("هل أنت متأكد من إعادة تعيين جميع البيانات إلى القيم الافتراضية؟")) {
+    if (confirm("هل أنت متأكد من إعادة تعيين جميع البيانات إلى القيم الافتراضية؟ سيتم فقدان أي تغييرات قمت بها.")) {
       await resetMyToDefault();
       await loadData();
     }
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
+  };
+
+  // حماية: التوجيه لتسجيل الدخول
   if (!authLoading && !user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (authLoading || isInitializing) {
+  // حالة التحميل أو التهيئة التلقائية
+  if (authLoading || isInitializing || isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#0D0D0D] gap-3">
         <div className="w-8 h-8 border-2 border-[#C8A24D]/30 border-t-[#C8A24D] rounded-full animate-spin" />
         <p className="text-white/50 text-sm">
-          {isInitializing ? "جاري تجهيز القائمة الافتراضية لمطعمك..." : "جاري التحميل..."}
+          {isInitializing ? "جاري تجهيز القائمة الافتراضية لمطعمك..." : "جاري تحميل لوحة التحكم..."}
         </p>
       </div>
     );
   }
 
-  if (initError || !config) {
+  // احتياط: إذا فشلت التهيئة التلقائية
+  if (!config) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D] px-4">
         <div className="text-center space-y-6">
           <p className="text-4xl">⚠️</p>
-          <h2 className="text-2xl font-bold text-white">تعذر تجهيز المطعم</h2>
-          <p className="text-white/50">يرجى المحاولة مرة أخرى</p>
+          <h2 className="text-2xl font-bold text-white">تعذر تحميل البيانات</h2>
+          <p className="text-white/50">حدث خطأ أثناء تجهيز بيانات المطعم. يرجى المحاولة مرة أخرى.</p>
           <Button
             onClick={() => {
               autoInitDone.current = false;
               setConfig(null);
-              setInitError(false);
+              setIsLoading(true);
+              loadData();
             }}
             className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold"
           >
@@ -145,7 +163,11 @@ export default function Admin() {
         <div className="flex items-center gap-2">
           {restaurantSlug && (
             <a href={`/${restaurantSlug}`} target="_blank" rel="noopener noreferrer">
-              <Button size="sm" variant="ghost" className="text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 h-7 gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 h-7 gap-1"
+              >
                 <Eye className="h-3.5 w-3.5" />
                 <span>عرض المنيو</span>
               </Button>
@@ -155,10 +177,7 @@ export default function Admin() {
             size="sm"
             variant="ghost"
             className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 gap-1"
-            onClick={async () => {
-              await logout();
-              navigate("/login", { replace: true });
-            }}
+            onClick={handleLogout}
           >
             <LogOut className="h-3.5 w-3.5" />
             <span>خروج</span>

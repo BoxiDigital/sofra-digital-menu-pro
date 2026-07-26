@@ -259,49 +259,34 @@ export async function saveMyConfig(config: RestaurantConfig): Promise<void> {
   dispatchDataChange();
 }
 
+const EDGE_FUNCTION_URL = "https://likajtjowrmwjkoieznp.supabase.co/functions/v1/init-restaurant";
+
 export async function seedMyDefaultData(nameAr?: string, nameFr?: string): Promise<{ slug: string }> {
+  // الحصول على رمز الجلسة
   const { data: authData } = await supabase.auth.getSession();
-  const userId = authData.session?.user?.id;
-  if (!userId) throw new Error("يجب تسجيل الدخول أولاً");
+  const accessToken = authData.session?.access_token;
 
-  const userEmail = authData.session?.user?.email || "";
-  const emailPrefix = userEmail.includes("@")
-    ? userEmail.split("@")[0].replace(/[._-]/g, " ")
-    : "";
+  if (!accessToken) throw new Error("يجب تسجيل الدخول أولاً");
 
-  const finalNameAr = nameAr || `مطعم ${emailPrefix}` || "مطعم شِي نُو";
-  const finalNameFr = nameFr || `Restaurant ${emailPrefix}` || "Chez Nous";
+  // استدعاء Edge Function السحابية لتوليد البيانات
+  const response = await fetch(EDGE_FUNCTION_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ nameAr, nameFr }),
+  });
 
-  // توليد slug فريد
-  const base = finalNameAr
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-zA-Z0-9\u0600-\u06FF\-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .toLowerCase();
-  const suffix = Math.random().toString(36).substring(2, 6);
-  const slug = `${base}-${suffix}`;
+  if (!response.ok) {
+    const body = await response.text();
+    console.error("[sofra] Edge function error:", body);
+    throw new Error(body || "فشل في تهيئة بيانات المطعم");
+  }
 
-  // إدراج صف المطعم فقط — الـ Trigger في PostgreSQL
-  // سينسخ تلقائياً جميع الفئات والأطباق الافتراضية
-  const configRow = mapConfigToDB(defaultRestaurantConfig);
-  const { data: restaurant, error } = await supabase
-    .from("restaurants")
-    .insert({
-      ...configRow,
-      name_ar: finalNameAr,
-      name_fr: finalNameFr,
-      user_id: userId,
-      slug,
-    })
-    .select("slug")
-    .single();
-
-  if (error) throw error;
-
+  const result = await response.json();
   dispatchDataChange();
-  return { slug: restaurant.slug };
+  return { slug: result.slug };
 }
 
 export async function resetMyToDefault(): Promise<void> {
