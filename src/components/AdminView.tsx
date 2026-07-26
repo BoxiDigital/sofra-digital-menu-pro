@@ -76,11 +76,54 @@ export default function AdminView({
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
-    navigate("/login", { replace: true });
-  };
-
-  const [editingDish, setEditingDish] = useState<Dish | null>(null);
+      logout();
+      navigate("/login", { replace: true });
+    };
+  
+    const [isSaving, setIsSaving] = useState(false);
+  
+    const handleSaveError = (err: any) => {
+      console.error("[AdminView] Save error:", err);
+      toast({ title: "خطأ في الحفظ", description: err?.message || "حدث خطأ أثناء حفظ البيانات، يرجى المحاولة مرة أخرى", variant: "destructive" });
+    };
+  
+    const handleUpdateDishesSafe = async (updatedDishes: Dish[]) => {
+      if (isSaving) return;
+      setIsSaving(true);
+      try {
+        await onUpdateDishes(updatedDishes);
+      } catch (err) {
+        handleSaveError(err);
+      } finally {
+        setIsSaving(false);
+      }
+    };
+  
+    const handleUpdateCategoriesSafe = async (updatedCategories: Category[]) => {
+      if (isSaving) return;
+      setIsSaving(true);
+      try {
+        await onUpdateCategories(updatedCategories);
+      } catch (err) {
+        handleSaveError(err);
+      } finally {
+        setIsSaving(false);
+      }
+    };
+  
+    const handleUpdateConfigSafe = async (cfg: RestaurantConfig) => {
+      if (isSaving) return;
+      setIsSaving(true);
+      try {
+        await onUpdateConfig(cfg);
+      } catch (err) {
+        handleSaveError(err);
+      } finally {
+        setIsSaving(false);
+      }
+    };
+  
+    const [editingDish, setEditingDish] = useState<Dish | null>(null);
   const [dishForm, setDishForm] = useState<Partial<Dish>>({});
   const [isDishDialogOpen, setIsDishDialogOpen] = useState(false);
 
@@ -120,41 +163,44 @@ export default function AdminView({
 
   const openEditDish = (dish: Dish) => { setEditingDish(dish); setDishForm({ ...dish }); setIsDishDialogOpen(true); };
 
-  const saveDish = () => {
-    if (!dishForm.nameAr || !dishForm.nameFr || !dishForm.price) {
-      toast({ title: "تنبيه", description: "يرجى ملء جميع الحقول المطلوبة", variant: "destructive" });
-      return;
-    }
-    let updatedDishes: Dish[];
-    if (editingDish) {
-      updatedDishes = dishes.map((d) => (d.id === editingDish.id ? (dishForm as Dish) : d));
-      toast({ title: "تم التعديل", description: "تم تعديل الطبق بنجاح" });
-    } else {
-      const newDish: Dish = { ...(dishForm as Dish), id: `dish_${Date.now()}` };
-      updatedDishes = [...dishes, newDish];
-      toast({ title: "تم الإضافة", description: "تم إضافة الطبق الجديد بنجاح" });
-    }
-    onUpdateDishes(updatedDishes);
-    setIsDishDialogOpen(false);
-  };
-
-  const deleteDish = (id: string) => {
-    if (confirm("هل أنت متأكد من حذف هذا الطبق؟")) {
-      onUpdateDishes(dishes.filter((d) => d.id !== id));
-      toast({ title: "تم الحذف", description: "تم حذف الطبق بنجاح" });
-    }
-  };
-
-  const toggleDishAvailability = (id: string, currentStatus: boolean) => {
-    const updated = dishes.map((d) => d.id === id ? { ...d, isAvailable: !currentStatus } : d);
-    onUpdateDishes(updated);
-    toast({ title: !currentStatus ? "تم تفعيل الطبق" : "تم تعطيل الطبق", description: !currentStatus ? "الطبق متوفر الآن للزبائن" : "الطبق غير متوفر حالياً (مخفي عن الزبائن)" });
-  };
-
-  const reactivateDish = (id: string) => {
-    onUpdateDishes(dishes.map((d) => d.id === id ? { ...d, isAvailable: true } : d));
-    toast({ title: "تم إعادة تفعيل الطبق", description: "عاد الطبق للظهور في قائمة الزبائن" });
-  };
+  const saveDish = async () => {
+      if (!dishForm.nameAr || !dishForm.nameFr || !dishForm.price) {
+        toast({ title: "تنبيه", description: "يرجى ملء جميع الحقول المطلوبة", variant: "destructive" });
+        return;
+      }
+      let updatedDishes: Dish[];
+      if (editingDish) {
+        updatedDishes = dishes.map((d) => (d.id === editingDish.id ? (dishForm as Dish) : d));
+      } else {
+        const newDish: Dish = { ...(dishForm as Dish), id: `dish_${Date.now()}` };
+        updatedDishes = [...dishes, newDish];
+      }
+      await handleUpdateDishesSafe(updatedDishes);
+      setIsDishDialogOpen(false);
+      if (editingDish) {
+        toast({ title: "تم التعديل", description: "تم تعديل الطبق بنجاح" });
+      } else {
+        toast({ title: "تم الإضافة", description: "تم إضافة الطبق الجديد بنجاح" });
+      }
+    };
+  
+    const deleteDish = async (id: string) => {
+      if (confirm("هل أنت متأكد من حذف هذا الطبق؟")) {
+        await handleUpdateDishesSafe(dishes.filter((d) => d.id !== id));
+        toast({ title: "تم الحذف", description: "تم حذف الطبق بنجاح" });
+      }
+    };
+  
+    const toggleDishAvailability = async (id: string, currentStatus: boolean) => {
+      const updated = dishes.map((d) => d.id === id ? { ...d, isAvailable: !currentStatus } : d);
+      await handleUpdateDishesSafe(updated);
+      toast({ title: !currentStatus ? "تم تفعيل الطبق" : "تم تعطيل الطبق", description: !currentStatus ? "الطبق متوفر الآن للزبائن" : "الطبق غير متوفر حالياً (مخفي عن الزبائن)" });
+    };
+  
+    const reactivateDish = async (id: string) => {
+      await handleUpdateDishesSafe(dishes.map((d) => d.id === id ? { ...d, isAvailable: true } : d));
+      toast({ title: "تم إعادة تفعيل الطبق", description: "عاد الطبق للظهور في قائمة الزبائن" });
+    };
 
   const openAddCategory = () => {
     setEditingCategory(null);
@@ -164,40 +210,43 @@ export default function AdminView({
 
   const openEditCategory = (category: Category) => { setEditingCategory(category); setCategoryForm({ ...category }); setIsCategoryDialogOpen(true); };
 
-  const saveCategory = () => {
-    if (!categoryForm.nameAr || !categoryForm.nameFr) {
-      toast({ title: "تنبيه", description: "يرجى ملء جميع الحقول المطلوبة", variant: "destructive" });
-      return;
-    }
-    let updatedCategories: Category[];
-    if (editingCategory) {
-      updatedCategories = categories.map((c) => (c.id === editingCategory.id ? (categoryForm as Category) : c));
-      toast({ title: "تم التعديل", description: "تم تعديل الفئة بنجاح" });
-    } else {
-      const newCategory: Category = { ...(categoryForm as Category), id: `cat_${Date.now()}` };
-      updatedCategories = [...categories, newCategory];
-      toast({ title: "تم الإضافة", description: "تم إضافة الفئة الجديدة بنجاح" });
-    }
-    onUpdateCategories(updatedCategories);
-    setIsCategoryDialogOpen(false);
-  };
-
-  const deleteCategory = (id: string) => {
-    const hasDishes = dishes.some((d) => d.category === id);
-    if (hasDishes) {
-      toast({ title: "لا يمكن الحذف", description: "هذه الفئة تحتوي على أطباق نشطة. يرجى نقل الأطباق أو حذفها أولاً.", variant: "destructive" });
-      return;
-    }
-    if (confirm("هل أنت متأكد من حذف هذه الفئة؟")) {
-      onUpdateCategories(categories.filter((c) => c.id !== id));
-      toast({ title: "تم الحذف", description: "تم حذف الفئة بنجاح" });
-    }
-  };
-
-  const saveConfig = () => {
-    onUpdateConfig(configForm);
-    toast({ title: "تم حفظ الإعدادات", description: "تم تحديث معلومات المطعم والألوان بنجاح" });
-  };
+  const saveCategory = async () => {
+      if (!categoryForm.nameAr || !categoryForm.nameFr) {
+        toast({ title: "تنبيه", description: "يرجى ملء جميع الحقول المطلوبة", variant: "destructive" });
+        return;
+      }
+      let updatedCategories: Category[];
+      if (editingCategory) {
+        updatedCategories = categories.map((c) => (c.id === editingCategory.id ? (categoryForm as Category) : c));
+      } else {
+        const newCategory: Category = { ...(categoryForm as Category), id: `cat_${Date.now()}` };
+        updatedCategories = [...categories, newCategory];
+      }
+      await handleUpdateCategoriesSafe(updatedCategories);
+      setIsCategoryDialogOpen(false);
+      if (editingCategory) {
+        toast({ title: "تم التعديل", description: "تم تعديل الفئة بنجاح" });
+      } else {
+        toast({ title: "تم الإضافة", description: "تم إضافة الفئة الجديدة بنجاح" });
+      }
+        };
+      
+        const deleteCategory = async (id: string) => {
+          const hasDishes = dishes.some((d) => d.category === id);
+          if (hasDishes) {
+            toast({ title: "لا يمكن الحذف", description: "هذه الفئة تحتوي على أطباق نشطة. يرجى نقل الأطباق أو حذفها أولاً.", variant: "destructive" });
+            return;
+          }
+          if (confirm("هل أنت متأكد من حذف هذه الفئة؟")) {
+            await handleUpdateCategoriesSafe(categories.filter((c) => c.id !== id));
+            toast({ title: "تم الحذف", description: "تم حذف الفئة بنجاح" });
+          }
+        };
+      
+        const saveConfig = async () => {
+          await handleUpdateConfigSafe(configForm);
+          toast({ title: "تم حفظ الإعدادات", description: "تم تحديث معلومات المطعم والألوان بنجاح" });
+    };
 
   const menuUrl = `${window.location.origin}/${restaurantSlug}`;
   
