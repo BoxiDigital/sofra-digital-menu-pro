@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate, Link } from "react-router-dom";
 import {
   getMyCategories,
   getMyDishes,
@@ -161,18 +161,18 @@ export default function Admin() {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {restaurantSlug && (
-            <a href={`/${restaurantSlug}`} target="_blank" rel="noopener noreferrer">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 h-7 gap-1"
-              >
-                <Eye className="h-3.5 w-3.5" />
-                <span>عرض المنيو</span>
-              </Button>
-            </a>
-          )}
+                  {restaurantSlug && (
+                    <Link to={`/${restaurantSlug}`}>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 h-7 gap-1"
+                                          >
+                                            <Eye className="h-3.5 w-3.5" />
+                                            <span>عرض المنيو</span>
+                      </Button>
+                    </Link>
+                  )}
           <Button
             size="sm"
             variant="ghost"
