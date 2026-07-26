@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import {
   getMyCategories,
@@ -12,13 +12,14 @@ import {
 } from "../utils/storage";
 import { Category, Dish, RestaurantConfig } from "../types";
 import AdminView from "../components/AdminView";
-import { Eye, LogOut, Building2 } from "lucide-react";
+import { Eye, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Admin() {
   const { user, isLoading: authLoading, logout } = useAuth();
   const navigate = useNavigate();
+  const autoInitDone = useRef(false);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -39,12 +40,14 @@ export default function Admin() {
         const { id, slug, ...cfg } = restaurant as any;
         setConfig(cfg);
         setRestaurantSlug(slug || "");
+        setCategories(cats);
+        setDishes(dsh);
       } else {
+        // لا توجد بيانات → تهيئة تلقائية
         setConfig(null);
+        setCategories([]);
+        setDishes([]);
       }
-
-      setCategories(cats);
-      setDishes(dsh);
     } catch (err) {
       console.error("[Admin] Error loading data:", err);
     } finally {
@@ -57,6 +60,25 @@ export default function Admin() {
       loadData();
     }
   }, [user]);
+
+  // تهيئة تلقائية عند عدم وجود مطعم
+  useEffect(() => {
+    if (!authLoading && user && !isLoading && !config && !isInitializing && !autoInitDone.current) {
+      autoInitDone.current = true;
+      setIsInitializing(true);
+      seedMyDefaultData()
+        .then((result) => {
+          setRestaurantSlug(result.slug);
+          return loadData();
+        })
+        .catch((err) => {
+          console.error("[Admin] Auto-init error:", err);
+        })
+        .finally(() => {
+          setIsInitializing(false);
+        });
+    }
+  }, [authLoading, user, isLoading, config, isInitializing]);
 
   const handleUpdateCategories = async (newCategories: Category[]) => {
     setCategories(newCategories);
@@ -85,48 +107,41 @@ export default function Admin() {
     navigate("/login", { replace: true });
   };
 
-  const handleInitDefault = async () => {
-    if (!user) return;
-    setIsInitializing(true);
-    try {
-      const result = await seedMyDefaultData();
-      setRestaurantSlug(result.slug);
-      await loadData();
-    } catch (err) {
-      console.error("[Admin] Init error:", err);
-    }
-    setIsInitializing(false);
-  };
-
   // حماية: التوجيه لتسجيل الدخول
   if (!authLoading && !user) {
     return <Navigate to="/login" replace />;
   }
 
-  // حالة التحميل
+  // حالة التحميل أو التهيئة التلقائية
   if (authLoading || isInitializing || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
-        <div className="animate-pulse text-[#C8A24D] font-bold text-lg">
-          {isInitializing ? "جاري تهيئة بيانات المطعم..." : "جاري تحميل لوحة التحكم..."}
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0D0D0D] gap-3">
+        <div className="w-8 h-8 border-2 border-[#C8A24D]/30 border-t-[#C8A24D] rounded-full animate-spin" />
+        <p className="text-white/50 text-sm">
+          {isInitializing ? "جاري تجهيز القائمة الافتراضية لمطعمك..." : "جاري تحميل لوحة التحكم..."}
+        </p>
       </div>
     );
   }
 
-  // إذا لم توجد بيانات، اعرض زر التهيئة
+  // احتياط: إذا فشلت التهيئة التلقائية
   if (!config) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D] px-4">
         <div className="text-center space-y-6">
-          <Building2 className="h-16 w-16 text-[#C8A24D] mx-auto" />
-          <h2 className="text-2xl font-bold text-white">لا توجد بيانات للمطعم</h2>
-          <p className="text-white/50">يبدو أنك بحاجة لتهيئة بيانات المطعم الافتراضية</p>
+          <p className="text-4xl">⚠️</p>
+          <h2 className="text-2xl font-bold text-white">تعذر تحميل البيانات</h2>
+          <p className="text-white/50">حدث خطأ أثناء تجهيز بيانات المطعم. يرجى المحاولة مرة أخرى.</p>
           <Button
-            onClick={handleInitDefault}
+            onClick={() => {
+              autoInitDone.current = false;
+              setConfig(null);
+              setIsLoading(true);
+              loadData();
+            }}
             className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold"
           >
-            تهيئة البيانات الافتراضية
+            إعادة المحاولة
           </Button>
         </div>
       </div>
