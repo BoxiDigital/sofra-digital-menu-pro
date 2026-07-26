@@ -186,14 +186,15 @@ export default function Admin() {
       </div>
 
       <AdminView
-        categories={categories}
-        dishes={dishes}
-        config={config}
-        onUpdateCategories={handleUpdateCategories}
-        onUpdateDishes={handleUpdateDishes}
-        onUpdateConfig={handleUpdateConfig}
-        onReset={handleReset}
-      />
+              categories={categories}
+              dishes={dishes}
+              config={config}
+              restaurantSlug={restaurantSlug}
+              onUpdateCategories={handleUpdateCategories}
+              onUpdateDishes={handleUpdateDishes}
+              onUpdateConfig={handleUpdateConfig}
+              onReset={handleReset}
+            />
     </div>
   );
 }

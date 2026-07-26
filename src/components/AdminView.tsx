@@ -54,6 +54,7 @@ interface AdminViewProps {
   categories: Category[];
   dishes: Dish[];
   config: RestaurantConfig;
+  restaurantSlug: string;
   onUpdateCategories: (categories: Category[]) => void;
   onUpdateDishes: (dishes: Dish[]) => void;
   onUpdateConfig: (config: RestaurantConfig) => void;
@@ -64,6 +65,7 @@ export default function AdminView({
   categories,
   dishes,
   config,
+  restaurantSlug,
   onUpdateCategories,
   onUpdateDishes,
   onUpdateConfig,
@@ -197,22 +199,23 @@ export default function AdminView({
     toast({ title: "تم حفظ الإعدادات", description: "تم تحديث معلومات المطعم والألوان بنجاح" });
   };
 
-  const downloadQRCode = async () => {
-    const currentUrl = window.location.origin;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(currentUrl)}`;
-    try {
-      const response = await fetch(qrUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url; link.download = `${config.nameAr}-QR.png`;
-      document.body.appendChild(link); link.click(); document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      toast({ title: "تم تحميل رمز QR", description: "تم حفظ رمز QR الخاص بقائمتك بنجاح" });
-    } catch {
-      window.open(qrUrl, "_blank");
-    }
-  };
+  const menuUrl = `${window.location.origin}/${restaurantSlug}`;
+  
+    const downloadQRCode = async () => {
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(menuUrl)}`;
+      try {
+        const response = await fetch(qrUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url; link.download = `${config.nameAr}-QR.png`;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        toast({ title: "تم تحميل رمز QR", description: "تم حفظ رمز QR الخاص بقائمتك بنجاح" });
+      } catch {
+        window.open(qrUrl, "_blank");
+      }
+    };
 
   return (
     <div className="min-h-screen bg-[#0D0D0D] pb-12" dir="rtl">
@@ -514,7 +517,7 @@ export default function AdminView({
               <h3 className="text-lg font-bold text-white">مشاركة القائمة</h3>
               <p className="text-xs text-white/35">حمّل رمز QR واطبعه ليتمكن زبائنك من الوصول للقائمة مباشرة</p>
               <div className="bg-white rounded-2xl p-3">
-                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(window.location.origin)}`} alt="QR Code" className="w-full rounded-xl" />
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(menuUrl)}`} alt="QR Code" className="w-full rounded-xl" />
               </div>
               <Button onClick={downloadQRCode} className="w-full bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl h-11">
                 <Download className="h-4 w-4 ml-1.5" /><span>تحميل رمز QR</span>
