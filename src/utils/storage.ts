@@ -259,49 +259,34 @@ export async function saveMyConfig(config: RestaurantConfig): Promise<void> {
   dispatchDataChange();
 }
 
+const EDGE_FUNCTION_URL = "https://likajtjowrmwjkoieznp.supabase.co/functions/v1/init-restaurant";
+
 export async function seedMyDefaultData(nameAr?: string, nameFr?: string): Promise<{ slug: string }> {
+  // الحصول على رمز الجلسة
   const { data: authData } = await supabase.auth.getSession();
-  const userId = authData.session?.user?.id;
-  const userEmail = authData.session?.user?.email || "";
+  const accessToken = authData.session?.access_token;
 
-  if (!userId) throw new Error("يجب تسجيل الدخول أولاً");
+  if (!accessToken) throw new Error("يجب تسجيل الدخول أولاً");
 
-  const emailPrefix = userEmail.includes("@")
-    ? userEmail.split("@")[0].replace(/[._-]/g, " ")
-    : "";
+  // استدعاء Edge Function السحابية لتوليد البيانات
+  const response = await fetch(EDGE_FUNCTION_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ nameAr, nameFr }),
+  });
 
-  const finalNameAr = nameAr || emailPrefix || defaultRestaurantConfig.nameAr;
-  const finalNameFr = nameFr || `Restaurant ${emailPrefix}` || defaultRestaurantConfig.nameFr;
-  const baseSlug = (nameAr || emailPrefix || "restaurant")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-zA-Z0-9\u0600-\u06FF\-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .toLowerCase();
-  const slug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
+  if (!response.ok) {
+    const body = await response.text();
+    console.error("[sofra] Edge function error:", body);
+    throw new Error(body || "فشل في تهيئة بيانات المطعم");
+  }
 
-  const configRow = mapConfigToDB({ ...defaultRestaurantConfig, nameAr: finalNameAr, nameFr: finalNameFr });
-
-  const { data: restaurant, error: restaurantError } = await supabase
-    .from("restaurants")
-    .insert({ ...configRow, user_id: userId, slug })
-    .select("id, slug")
-    .single();
-
-  if (restaurantError) throw restaurantError;
-
-  const restaurantId = restaurant.id;
-
-  const catRows = defaultCategories.map((cat) => mapCategoryToDB(cat, restaurantId));
-  const dishRows = defaultDishes.map((dish) => mapDishToDB(dish, restaurantId));
-  await Promise.all([
-    supabase.from("categories").insert(catRows),
-    supabase.from("dishes").insert(dishRows),
-  ]);
-
+  const result = await response.json();
   dispatchDataChange();
-  return { slug: restaurant.slug };
+  return { slug: result.slug };
 }
 
 export async function resetMyToDefault(): Promise<void> {
