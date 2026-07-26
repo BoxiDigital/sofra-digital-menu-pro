@@ -117,22 +117,6 @@ function mapConfigToDB(config: RestaurantConfig): any {
 }
 
 // ───────────────────────────────────────────
-// توليد slug فريد من الاسم
-// ───────────────────────────────────────────
-
-function generateSlug(name: string): string {
-  const base = name
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-zA-Z0-9\u0600-\u06FF\-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .toLowerCase();
-  const suffix = Math.random().toString(36).substring(2, 6);
-  return `${base}-${suffix}`;
-}
-
-// ───────────────────────────────────────────
 // دوال عامة (للزوار)
 // ───────────────────────────────────────────
 
@@ -275,56 +259,34 @@ export async function saveMyConfig(config: RestaurantConfig): Promise<void> {
   dispatchDataChange();
 }
 
+const EDGE_FUNCTION_URL = "https://likajtjowrmwjkoieznp.supabase.co/functions/v1/init-restaurant";
+
 export async function seedMyDefaultData(nameAr?: string, nameFr?: string): Promise<{ slug: string }> {
+  // الحصول على رمز الجلسة
   const { data: authData } = await supabase.auth.getSession();
-  const userEmail = authData.session?.user?.email || "";
-  const userId = authData.session?.user?.id;
+  const accessToken = authData.session?.access_token;
 
-  if (!userId) throw new Error("يجب تسجيل الدخول أولاً");
+  if (!accessToken) throw new Error("يجب تسجيل الدخول أولاً");
 
-  const emailPrefix = userEmail.includes("@")
-    ? userEmail.split("@")[0].replace(/[._-]/g, " ")
-    : "";
-
-  const finalNameAr = nameAr || `مطعم ${emailPrefix}` || defaultRestaurantConfig.nameAr;
-  const finalNameFr = nameFr || `Restaurant ${emailPrefix}` || defaultRestaurantConfig.nameFr;
-  const baseSlug = nameAr
-    ? generateSlug(nameAr)
-    : emailPrefix
-      ? generateSlug(emailPrefix)
-      : generateSlug("restaurant");
-
-  // 1. إدراج بيانات المطعم مع slug
-  const configRow = mapConfigToDB({
-    ...defaultRestaurantConfig,
-    nameAr: finalNameAr,
-    nameFr: finalNameFr,
+  // استدعاء Edge Function السحابية لتوليد البيانات
+  const response = await fetch(EDGE_FUNCTION_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ nameAr, nameFr }),
   });
 
-  const { data: restaurant, error: restaurantError } = await supabase
-    .from("restaurants")
-    .insert({ ...configRow, user_id: userId, slug: baseSlug })
-    .select("id, slug")
-    .single();
-
-  if (restaurantError) {
-    console.error("[sofra] seedMyDefaultData error:", restaurantError);
-    throw restaurantError;
+  if (!response.ok) {
+    const body = await response.text();
+    console.error("[sofra] Edge function error:", body);
+    throw new Error(body || "فشل في تهيئة بيانات المطعم");
   }
 
-  const restaurantId = restaurant.id;
-  const restaurantSlug = restaurant.slug;
-
-  // 2. إدراج الفئات
-  const catRows = defaultCategories.map((cat) => mapCategoryToDB(cat, restaurantId));
-  await supabase.from("categories").insert(catRows);
-
-  // 3. إدراج الأطباق
-  const dishRows = defaultDishes.map((dish) => mapDishToDB(dish, restaurantId));
-  await supabase.from("dishes").insert(dishRows);
-
+  const result = await response.json();
   dispatchDataChange();
-  return { slug: restaurantSlug };
+  return { slug: result.slug };
 }
 
 export async function resetMyToDefault(): Promise<void> {
