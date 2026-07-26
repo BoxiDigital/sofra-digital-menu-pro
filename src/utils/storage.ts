@@ -259,34 +259,49 @@ export async function saveMyConfig(config: RestaurantConfig): Promise<void> {
   dispatchDataChange();
 }
 
-const EDGE_FUNCTION_URL = "https://likajtjowrmwjkoieznp.supabase.co/functions/v1/init-restaurant";
-
 export async function seedMyDefaultData(nameAr?: string, nameFr?: string): Promise<{ slug: string }> {
-  // الحصول على رمز الجلسة
   const { data: authData } = await supabase.auth.getSession();
-  const accessToken = authData.session?.access_token;
+  const userId = authData.session?.user?.id;
+  const userEmail = authData.session?.user?.email || "";
 
-  if (!accessToken) throw new Error("يجب تسجيل الدخول أولاً");
+  if (!userId) throw new Error("يجب تسجيل الدخول أولاً");
 
-  // استدعاء Edge Function السحابية لتوليد البيانات
-  const response = await fetch(EDGE_FUNCTION_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({ nameAr, nameFr }),
+  const emailPrefix = userEmail.includes("@")
+    ? userEmail.split("@")[0].replace(/[._-]/g, " ")
+    : "";
+
+  const finalNameAr = nameAr || `مطعم ${emailPrefix}` || defaultRestaurantConfig.nameAr;
+  const finalNameFr = nameFr || `Restaurant ${emailPrefix}` || defaultRestaurantConfig.nameFr;
+
+  // توليد slug فريد
+  const base = finalNameAr
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9\u0600-\u06FF\-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+  const suffix = Math.random().toString(36).substring(2, 6);
+  const slug = `${base}-${suffix}`;
+
+  // إدراج المطعم فقط — الـ Trigger سينسخ القالب الافتراضي تلقائياً
+  const configRow = mapConfigToDB({
+    ...defaultRestaurantConfig,
+    nameAr: finalNameAr,
+    nameFr: finalNameFr,
   });
 
-  if (!response.ok) {
-    const body = await response.text();
-    console.error("[sofra] Edge function error:", body);
-    throw new Error(body || "فشل في تهيئة بيانات المطعم");
+  const { error: insertError } = await supabase
+    .from("restaurants")
+    .insert({ ...configRow, user_id: userId, slug });
+
+  if (insertError) {
+    console.error("[sofra] seedMyDefaultData error:", insertError);
+    throw insertError;
   }
 
-  const result = await response.json();
   dispatchDataChange();
-  return { slug: result.slug };
+  return { slug };
 }
 
 export async function resetMyToDefault(): Promise<void> {
