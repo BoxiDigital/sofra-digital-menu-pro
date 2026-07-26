@@ -1,59 +1,44 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate, Navigate } from "react-router-dom";
-import { Mail, Lock, UserPlus, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Store, UserPlus, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "../contexts/AuthContext";
-import { seedDefaultData, hasRegisteredRestaurant } from "../utils/storage";
+import { seedMyDefaultData } from "../utils/storage";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Register() {
   const [email, setEmail] = useState("");
+  const [restaurantName, setRestaurantName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [restaurantExists, setRestaurantExists] = useState<boolean | null>(null);
 
   const { register, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  useEffect(() => {
-    hasRegisteredRestaurant().then(setRestaurantExists);
-  }, []);
-
-  // إذا كان المطعم مسجلاً مسبقاً، وجه الزائر للصفحة الرئيسية
-  if (restaurantExists) {
-    return <Navigate to="/" replace />;
-  }
 
   // إذا كان مسجلاً بالفعل، وجهه للوحة التحكم
   if (!authLoading && isAuthenticated) {
     return <Navigate to="/admin" replace />;
   }
 
-  // جاري التحقق من وجود مطعم
-  if (restaurantExists === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
-        <div className="animate-pulse text-[#C8A24D] font-bold text-lg">جاري التحقق...</div>
-      </div>
-    );
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
+    if (!restaurantName.trim()) {
+      setError("يرجى إدخال اسم المطعم");
+      return;
+    }
     if (password !== confirmPassword) {
       setError("كلمة المرور غير متطابقة");
       return;
     }
-
     if (password.length < 6) {
       setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
       return;
@@ -65,17 +50,17 @@ export default function Register() {
       await register(email, password);
 
       try {
-        // محاولة تهيئة البيانات الافتراضية (تعمل فقط إذا كان المستخدم مسجلاً دخوله)
-        const nameFromEmail = email.split("@")[0].replace(/[._-]/g, " ");
-        await seedDefaultData(`مطعم ${nameFromEmail}`, `Restaurant ${nameFromEmail}`);
+        // تهيئة بيانات المطعم مع slug
+        const result = await seedMyDefaultData(restaurantName.trim(), `Restaurant ${restaurantName.trim()}`);
 
         toast({
           title: "🎉 تم التسجيل بنجاح",
           description: "تم إنشاء حسابك وتجهيز القائمة الافتراضية لمطعمك",
         });
-        navigate("/admin", { replace: true });
-      } catch {
-        // ربما يحتاج تأكيد البريد الإلكتروني - المستخدم سيُكمل لاحقاً
+        // توجيه للوحة التحكم مع رابط المنيو الخاص
+        navigate(`/admin?slug=${result.slug}`, { replace: true });
+      } catch (seedErr: any) {
+        console.error("[Register] Seed error:", seedErr);
         toast({
           title: "🎉 تم إنشاء الحساب",
           description: "يرجى تأكيد بريدك الإلكتروني ثم تسجيل الدخول لتهيئة بيانات المطعم",
@@ -96,13 +81,34 @@ export default function Register() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#C8A24D]/10 border border-[#C8A24D]/20 mb-6">
             <UserPlus className="h-8 w-8 text-[#C8A24D]" />
           </div>
-          <h2 className="text-2xl font-extrabold text-white">إنشاء حساب جديد</h2>
+          <h2 className="text-2xl font-extrabold text-white">سجل مطعمك الآن</h2>
           <p className="text-sm text-white/50">
-            سجل مطعمك الآن وابدأ في إدارة قائمتك الرقمية
+            أنشئ حسابك وابدأ في إدارة قائمتك الرقمية
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-3">
+            <Label className="text-white/50 text-xs font-semibold mb-2 block">
+              اسم المطعم
+            </Label>
+            <div className="relative">
+              <Store className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
+              <Input
+                type="text"
+                required
+                value={restaurantName}
+                onChange={(e) => {
+                  setRestaurantName(e.target.value);
+                  setError("");
+                }}
+                className="block w-full pl-10 pr-4 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-12 text-sm focus:border-[#C8A24D]/40 focus:ring-[#C8A24D]/10 transition-all"
+                placeholder="مثال: مطعم الأصالة"
+                dir="rtl"
+              />
+            </div>
+          </div>
+
           <div className="space-y-3">
             <Label className="text-white/50 text-xs font-semibold mb-2 block">
               البريد الإلكتروني

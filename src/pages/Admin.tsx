@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import {
-  getCategories,
-  getDishes,
-  getRestaurantConfig,
-  saveCategories,
-  saveDishes,
-  saveRestaurantConfig,
-  seedDefaultData,
-  resetToDefault,
+  getMyCategories,
+  getMyDishes,
+  getMyRestaurant,
+  saveMyCategories,
+  saveMyDishes,
+  saveMyConfig,
+  seedMyDefaultData,
+  resetMyToDefault,
 } from "../utils/storage";
 import { Category, Dish, RestaurantConfig } from "../types";
 import AdminView from "../components/AdminView";
@@ -23,22 +23,33 @@ export default function Admin() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
-  const [isEmpty, setIsEmpty] = useState(false);
+  const [restaurantSlug, setRestaurantSlug] = useState<string>("");
   const [isInitializing, setIsInitializing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
-    const [cats, dsh, cfg] = await Promise.all([
-      getCategories(),
-      getDishes(),
-      getRestaurantConfig(),
-    ]);
+    try {
+      const [restaurant, cats, dsh] = await Promise.all([
+        getMyRestaurant(),
+        getMyCategories(),
+        getMyDishes(),
+      ]);
 
-    setCategories(cats);
-    setDishes(dsh);
-    setConfig(cfg);
-    setIsEmpty(!cfg || (cats.length === 0 && dsh.length === 0));
-    setIsLoading(false);
+      if (restaurant) {
+        const { id, slug, ...cfg } = restaurant as any;
+        setConfig(cfg);
+        setRestaurantSlug(slug || "");
+      } else {
+        setConfig(null);
+      }
+
+      setCategories(cats);
+      setDishes(dsh);
+    } catch (err) {
+      console.error("[Admin] Error loading data:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -49,25 +60,22 @@ export default function Admin() {
 
   const handleUpdateCategories = async (newCategories: Category[]) => {
     setCategories(newCategories);
-    await saveCategories(newCategories);
-    setIsEmpty(false);
+    await saveMyCategories(newCategories);
   };
 
   const handleUpdateDishes = async (newDishes: Dish[]) => {
     setDishes(newDishes);
-    await saveDishes(newDishes);
-    setIsEmpty(false);
+    await saveMyDishes(newDishes);
   };
 
   const handleUpdateConfig = async (newConfig: RestaurantConfig) => {
     setConfig(newConfig);
-    await saveRestaurantConfig(newConfig);
-    setIsEmpty(false);
+    await saveMyConfig(newConfig);
   };
 
   const handleReset = async () => {
     if (confirm("هل أنت متأكد من إعادة تعيين جميع البيانات إلى القيم الافتراضية؟ سيتم فقدان أي تغييرات قمت بها.")) {
-      await resetToDefault();
+      await resetMyToDefault();
       await loadData();
     }
   };
@@ -78,13 +86,17 @@ export default function Admin() {
   };
 
   const handleInitDefault = async () => {
-      if (!user?.email) return;
-      setIsInitializing(true);
-      const nameFromEmail = user.email.split("@")[0].replace(/[._-]/g, " ");
-      await seedDefaultData(`مطعم ${nameFromEmail}`, `Restaurant ${nameFromEmail}`);
-      setIsInitializing(false);
+    if (!user) return;
+    setIsInitializing(true);
+    try {
+      const result = await seedMyDefaultData();
+      setRestaurantSlug(result.slug);
       await loadData();
-    };
+    } catch (err) {
+      console.error("[Admin] Init error:", err);
+    }
+    setIsInitializing(false);
+  };
 
   // حماية: التوجيه لتسجيل الدخول
   if (!authLoading && !user) {
@@ -134,16 +146,18 @@ export default function Admin() {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <a href="/" target="_blank" rel="noopener noreferrer">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 h-7 gap-1"
-            >
-              <Eye className="h-3.5 w-3.5" />
-              <span>عرض المنيو</span>
-            </Button>
-          </a>
+          {restaurantSlug && (
+            <a href={`/${restaurantSlug}`} target="_blank" rel="noopener noreferrer">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 h-7 gap-1"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                <span>عرض المنيو</span>
+              </Button>
+            </a>
+          )}
           <Button
             size="sm"
             variant="ghost"

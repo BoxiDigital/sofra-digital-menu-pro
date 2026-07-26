@@ -1,97 +1,84 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import {
-  getCategories,
-  getDishes,
-  getRestaurantConfig,
-  hasRegisteredRestaurant,
-  subscribeToDataChanges,
-} from "../utils/storage";
-import { Category, Dish, RestaurantConfig } from "../types";
-import ClientView from "../components/ClientView";
-import { Settings } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Store, LogIn, QrCode, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function Index() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [dishes, setDishes] = useState<Dish[]>([]);
-  const [config, setConfig] = useState<RestaurantConfig | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [needsRedirect, setNeedsRedirect] = useState(false);
-  const navigate = useNavigate();
-
-  const loadData = async () => {
-    try {
-      const [cats, dsh, cfg, registered] = await Promise.all([
-        getCategories(),
-        getDishes(),
-        getRestaurantConfig(),
-        hasRegisteredRestaurant(),
-      ]);
-
-      if (!registered) {
-        setNeedsRedirect(true);
-        setIsLoading(false);
-        return;
-      }
-
-      setCategories(cats);
-      setDishes(dsh);
-      setConfig(cfg);
-    } catch (err) {
-      console.error("[Index] Error loading data:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-    const unsubscribe = subscribeToDataChanges(() => {
-      loadData();
-    });
-    return unsubscribe;
-  }, []);
-
-  // توجيه الزائر الجديد إلى صفحة تسجيل المطعم إذا لم يكن هناك مطعم مسجل
-  useEffect(() => {
-    if (needsRedirect) {
-      navigate("/register", { replace: true });
-    }
-  }, [needsRedirect, navigate]);
-
-  // حالة التحميل
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
-        <div className="animate-pulse text-[#C8A24D] font-bold text-lg">جاري تحميل القائمة...</div>
-      </div>
-    );
-  }
-
-  // إذا لم يكن هناك مطعم مسجل، لا نعرض شيئاً (سيتم التوجيه لصفحة التسجيل)
-  if (!config) {
-    return null;
-  }
-
-  // عرض قائمة المطعم للزوار
   return (
-    <div className="relative min-h-screen">
-      <ClientView categories={categories} dishes={dishes} config={config} />
+    <div className="min-h-screen bg-[#0D0D0D] flex flex-col">
+      {/* Hero Section */}
+      <section className="flex-1 flex flex-col items-center justify-center px-4 py-16 text-center">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#C8A24D]/10 border border-[#C8A24D]/20 mb-8">
+          <Sparkles className="h-10 w-10 text-[#C8A24D]" />
+        </div>
 
-      <footer className="bg-zinc-900 text-zinc-400 py-8 text-center text-xs border-t border-zinc-800">
-        <div className="max-w-md mx-auto px-4 space-y-3">
-          <p className="text-white/60 font-semibold">{config.nameAr}</p>
-          <p>© {new Date().getFullYear()} {config.nameAr}. جميع الحقوق محفوظة.</p>
-          <div className="flex justify-center gap-4">
-            <Link
-              to="/admin"
-              className="inline-flex items-center gap-1 text-amber-500 hover:text-amber-400 font-semibold transition-colors"
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-4 leading-tight">
+          قائمتك الرقمية
+          <br />
+          <span className="text-[#C8A24D]">في متناول الجميع</span>
+        </h1>
+
+        <p className="text-white/50 text-sm sm:text-base max-w-md mb-10 leading-relaxed">
+          منصة سُفرة تتيح لك إنشاء قائمة رقمية احترافية لمطعمك، ومشاركتها عبر رابط أو كود QR.
+          الزبائن يتصفحون المنيو ويطلبون مباشرة عبر واتساب.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
+          <Link to="/register" className="flex-1">
+            <Button className="w-full py-6 bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl text-base transition-all shadow-lg shadow-[#C8A24D]/10">
+              <Store className="h-4 w-4 ml-2" />
+              سجل مطعمك الآن
+            </Button>
+          </Link>
+          <Link to="/login" className="flex-1">
+            <Button
+              variant="outline"
+              className="w-full py-6 border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06] hover:text-white font-bold rounded-xl text-base transition-all"
             >
-              <Settings className="h-3.5 w-3.5" />
-              <span>لوحة تحكم المدير</span>
-            </Link>
+              <LogIn className="h-4 w-4 ml-2" />
+              تسجيل الدخول
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-12 px-4 border-t border-white/[0.06]">
+        <div className="max-w-3xl mx-auto grid sm:grid-cols-3 gap-8">
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#C8A24D]/10">
+              <Store className="h-5 w-5 text-[#C8A24D]" />
+            </div>
+            <h3 className="text-white font-semibold text-sm">إدارة سهلة</h3>
+            <p className="text-white/40 text-xs leading-relaxed">
+              أضف أطباقك وفئاتك وعدّل الأسعار بسهولة من لوحة تحكم بسيطة
+            </p>
+          </div>
+
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#C8A24D]/10">
+              <QrCode className="h-5 w-5 text-[#C8A24D]" />
+            </div>
+            <h3 className="text-white font-semibold text-sm">رابط وكود QR</h3>
+            <p className="text-white/40 text-xs leading-relaxed">
+              احصل على رابط خاص بمطعمك وكود QR لتشاركه مع زبائنك
+            </p>
+          </div>
+
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#C8A24D]/10">
+              <Sparkles className="h-5 w-5 text-[#C8A24D]" />
+            </div>
+            <h3 className="text-white font-semibold text-sm">طلب مباشر</h3>
+            <p className="text-white/40 text-xs leading-relaxed">
+              الزبائن يطلبون أطباقهم مباشرة عبر واتساب بنقرة واحدة
+            </p>
           </div>
         </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-zinc-900 text-zinc-400 py-6 text-center text-xs border-t border-zinc-800">
+        <p>© {new Date().getFullYear()} سُفرة - جميع الحقوق محفوظة</p>
       </footer>
     </div>
   );

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./contexts/AuthContext";
 
 import Index from "./pages/Index";
+import MenuPage from "./pages/MenuPage";
 import Admin from "./pages/Admin";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -18,7 +19,8 @@ export default function App() {
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
-                        <Route path="/admin" element={<Admin />} />
+            <Route path="/:slug" element={<MenuPage />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="*" element={<NotFound />} />

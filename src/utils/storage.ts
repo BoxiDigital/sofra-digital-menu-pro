@@ -15,12 +15,13 @@ function mapCategoryFromDB(row: any): Category {
   };
 }
 
-function mapCategoryToDB(cat: Category): any {
+function mapCategoryToDB(cat: Category, restaurantId: string): any {
   return {
     id: cat.id,
     name_ar: cat.nameAr,
     name_fr: cat.nameFr,
     icon: cat.icon,
+    restaurant_id: restaurantId,
   };
 }
 
@@ -48,7 +49,7 @@ function mapDishFromDB(row: any): Dish {
   };
 }
 
-function mapDishToDB(dish: Dish): any {
+function mapDishToDB(dish: Dish, restaurantId: string): any {
   return {
     id: dish.id,
     name_ar: dish.nameAr,
@@ -69,10 +70,11 @@ function mapDishToDB(dish: Dish): any {
     promo_label_fr: dish.promoLabelFr || "",
     promo_text_ar: dish.promoTextAr || "",
     promo_text_fr: dish.promoTextFr || "",
+    restaurant_id: restaurantId,
   };
 }
 
-function mapConfigFromDB(row: any): RestaurantConfig {
+function mapConfigFromDB(row: any): RestaurantConfig & { id?: string; slug?: string } {
   return {
     nameAr: row.name_ar,
     nameFr: row.name_fr,
@@ -89,6 +91,8 @@ function mapConfigFromDB(row: any): RestaurantConfig {
     backgroundColor: row.background_color,
     currencyAr: row.currency_ar,
     currencyFr: row.currency_fr,
+    id: row.id,
+    slug: row.slug,
   };
 }
 
@@ -113,159 +117,270 @@ function mapConfigToDB(config: RestaurantConfig): any {
 }
 
 // ───────────────────────────────────────────
-// دوال البيانات (فئات، أطباق، إعدادات)
+// توليد slug فريد من الاسم
 // ───────────────────────────────────────────
 
-export async function hasRegisteredRestaurant(): Promise<boolean> {
-  const { data, error } = await supabase
+function generateSlug(name: string): string {
+  const base = name
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9\u0600-\u06FF\-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+  const suffix = Math.random().toString(36).substring(2, 6);
+  return `${base}-${suffix}`;
+}
+
+// ───────────────────────────────────────────
+// دوال عامة (للزوار)
+// ───────────────────────────────────────────
+
+export async function hasAnyRestaurant(): Promise<boolean> {
+  const { data } = await supabase
     .from("restaurants")
     .select("id")
     .limit(1);
-
-  if (error) {
-    console.error("[sofra] hasRegisteredRestaurant error:", error);
-    return false;
-  }
-
   return (data?.length ?? 0) > 0;
 }
 
-export async function getCategories(): Promise<Category[]> {
-  const { data, error } = await supabase
-    .from("categories")
-    .select("*")
-    .order("sort_order", { ascending: true });
+// للتوافق مع الكود القديم
+export const hasRegisteredRestaurant = hasAnyRestaurant;
 
-  if (error) {
-    console.error("[sofra] getCategories error:", error);
-    return [];
-  }
-
-  return (data || []).map(mapCategoryFromDB);
-}
-
-export async function saveCategories(categories: Category[]): Promise<void> {
-  const rows = categories.map(mapCategoryToDB);
-  const { error } = await supabase.from("categories").upsert(rows);
-  if (error) {
-    console.error("[sofra] saveCategories error:", error);
-    throw error;
-  }
-  dispatchDataChange();
-}
-
-export async function getDishes(): Promise<Dish[]> {
-  const { data, error } = await supabase
-    .from("dishes")
-    .select("*")
-    .order("sort_order", { ascending: true });
-
-  if (error) {
-    console.error("[sofra] getDishes error:", error);
-    return [];
-  }
-
-  return (data || []).map(mapDishFromDB);
-}
-
-export async function saveDishes(dishes: Dish[]): Promise<void> {
-  const rows = dishes.map(mapDishToDB);
-  const { error } = await supabase.from("dishes").upsert(rows);
-  if (error) {
-    console.error("[sofra] saveDishes error:", error);
-    throw error;
-  }
-  dispatchDataChange();
-}
-
-export async function getRestaurantConfig(): Promise<RestaurantConfig | null> {
+export async function getRestaurantBySlug(slug: string): Promise<(RestaurantConfig & { id: string; slug: string }) | null> {
   const { data, error } = await supabase
     .from("restaurants")
     .select("*")
-    .limit(1)
-    .single();
-
-  if (error) {
-    if (error.code === "PGRST116") return null; // no rows
-    console.error("[sofra] getRestaurantConfig error:", error);
-    return null;
-  }
-
-  return mapConfigFromDB(data);
-}
-
-export async function saveRestaurantConfig(config: RestaurantConfig): Promise<void> {
-  const { data: existing } = await supabase
-    .from("restaurants")
-    .select("id, user_id")
+    .eq("slug", slug)
     .limit(1)
     .maybeSingle();
 
-  const row = mapConfigToDB(config);
+  if (error || !data) return null;
 
-  if (existing) {
-    const { error } = await supabase
-      .from("restaurants")
-      .update({ ...row, updated_at: new Date().toISOString() })
-      .eq("id", existing.id);
+  return mapConfigFromDB(data) as RestaurantConfig & { id: string; slug: string };
+}
 
-    if (error) {
-      console.error("[sofra] saveRestaurantConfig update error:", error);
-      throw error;
-    }
-  } else {
-    // إذا كنت مسجلاً دخولك، اربط المطعم بالمستخدم
-    const { data: authData } = await supabase.auth.getSession();
-    const userId = authData.session?.user?.id;
+export async function getCategoriesByRestaurant(restaurantId: string): Promise<Category[]> {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*")
+    .eq("restaurant_id", restaurantId)
+    .order("sort_order", { ascending: true });
 
-    const { error } = await supabase
-      .from("restaurants")
-      .insert({ ...row, user_id: userId });
+  if (error) {
+    console.error("[sofra] getCategoriesByRestaurant error:", error);
+    return [];
+  }
+  return (data || []).map(mapCategoryFromDB);
+}
 
-    if (error) {
-      console.error("[sofra] saveRestaurantConfig insert error:", error);
-      throw error;
-    }
+export async function getDishesByRestaurant(restaurantId: string): Promise<Dish[]> {
+  const { data, error } = await supabase
+    .from("dishes")
+    .select("*")
+    .eq("restaurant_id", restaurantId)
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    console.error("[sofra] getDishesByRestaurant error:", error);
+    return [];
+  }
+  return (data || []).map(mapDishFromDB);
+}
+
+// ───────────────────────────────────────────
+// دوال لوحة التحكم (للمالك)
+// ───────────────────────────────────────────
+
+export async function getMyRestaurantId(): Promise<string | null> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user?.id;
+  if (!userId) return null;
+
+  const { data, error } = await supabase
+    .from("restaurants")
+    .select("id")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data.id;
+}
+
+export async function getMyRestaurant(): Promise<(RestaurantConfig & { id: string; slug: string }) | null> {
+  const restaurantId = await getMyRestaurantId();
+  if (!restaurantId) return null;
+
+  const { data, error } = await supabase
+    .from("restaurants")
+    .select("*")
+    .eq("id", restaurantId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return mapConfigFromDB(data) as RestaurantConfig & { id: string; slug: string };
+}
+
+export async function getMyCategories(): Promise<Category[]> {
+  const restaurantId = await getMyRestaurantId();
+  if (!restaurantId) return [];
+  return getCategoriesByRestaurant(restaurantId);
+}
+
+export async function getMyDishes(): Promise<Dish[]> {
+  const restaurantId = await getMyRestaurantId();
+  if (!restaurantId) return [];
+  return getDishesByRestaurant(restaurantId);
+}
+
+export async function saveMyCategories(categories: Category[]): Promise<void> {
+  const restaurantId = await getMyRestaurantId();
+  if (!restaurantId) throw new Error("المطعم غير موجود");
+
+  const rows = categories.map((cat) => mapCategoryToDB(cat, restaurantId));
+  await supabase.from("categories").delete().eq("restaurant_id", restaurantId);
+  if (rows.length > 0) {
+    const { error } = await supabase.from("categories").insert(rows);
+    if (error) throw error;
   }
   dispatchDataChange();
 }
 
-export async function seedDefaultData(nameAr?: string, nameFr?: string): Promise<void> {
+export async function saveMyDishes(dishes: Dish[]): Promise<void> {
+  const restaurantId = await getMyRestaurantId();
+  if (!restaurantId) throw new Error("المطعم غير موجود");
+
+  const rows = dishes.map((dish) => mapDishToDB(dish, restaurantId));
+  await supabase.from("dishes").delete().eq("restaurant_id", restaurantId);
+  if (rows.length > 0) {
+    const { error } = await supabase.from("dishes").insert(rows);
+    if (error) throw error;
+  }
+  dispatchDataChange();
+}
+
+export async function saveMyConfig(config: RestaurantConfig): Promise<void> {
+  const restaurantId = await getMyRestaurantId();
+  if (!restaurantId) throw new Error("المطعم غير موجود");
+
+  const row = mapConfigToDB(config);
+  const { error } = await supabase
+    .from("restaurants")
+    .update({ ...row, updated_at: new Date().toISOString() })
+    .eq("id", restaurantId);
+
+  if (error) throw error;
+  dispatchDataChange();
+}
+
+export async function seedMyDefaultData(nameAr?: string, nameFr?: string): Promise<{ slug: string }> {
   const { data: authData } = await supabase.auth.getSession();
   const userEmail = authData.session?.user?.email || "";
-  const restaurantNameFromEmail = userEmail.includes("@")
+  const userId = authData.session?.user?.id;
+
+  if (!userId) throw new Error("يجب تسجيل الدخول أولاً");
+
+  const emailPrefix = userEmail.includes("@")
     ? userEmail.split("@")[0].replace(/[._-]/g, " ")
     : "";
 
-  const finalNameAr = nameAr || `مطعم ${restaurantNameFromEmail}` || defaultRestaurantConfig.nameAr;
-  const finalNameFr = nameFr || `Restaurant ${restaurantNameFromEmail}` || defaultRestaurantConfig.nameFr;
-  const userId = authData.session?.user?.id;
+  const finalNameAr = nameAr || `مطعم ${emailPrefix}` || defaultRestaurantConfig.nameAr;
+  const finalNameFr = nameFr || `Restaurant ${emailPrefix}` || defaultRestaurantConfig.nameFr;
+  const baseSlug = nameAr
+    ? generateSlug(nameAr)
+    : emailPrefix
+      ? generateSlug(emailPrefix)
+      : generateSlug("restaurant");
 
-  // 1. إدراج بيانات المطعم
+  // 1. إدراج بيانات المطعم مع slug
   const configRow = mapConfigToDB({
     ...defaultRestaurantConfig,
     nameAr: finalNameAr,
     nameFr: finalNameFr,
   });
 
-  await supabase.from("restaurants").upsert({ ...configRow, user_id: userId });
+  const { data: restaurant, error: restaurantError } = await supabase
+    .from("restaurants")
+    .insert({ ...configRow, user_id: userId, slug: baseSlug })
+    .select("id, slug")
+    .single();
+
+  if (restaurantError) {
+    console.error("[sofra] seedMyDefaultData error:", restaurantError);
+    throw restaurantError;
+  }
+
+  const restaurantId = restaurant.id;
+  const restaurantSlug = restaurant.slug;
 
   // 2. إدراج الفئات
-  const catRows = defaultCategories.map(mapCategoryToDB);
-  await supabase.from("categories").upsert(catRows);
+  const catRows = defaultCategories.map((cat) => mapCategoryToDB(cat, restaurantId));
+  await supabase.from("categories").insert(catRows);
 
   // 3. إدراج الأطباق
-  const dishRows = defaultDishes.map(mapDishToDB);
-  await supabase.from("dishes").upsert(dishRows);
+  const dishRows = defaultDishes.map((dish) => mapDishToDB(dish, restaurantId));
+  await supabase.from("dishes").insert(dishRows);
+
+  dispatchDataChange();
+  return { slug: restaurantSlug };
+}
+
+export async function resetMyToDefault(): Promise<void> {
+  const restaurantId = await getMyRestaurantId();
+  if (!restaurantId) return;
+
+  await supabase.from("dishes").delete().eq("restaurant_id", restaurantId);
+  await supabase.from("categories").delete().eq("restaurant_id", restaurantId);
+
+  const catRows = defaultCategories.map((cat) => mapCategoryToDB(cat, restaurantId));
+  await supabase.from("categories").insert(catRows);
+
+  const dishRows = defaultDishes.map((dish) => mapDishToDB(dish, restaurantId));
+  await supabase.from("dishes").insert(dishRows);
 
   dispatchDataChange();
 }
 
+// ───────────────────────────────────────────
+// دوال متوافقة مع الكود القديم (تستخدم معرف المطعم الحالي)
+// ───────────────────────────────────────────
+
+export async function getRestaurantConfig(): Promise<RestaurantConfig | null> {
+  const myRestaurant = await getMyRestaurant();
+  // إزالة id و slug قبل الإرجاع للتوافق
+  if (!myRestaurant) return null;
+  const { id, slug, ...config } = myRestaurant as any;
+  return config;
+}
+
+export async function saveRestaurantConfig(config: RestaurantConfig): Promise<void> {
+  await saveMyConfig(config);
+}
+
+export async function getCategories(): Promise<Category[]> {
+  return getMyCategories();
+}
+
+export async function saveCategories(categories: Category[]): Promise<void> {
+  await saveMyCategories(categories);
+}
+
+export async function getDishes(): Promise<Dish[]> {
+  return getMyDishes();
+}
+
+export async function saveDishes(dishes: Dish[]): Promise<void> {
+  await saveMyDishes(dishes);
+}
+
+export async function seedDefaultData(nameAr?: string, nameFr?: string): Promise<void> {
+  await seedMyDefaultData(nameAr, nameFr);
+}
+
 export async function resetToDefault(): Promise<void> {
-  await supabase.from("dishes").delete().neq("id", "");
-  await supabase.from("categories").delete().neq("id", "");
-  await supabase.from("restaurants").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await seedDefaultData();
+  await resetMyToDefault();
 }
 
 // ───────────────────────────────────────────
