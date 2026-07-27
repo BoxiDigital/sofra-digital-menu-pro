@@ -22,23 +22,12 @@ export default function Index() {
           الزبائن يتصفحون المنيو ويطلبون مباشرة عبر واتساب.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
-          <Link to="/register" className="flex-1">
-            <Button className="w-full py-6 bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl text-base transition-all shadow-lg shadow-[#C8A24D]/10">
-              <Store className="h-4 w-4 ml-2" />
-              سجل مطعمك الآن
-            </Button>
-          </Link>
-          <Link to="/login" className="flex-1">
-            <Button
-              variant="outline"
-              className="w-full py-6 border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06] hover:text-white font-bold rounded-xl text-base transition-all"
-            >
-              <LogIn className="h-4 w-4 ml-2" />
-              تسجيل الدخول
-            </Button>
-          </Link>
-        </div>
+        <Link to="/login" className="w-full max-w-xs">
+                  <Button className="w-full py-6 bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl text-base transition-all shadow-lg shadow-[#C8A24D]/10">
+                    <LogIn className="h-4 w-4 ml-2" />
+                    تسجيل الدخول
+                  </Button>
+                </Link>
       </section>
 
       {/* Features */}
