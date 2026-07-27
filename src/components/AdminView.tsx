@@ -312,15 +312,38 @@ export default function AdminView({
         };
       
         const saveConfig = async () => {
-          await handleUpdateConfigSafe(configForm);
-          toast({
-            title: "✅ تم حفظ الإعدادات بنجاح",
-            description: "تم تحديث معلومات المطعم والألوان بنجاح",
-            duration: 3000,
-          });
-    };
-
-  const menuUrl = `${window.location.origin}/${restaurantSlug}`;
+                  await handleUpdateConfigSafe(configForm);
+                  toast({
+                    title: "✅ تم حفظ الإعدادات بنجاح",
+                    description: "تم تحديث معلومات المطعم والألوان بنجاح",
+                    duration: 3000,
+                  });
+            };
+        
+            const PRESET_THEMES = [
+              { id: "gold",   label: "ذهبي كلاسيكي", primaryColor: "#C8A24D", backgroundColor: "dark" as const },
+              { id: "blue",   label: "أزرق عصري",     primaryColor: "#3B82F6", backgroundColor: "dark" as const },
+              { id: "green",  label: "أخضر هادئ",     primaryColor: "#10B981", backgroundColor: "cream" as const },
+              { id: "red",    label: "أحمر دافئ",     primaryColor: "#EF4444", backgroundColor: "dark" as const },
+              { id: "purple", label: "بنفسجي فاخر",   primaryColor: "#8B5CF6", backgroundColor: "dark" as const },
+            ];
+        
+            const applyTheme = async (theme: typeof PRESET_THEMES[number]) => {
+              const updatedConfig = {
+                ...configForm,
+                primaryColor: theme.primaryColor,
+                backgroundColor: theme.backgroundColor,
+              };
+              setConfigForm(updatedConfig);
+              await handleUpdateConfigSafe(updatedConfig);
+              toast({
+                title: "✅ تم تطبيق الثيم",
+                description: `تم تطبيق ثيم "${theme.label}" وحفظه بنجاح`,
+                duration: 2500,
+              });
+            };
+        
+          const menuUrl = `${window.location.origin}/${restaurantSlug}`;
   
     const downloadQRCode = async () => {
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(menuUrl)}`;
@@ -538,28 +561,50 @@ export default function AdminView({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 border-t border-white/[0.06]">
-                <div>
-                  <Label className="text-white/60 text-xs">اللون الرئيسي</Label>
-                  <div className="flex gap-3 items-center mt-2">
-                    <Input type="color" value={configForm.primaryColor} onChange={(e) => setConfigForm({ ...configForm, primaryColor: e.target.value })} className="w-12 h-10 p-1 rounded-xl cursor-pointer border-white/10 bg-transparent" />
-                    <Input type="text" value={configForm.primaryColor} onChange={(e) => setConfigForm({ ...configForm, primaryColor: e.target.value })} className="font-mono bg-white/[0.04] border-white/[0.08] text-white rounded-xl h-10 text-sm" />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-white/60 text-xs">نمط الخلفية</Label>
-                  <Select value={configForm.backgroundColor} onValueChange={(val: any) => setConfigForm({ ...configForm, backgroundColor: val })}>
-                    <SelectTrigger className="mt-2 bg-white/[0.04] border-white/[0.08] text-white rounded-xl h-10 text-sm">
-                      <SelectValue placeholder="اختر نمط الخلفية" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1A1A1A] border-white/[0.08] text-white">
-                      <SelectItem value="dark" className="focus:bg-white/[0.06] focus:text-white">مظلم وعصري (موصى به)</SelectItem>
-                      <SelectItem value="cream" className="focus:bg-white/[0.06] focus:text-white">كريمي دافئ</SelectItem>
-                      <SelectItem value="white" className="focus:bg-white/[0.06] focus:text-white">أبيض ناصع</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              {/* Preset Themes */}
+                            <div className="pt-4 border-t border-white/[0.06]">
+                              <Label className="text-white/60 text-xs">الثيم الجاهز</Label>
+                              <p className="text-white/25 text-[10px] mt-0.5 mb-3">اختر ثيمًا جاهزًا لتطبيق ألوان متناسقة فوراً</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                                {PRESET_THEMES.map((theme) => {
+                                  const isActive = configForm.primaryColor === theme.primaryColor && configForm.backgroundColor === theme.backgroundColor;
+                                  return (
+                                    <button
+                                      key={theme.id}
+                                      onClick={() => applyTheme(theme)}
+                                      disabled={isSaving}
+                                      className={`relative flex flex-col items-center gap-2 p-3 rounded-xl border transition-all duration-200 ${
+                                        isActive
+                                          ? "border-[#C8A24D] ring-1 ring-[#C8A24D]/40 bg-white/[0.06]"
+                                          : "border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.15]"
+                                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    >
+                                      <div className="flex gap-1.5">
+                                        <span
+                                          className="w-6 h-6 rounded-full border-2 border-white/20"
+                                          style={{ backgroundColor: theme.primaryColor }}
+                                        />
+                                        <span
+                                          className={`w-6 h-6 rounded-full border-2 border-white/20 ${
+                                            theme.backgroundColor === "dark"
+                                              ? "bg-[#0D0D0D]"
+                                              : theme.backgroundColor === "cream"
+                                              ? "bg-[#FDF6EE]"
+                                              : "bg-white"
+                                          }`}
+                                        />
+                                      </div>
+                                      <span className="text-xs font-medium text-white/70">{theme.label}</span>
+                                      {isActive && (
+                                        <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#C8A24D] rounded-full flex items-center justify-center">
+                                          <Check className="h-3 w-3 text-black" />
+                                        </span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
 
               {/* Logo Upload */}
               <div className="space-y-2 pt-4 border-t border-white/[0.06]">
