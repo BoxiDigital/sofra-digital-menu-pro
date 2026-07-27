@@ -26,9 +26,17 @@ export default function Admin() {
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
   const [restaurantSlug, setRestaurantSlug] = useState<string>("");
   const [isInitializing, setIsInitializing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const loadData = async () => {
+    const [isLoading, setIsLoading] = useState(true);
+  
+    // Apply primaryColor as CSS variable for admin UI theming
+    useEffect(() => {
+      if (config?.primaryColor) {
+        const root = document.documentElement;
+        root.style.setProperty("--primary", config.primaryColor);
+      }
+    }, [config?.primaryColor]);
+  
+    const loadData = async () => {
     try {
       const [restaurant, cats, dsh] = await Promise.all([
         getMyRestaurant(),
@@ -121,7 +129,7 @@ export default function Admin() {
   if (authLoading || isInitializing || isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#0D0D0D] gap-3">
-        <div className="w-8 h-8 border-2 border-[#C8A24D]/30 border-t-[#C8A24D] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
         <p className="text-white/50 text-sm">
           {isInitializing ? "جاري تجهيز القائمة الافتراضية لمطعمك..." : "جاري تحميل لوحة التحكم..."}
         </p>
@@ -145,7 +153,7 @@ export default function Admin() {
                   setIsLoading(true);
                   loadData();
                 }}
-                className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold"
+                className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold"
               >
                 إعادة المحاولة
               </Button>
@@ -184,7 +192,7 @@ export default function Admin() {
                                           <Button
                                             size="sm"
                                             variant="ghost"
-                                            className="text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 h-7 gap-1"
+                                            className="text-[var(--primary)] hover:text-[var(--primary-hover)] hover:bg-white/5 h-7 gap-1"
                                           >
                                             <Eye className="h-3.5 w-3.5" />
                                             <span>عرض المنيو</span>

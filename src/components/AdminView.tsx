@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dish, Category, RestaurantConfig } from "../types";
 import { useAuth } from "../contexts/AuthContext";
@@ -63,6 +63,16 @@ interface AdminViewProps {
   onReset: () => void;
 }
 
+/** Lighten a hex color by mixing it with white */
+function lightenColor(hex: string, amount: number): string {
+  hex = hex.replace("#", "");
+  if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  const r = Math.min(255, Math.round(parseInt(hex.substring(0, 2), 16) + (255 - parseInt(hex.substring(0, 2), 16)) * amount));
+  const g = Math.min(255, Math.round(parseInt(hex.substring(2, 4), 16) + (255 - parseInt(hex.substring(2, 4), 16)) * amount));
+  const b = Math.min(255, Math.round(parseInt(hex.substring(4, 6), 16) + (255 - parseInt(hex.substring(4, 6), 16)) * amount));
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
+
 export default function AdminView({
   categories,
   dishes,
@@ -76,6 +86,13 @@ export default function AdminView({
   const { toast } = useToast();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Sync primaryColor to CSS variables so admin UI reflects the selected theme
+  React.useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--primary", config.primaryColor);
+    root.style.setProperty("--primary-hover", lightenColor(config.primaryColor, 0.15));
+  }, [config.primaryColor]);
 
   const handleLogout = () => {
       logout();
@@ -200,6 +217,13 @@ export default function AdminView({
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
 
   const [configForm, setConfigForm] = useState<RestaurantConfig>({ ...config });
+  
+    // Keep CSS variables in sync so the admin dashboard reflects the selected theme
+    useEffect(() => {
+      const root = document.documentElement;
+      root.style.setProperty("--primary", configForm.primaryColor);
+      root.style.setProperty("--primary-hover", lightenColor(configForm.primaryColor, 0.15));
+    }, [configForm.primaryColor]);
 
   const availableDishes = dishes.filter((d) => d.isAvailable);
   const unavailableDishes = dishes.filter((d) => !d.isAvailable);
@@ -366,7 +390,7 @@ export default function AdminView({
       <header className="bg-white/[0.02] border-b border-white/[0.06] sticky top-0 z-40 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-[#C8A24D]/15 flex items-center justify-center text-[#C8A24D] border border-[#C8A24D]/20">
+            <div className="h-10 w-10 rounded-xl bg-[var(--primary)]/15 flex items-center justify-center text-[var(--primary)] border border-[var(--primary)]/20">
               <Settings className="h-5 w-5" />
             </div>
             <div>
@@ -386,10 +410,10 @@ export default function AdminView({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         <Tabs defaultValue="dishes" className="space-y-6">
           <TabsList className="bg-white/[0.03] border border-white/[0.06] p-1 rounded-2xl w-full max-w-lg flex">
-            <TabsTrigger value="dishes" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[#C8A24D] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الأطباق</TabsTrigger>
-            <TabsTrigger value="categories" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[#C8A24D] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الفئات</TabsTrigger>
-            <TabsTrigger value="settings" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[#C8A24D] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الإعدادات</TabsTrigger>
-                        <TabsTrigger value="account" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[#C8A24D] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الحساب</TabsTrigger>
+            <TabsTrigger value="dishes" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[var(--primary)] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الأطباق</TabsTrigger>
+                        <TabsTrigger value="categories" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[var(--primary)] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الفئات</TabsTrigger>
+                        <TabsTrigger value="settings" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[var(--primary)] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الإعدادات</TabsTrigger>
+                                    <TabsTrigger value="account" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[var(--primary)] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الحساب</TabsTrigger>
                       </TabsList>
 
           {/* DISHES TAB */}
@@ -399,7 +423,7 @@ export default function AdminView({
                 <h2 className="text-xl font-bold text-white">إدارة الأطباق</h2>
                 <p className="text-xs text-white/35 mt-0.5">{dishes.length} طبق في القائمة ({availableDishes.length} متوفر، {unavailableDishes.length} مخفي)</p>
               </div>
-              <Button onClick={openAddDish} className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl h-10 px-4">
+              <Button onClick={openAddDish} className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl h-10 px-4">
                 <Plus className="h-4 w-4 ml-1.5" /><span>إضافة طبق</span>
               </Button>
             </div>
@@ -417,18 +441,18 @@ export default function AdminView({
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-bold text-white text-sm truncate">{dish.nameAr}</h3>
-                          {dish.isPromo && <Badge className="bg-[#C8A24D]/20 text-[#C8A24D] border-0 text-[10px] font-bold px-1.5 py-0 rounded-full">عرض</Badge>}
+                          {dish.isPromo && <Badge className="bg-[var(--primary)]/20 text-[var(--primary)] border-0 text-[10px] font-bold px-1.5 py-0 rounded-full">عرض</Badge>}
                           {cat && <span className="text-[10px] text-white/35">({cat.nameAr})</span>}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[#C8A24D] font-bold text-sm">{dish.price} {config.currencyAr}</span>
+                          <span className="text-[var(--primary)] font-bold text-sm">{dish.price} {config.currencyAr}</span>
                           <span className="text-emerald-400/70 text-[10px] font-medium">متوفر</span>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <Switch checked={dish.isAvailable} onCheckedChange={() => toggleDishAvailability(dish.id, dish.isAvailable)} className="data-[state=checked]:bg-[#C8A24D]" />
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 rounded-lg" onClick={() => openEditDish(dish)}><Edit className="h-4 w-4" /></Button>
+                      <Switch checked={dish.isAvailable} onCheckedChange={() => toggleDishAvailability(dish.id, dish.isAvailable)} className="data-[state=checked]:bg-[var(--primary)]" />
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-[var(--primary)] hover:text-[var(--primary-hover)] hover:bg-white/5 rounded-lg" onClick={() => openEditDish(dish)}><Edit className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg" onClick={() => deleteDish(dish.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </div>
@@ -459,7 +483,7 @@ export default function AdminView({
                               {cat && <span className="text-[10px] text-white/20">({cat.nameAr})</span>}
                             </div>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-[#C8A24D]/40 font-bold text-sm">{dish.price} {config.currencyAr}</span>
+                              <span className="text-[var(--primary)]/40 font-bold text-sm">{dish.price} {config.currencyAr}</span>
                               <Badge className="bg-red-500/15 text-red-400/70 border-0 text-[10px] font-bold px-1.5 py-0 rounded-full">مخفي</Badge>
                             </div>
                           </div>
@@ -468,7 +492,7 @@ export default function AdminView({
                           <Button size="sm" variant="ghost" className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-lg h-7 gap-1 text-xs" onClick={() => reactivateDish(dish.id)}>
                             <RefreshCcw className="h-3 w-3" /><span>تفعيل</span>
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-[#C8A24D]/50 hover:text-[#D4B35D] hover:bg-white/5 rounded-lg" onClick={() => openEditDish(dish)}><Edit className="h-4 w-4" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-[var(--primary)]/50 hover:text-[var(--primary-hover)] hover:bg-white/5 rounded-lg" onClick={() => openEditDish(dish)}><Edit className="h-4 w-4" /></Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400/50 hover:text-red-300 hover:bg-red-500/10 rounded-lg" onClick={() => deleteDish(dish.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       </div>
@@ -486,7 +510,7 @@ export default function AdminView({
                 <h2 className="text-xl font-bold text-white">إدارة الفئات</h2>
                 <p className="text-xs text-white/35 mt-0.5">{categories.length} فئة</p>
               </div>
-              <Button onClick={openAddCategory} className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl h-10 px-4">
+              <Button onClick={openAddCategory} className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl h-10 px-4">
                 <Plus className="h-4 w-4 ml-1.5" /><span>إضافة فئة</span>
               </Button>
             </div>
@@ -497,7 +521,7 @@ export default function AdminView({
                 return (
                   <div key={cat.id} className="bg-white/[0.03] p-4 rounded-2xl border border-white/[0.06] flex items-center justify-between hover:border-white/[0.10] transition-all">
                     <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-[#C8A24D]/10 flex items-center justify-center text-[#C8A24D] border border-[#C8A24D]/20">
+                      <div className="h-11 w-11 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] border border-[var(--primary)]/20">
                         <IconComponent className="h-5 w-5" />
                       </div>
                       <div>
@@ -506,7 +530,7 @@ export default function AdminView({
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-[#C8A24D] hover:text-[#D4B35D] hover:bg-white/5 rounded-lg" onClick={() => openEditCategory(cat)}><Edit className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-[var(--primary)] hover:text-[var(--primary-hover)] hover:bg-white/5 rounded-lg" onClick={() => openEditCategory(cat)}><Edit className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg" onClick={() => deleteCategory(cat.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </div>
@@ -575,7 +599,7 @@ export default function AdminView({
                                       disabled={isSaving}
                                       className={`relative flex flex-col items-center gap-2 p-3 rounded-xl border transition-all duration-200 ${
                                         isActive
-                                          ? "border-[#C8A24D] ring-1 ring-[#C8A24D]/40 bg-white/[0.06]"
+                                          ? "border-[var(--primary)] ring-1 ring-[var(--primary)]/40 bg-white/[0.06]"
                                           : "border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.15]"
                                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                                     >
@@ -596,7 +620,7 @@ export default function AdminView({
                                       </div>
                                       <span className="text-xs font-medium text-white/70">{theme.label}</span>
                                       {isActive && (
-                                        <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#C8A24D] rounded-full flex items-center justify-center">
+                                        <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[var(--primary)] rounded-full flex items-center justify-center">
                                           <Check className="h-3 w-3 text-black" />
                                         </span>
                                       )}
@@ -673,7 +697,7 @@ export default function AdminView({
                 <Button
                   onClick={saveConfig}
                   disabled={isSaving}
-                  className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold px-6 h-11 rounded-xl disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold px-6 h-11 rounded-xl disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {isSaving ? (
                     <>
@@ -700,7 +724,7 @@ export default function AdminView({
               <div className="bg-white rounded-2xl p-3">
                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(menuUrl)}`} alt="QR Code" className="w-full rounded-xl" />
               </div>
-              <Button onClick={downloadQRCode} className="w-full bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl h-11">
+              <Button onClick={downloadQRCode} className="w-full bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl h-11">
                 <Download className="h-4 w-4 ml-1.5" /><span>تحميل رمز QR</span>
               </Button>
             </div>
@@ -805,7 +829,7 @@ export default function AdminView({
                         <Button
                           onClick={handleChangePassword}
                           disabled={isChangingPassword}
-                          className="w-full bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl h-11 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                          className="w-full bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl h-11 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
                         >
                           {isChangingPassword ? (
                             <span className="flex items-center gap-2">
@@ -887,32 +911,32 @@ export default function AdminView({
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center justify-between">
                 <Label className="text-white/60 text-xs">متوفر</Label>
-                <Switch checked={dishForm.isAvailable} onCheckedChange={(v) => setDishForm({ ...dishForm, isAvailable: v })} className="data-[state=checked]:bg-[#C8A24D]" />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-white/60 text-xs">جديد</Label>
-                <Switch checked={dishForm.isNew} onCheckedChange={(v) => setDishForm({ ...dishForm, isNew: v })} className="data-[state=checked]:bg-[#C8A24D]" />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-white/60 text-xs">الأكثر طلباً</Label>
-                <Switch checked={dishForm.isBestSeller} onCheckedChange={(v) => setDishForm({ ...dishForm, isBestSeller: v })} className="data-[state=checked]:bg-[#C8A24D]" />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-white/60 text-xs">نباتي</Label>
-                <Switch checked={dishForm.isVegetarian} onCheckedChange={(v) => setDishForm({ ...dishForm, isVegetarian: v })} className="data-[state=checked]:bg-[#C8A24D]" />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-white/60 text-xs">حلال</Label>
-                <Switch checked={dishForm.isHalal} onCheckedChange={(v) => setDishForm({ ...dishForm, isHalal: v })} className="data-[state=checked]:bg-[#C8A24D]" />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-white/60 text-xs">خالي من الغلوتين</Label>
-                <Switch checked={dishForm.isGlutenFree} onCheckedChange={(v) => setDishForm({ ...dishForm, isGlutenFree: v })} className="data-[state=checked]:bg-[#C8A24D]" />
-              </div>
-            </div>
-            <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
-              <Label className="text-white/60 text-xs">عرض ترويجي</Label>
-              <Switch checked={dishForm.isPromo} onCheckedChange={(v) => setDishForm({ ...dishForm, isPromo: v })} className="data-[state=checked]:bg-[#C8A24D]" />
+                <Switch checked={dishForm.isAvailable} onCheckedChange={(v) => setDishForm({ ...dishForm, isAvailable: v })} className="data-[state=checked]:bg-[var(--primary)]" />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <Label className="text-white/60 text-xs">جديد</Label>
+                                <Switch checked={dishForm.isNew} onCheckedChange={(v) => setDishForm({ ...dishForm, isNew: v })} className="data-[state=checked]:bg-[var(--primary)]" />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <Label className="text-white/60 text-xs">الأكثر طلباً</Label>
+                                <Switch checked={dishForm.isBestSeller} onCheckedChange={(v) => setDishForm({ ...dishForm, isBestSeller: v })} className="data-[state=checked]:bg-[var(--primary)]" />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <Label className="text-white/60 text-xs">نباتي</Label>
+                                <Switch checked={dishForm.isVegetarian} onCheckedChange={(v) => setDishForm({ ...dishForm, isVegetarian: v })} className="data-[state=checked]:bg-[var(--primary)]" />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <Label className="text-white/60 text-xs">حلال</Label>
+                                <Switch checked={dishForm.isHalal} onCheckedChange={(v) => setDishForm({ ...dishForm, isHalal: v })} className="data-[state=checked]:bg-[var(--primary)]" />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <Label className="text-white/60 text-xs">خالي من الغلوتين</Label>
+                                <Switch checked={dishForm.isGlutenFree} onCheckedChange={(v) => setDishForm({ ...dishForm, isGlutenFree: v })} className="data-[state=checked]:bg-[var(--primary)]" />
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
+                              <Label className="text-white/60 text-xs">عرض ترويجي</Label>
+                              <Switch checked={dishForm.isPromo} onCheckedChange={(v) => setDishForm({ ...dishForm, isPromo: v })} className="data-[state=checked]:bg-[var(--primary)]" />
             </div>
             {dishForm.isPromo && (
               <div className="grid grid-cols-2 gap-3">
@@ -936,7 +960,7 @@ export default function AdminView({
             )}
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="ghost" onClick={() => setIsDishDialogOpen(false)} className="text-white/50 rounded-xl">إلغاء</Button>
-              <Button onClick={saveDish} className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl px-6">
+              <Button onClick={saveDish} className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl px-6">
                 <Save className="h-4 w-4 ml-1.5" /><span>حفظ</span>
               </Button>
             </div>
@@ -977,7 +1001,7 @@ export default function AdminView({
             </div>
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="ghost" onClick={() => setIsCategoryDialogOpen(false)} className="text-white/50 rounded-xl">إلغاء</Button>
-              <Button onClick={saveCategory} className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl px-6">
+              <Button onClick={saveCategory} className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl px-6">
                 <Save className="h-4 w-4 ml-1.5" /><span>حفظ</span>
               </Button>
             </div>
