@@ -30,6 +30,7 @@ import {
   AlertCircle,
   Ban,
   RefreshCcw,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -312,7 +313,11 @@ export default function AdminView({
       
         const saveConfig = async () => {
           await handleUpdateConfigSafe(configForm);
-          toast({ title: "تم حفظ الإعدادات", description: "تم تحديث معلومات المطعم والألوان بنجاح" });
+          toast({
+            title: "✅ تم حفظ الإعدادات بنجاح",
+            description: "تم تحديث معلومات المطعم والألوان بنجاح",
+            duration: 3000,
+          });
     };
 
   const menuUrl = `${window.location.origin}/${restaurantSlug}`;
@@ -620,8 +625,22 @@ export default function AdminView({
               </div>
 
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t border-white/[0.06]">
-                <Button onClick={saveConfig} className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold px-6 h-11 rounded-xl">
-                  <Save className="h-4 w-4 ml-1.5" /><span>حفظ جميع التغييرات</span>
+                <Button
+                  onClick={saveConfig}
+                  disabled={isSaving}
+                  className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold px-6 h-11 rounded-xl disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 ml-1.5 animate-spin" />
+                      <span>جارٍ الحفظ...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 ml-1.5" />
+                      <span>حفظ جميع التغييرات</span>
+                    </>
+                  )}
                 </Button>
                 <Button variant="ghost" onClick={onReset} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl">
                   <RefreshCw className="h-4 w-4 ml-1.5" /><span>إعادة تعيين البيانات الافتراضية</span>
