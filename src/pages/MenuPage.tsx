@@ -17,6 +17,14 @@ export default function MenuPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  // Keep CSS variables in sync so the loading/error states reflect the theme
+  useEffect(() => {
+    if (config?.primaryColor) {
+      const root = document.documentElement;
+      root.style.setProperty("--primary", config.primaryColor);
+    }
+  }, [config?.primaryColor]);
+
   useEffect(() => {
     if (!slug) {
       setNotFound(true);
@@ -56,7 +64,7 @@ export default function MenuPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#0D0D0D] gap-3">
-        <Loader2 className="h-8 w-8 text-[#C8A24D] animate-spin" />
+        <Loader2 className="h-8 w-8 text-[var(--primary)] animate-spin" />
         <p className="text-white/50 text-sm">جاري تحميل قائمة المطعم...</p>
       </div>
     );
@@ -71,7 +79,7 @@ export default function MenuPage() {
           <p className="text-white/50">تأكد من الرابط أو كود QR</p>
           <Link
             to="/"
-            className="inline-block text-[#C8A24D] hover:text-[#D4B35D] font-medium transition-colors"
+            className="inline-block text-[var(--primary)] hover:text-[var(--primary-hover)] font-medium transition-colors"
           >
             العودة للصفحة الرئيسية
           </Link>

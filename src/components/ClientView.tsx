@@ -27,6 +27,16 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 
+/** Lighten a hex color by mixing it with white */
+function lightenColor(hex: string, amount: number): string {
+  hex = hex.replace("#", "");
+  if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  const r = Math.min(255, Math.round(parseInt(hex.substring(0, 2), 16) + (255 - parseInt(hex.substring(0, 2), 16)) * amount));
+  const g = Math.min(255, Math.round(parseInt(hex.substring(2, 4), 16) + (255 - parseInt(hex.substring(2, 4), 16)) * amount));
+  const b = Math.min(255, Math.round(parseInt(hex.substring(4, 6), 16) + (255 - parseInt(hex.substring(4, 6), 16)) * amount));
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
+
 const iconMap: Record<string, React.ComponentType<any>> = {
   Sparkles,
   Utensils,
@@ -48,6 +58,17 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
   const [cart, setCart] = useState<CartItem[]>([]);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Apply primaryColor as CSS variable so all child components reflect the theme
+  React.useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--primary", config.primaryColor);
+    root.style.setProperty("--primary-hover", lightenColor(config.primaryColor, 0.15));
+    return () => {
+      root.style.removeProperty("--primary");
+      root.style.removeProperty("--primary-hover");
+    };
+  }, [config.primaryColor]);
 
   const isRtl = lang === "ar";
 
@@ -178,7 +199,7 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
               )}
               <div className={`relative max-w-lg mx-auto px-4 py-5 flex items-center justify-between ${!config.coverUrl ? 'bg-[#0D0D0D]/95 backdrop-blur-sm' : ''}`}>
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-[#C8A24D] flex-shrink-0">
+            <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-[var(--primary)] flex-shrink-0">
               <img
                 src={config.logoUrl}
                 alt="Logo"
@@ -193,7 +214,7 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
               <h1 className="text-white font-bold text-lg leading-tight tracking-wide">
                 {t.restaurantName}
               </h1>
-              <p className="text-[#C8A24D] text-xs font-medium">{t.subtitle}</p>
+              <p className="text-[var(--primary)] text-xs font-medium">{t.subtitle}</p>
             </div>
           </div>
 
@@ -202,14 +223,14 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
               onClick={() => setLang(lang === "ar" ? "fr" : "ar")}
               className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
             >
-              <Globe className="h-4 w-4 text-[#C8A24D]" />
+              <Globe className="h-4 w-4 text-[var(--primary)]" />
             </button>
             <button className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
               <Menu className="h-4 w-4 text-white/70" />
             </button>
             <Sheet>
               <SheetTrigger asChild>
-                <button className="w-9 h-9 rounded-full bg-[#C8A24D] flex items-center justify-center hover:bg-[#B8933F] transition-colors relative">
+                <button className="w-9 h-9 rounded-full bg-[var(--primary)] flex items-center justify-center hover:bg-[var(--primary-hover)] transition-colors relative">
                   <ShoppingBag className="h-4 w-4 text-black" />
                   {cartCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center">
@@ -224,7 +245,7 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
               >
                 <SheetHeader className="p-4 border-b border-white/10 flex flex-row items-center justify-between">
                   <SheetTitle className="text-xl font-bold flex items-center gap-2 text-white">
-                    <ShoppingBag className="h-5 w-5 text-[#C8A24D]" />
+                    <ShoppingBag className="h-5 w-5 text-[var(--primary)]" />
                     <span>{t.cartTitle}</span>
                   </SheetTitle>
                 </SheetHeader>
@@ -254,7 +275,7 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
                           <h4 className="font-bold text-sm text-white">
                             {lang === "ar" ? item.dish.nameAr : item.dish.nameFr}
                           </h4>
-                          <span className="text-xs font-semibold text-[#C8A24D]">
+                          <span className="text-xs font-semibold text-[var(--primary)]">
                             {item.dish.price} {t.currency}
                           </span>
                           <div className="flex items-center justify-between mt-1">
@@ -290,7 +311,7 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
                   <div className="p-4 border-t border-white/10 space-y-4 bg-[#121212]">
                     <div className="flex justify-between items-center font-bold text-lg text-white">
                       <span>{t.total}</span>
-                      <span className="text-[#C8A24D]">
+                      <span className="text-[var(--primary)]">
                         {cartTotal} {t.currency}
                       </span>
                     </div>
@@ -321,7 +342,7 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
       <div className="max-w-lg mx-auto px-4 pb-4">
         <div className="flex items-center gap-2">
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-          <h2 className="text-[#C8A24D] text-sm font-semibold tracking-widest uppercase whitespace-nowrap">
+          <h2 className="text-[var(--primary)] text-sm font-semibold tracking-widest uppercase whitespace-nowrap">
             {t.menuTitle}
           </h2>
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
@@ -340,7 +361,7 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
             onClick={() => setSelectedCategory("all")}
             className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ${
               selectedCategory === "all"
-                ? "bg-[#C8A24D] text-black shadow-lg shadow-[#C8A24D]/20"
+                ? "bg-[var(--primary)] text-black shadow-lg shadow-[var(--primary)]/20"
                 : "bg-white/[0.04] text-white/60 hover:text-white hover:bg-white/[0.08]"
             }`}
           >
@@ -355,7 +376,7 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${
                   isSelected
-                    ? "bg-[#C8A24D] text-black shadow-lg shadow-[#C8A24D]/20"
+                    ? "bg-[var(--primary)] text-black shadow-lg shadow-[var(--primary)]/20"
                     : "bg-white/[0.04] text-white/60 hover:text-white hover:bg-white/[0.08]"
                 }`}
               >
@@ -371,7 +392,7 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
       <div className="max-w-lg mx-auto px-4 space-y-4 pb-6">
         {filteredDishes.length === 0 && (
           <div className="text-center py-16">
-            <AlertTriangle className="h-12 w-12 mx-auto text-[#C8A24D]/40 mb-4" />
+            <AlertTriangle className="h-12 w-12 mx-auto text-[var(--primary)]/40 mb-4" />
             <p className="text-white/40 text-lg">
               {lang === "ar"
                 ? "لا توجد أطباق تطابق بحثك"
@@ -448,7 +469,7 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 z-40">
           <Sheet>
             <SheetTrigger asChild>
-              <button className="w-full text-black rounded-2xl p-4 shadow-2xl flex items-center justify-between transition-all hover:scale-[1.02] active:scale-[0.98] bg-[#C8A24D]">
+              <button className="w-full text-black rounded-2xl p-4 shadow-2xl flex items-center justify-between transition-all hover:scale-[1.02] active:scale-[0.98] bg-[var(--primary)]">
                 <div className="flex items-center gap-3">
                   <div className="bg-black/20 p-2.5 rounded-xl relative">
                     <ShoppingBag className="h-5 w-5" />
@@ -533,7 +554,7 @@ function DishCard({
               </Badge>
             )}
             {dish.isBestSeller && (
-              <Badge className="bg-[#C8A24D]/20 text-[#C8A24D] text-[10px] font-bold px-1.5 py-0 rounded-full border-0">
+              <Badge className="bg-[var(--primary)]/20 text-[var(--primary)] text-[10px] font-bold px-1.5 py-0 rounded-full border-0">
                 {lang === "ar" ? "الأكثر طلباً" : "Populaire"}
               </Badge>
             )}
@@ -547,7 +568,7 @@ function DishCard({
 
         {/* Action */}
                 <div className="mt-2 flex items-center justify-between">
-                  <span className="text-[#C8A24D] font-bold text-sm">
+                  <span className="text-[var(--primary)] font-bold text-sm">
                     {dish.price} {currency}
                   </span>
                   {cartItem ? (
@@ -571,7 +592,7 @@ function DishCard({
                   ) : (
                     <button
                       onClick={() => addToCart(dish)}
-                      className="text-xs font-semibold text-[#C8A24D] hover:text-[#D4B35D] transition-colors"
+                      className="text-xs font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)] transition-colors"
                     >
                       + {lang === "ar" ? "إضافة" : "Ajouter"}
                     </button>
@@ -605,7 +626,7 @@ function PromoCard({
   const promoText = lang === "ar" ? (dish.promoTextAr || "") : (dish.promoTextFr || "");
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-[#C8A24D]/20 bg-[#1A1A1A]">
+    <div className="rounded-2xl overflow-hidden border border-[var(--primary)]/20 bg-[#1A1A1A]">
       {/* Image */}
       <div
         className="relative h-52 w-full overflow-hidden cursor-pointer group"
@@ -625,7 +646,7 @@ function PromoCard({
           <Maximize2 className="h-3.5 w-3.5 text-white" />
         </div>
         <div className="absolute top-3 left-3">
-          <Badge className="bg-[#C8A24D] text-black border-0 text-xs font-bold px-3 py-1 rounded-full">
+          <Badge className="bg-[var(--primary)] text-black border-0 text-xs font-bold px-3 py-1 rounded-full">
             {promoLabel}
           </Badge>
         </div>
@@ -642,7 +663,7 @@ function PromoCard({
               {lang === "ar" ? dish.descriptionAr : dish.descriptionFr}
             </p>
           </div>
-          <span className="text-[#C8A24D] font-bold text-lg flex-shrink-0">
+          <span className="text-[var(--primary)] font-bold text-lg flex-shrink-0">
             {dish.price} {currency}
           </span>
         </div>
@@ -650,7 +671,7 @@ function PromoCard({
         {!cartItem ? (
           <button
             onClick={() => addToCart(dish)}
-            className="w-full py-3 rounded-xl bg-[#C8A24D] text-black font-bold text-sm hover:bg-[#D4B35D] transition-colors active:scale-[0.98]"
+            className="w-full py-3 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-colors active:scale-[0.98]"
           >
             + {lang === "ar" ? "إضافة للسلة" : "Ajouter au panier"}
           </button>
@@ -673,8 +694,8 @@ function PromoCard({
         )}
 
         {promoText && (
-          <div className="bg-[#C8A24D]/10 border border-[#C8A24D]/30 rounded-xl p-4 text-center">
-            <p className="text-[#C8A24D] font-bold text-sm">{promoText}</p>
+          <div className="bg-[var(--primary)]/10 border border-[var(--primary)]/30 rounded-xl p-4 text-center">
+            <p className="text-[var(--primary)] font-bold text-sm">{promoText}</p>
           </div>
         )}
       </div>
