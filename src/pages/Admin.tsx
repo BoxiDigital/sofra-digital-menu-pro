@@ -71,9 +71,14 @@ export default function Admin() {
           setRestaurantSlug(result.slug);
           return loadData();
         })
-        .catch((err) => {
-          console.error("[Admin] Auto-init error:", err);
-        })
+        .catch(async (err) => {
+                  console.error("[Admin] Auto-init error:", err);
+                  // إذا كان الخطأ بسبب جلسة منتهية (معرف المستخدم غير موجود)، سجّل الخروج
+                  if (err?.code === "23503" || err?.message?.includes("users")) {
+                    await logout();
+                    navigate("/login", { replace: true });
+                  }
+                })
         .finally(() => {
           setIsInitializing(false);
         });
@@ -125,28 +130,41 @@ export default function Admin() {
   }
 
   // احتياط: إذا فشلت التهيئة التلقائية
-  if (!config) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D] px-4">
-        <div className="text-center space-y-6">
-          <p className="text-4xl">⚠️</p>
-          <h2 className="text-2xl font-bold text-white">تعذر تحميل البيانات</h2>
-          <p className="text-white/50">حدث خطأ أثناء تجهيز بيانات المطعم. يرجى المحاولة مرة أخرى.</p>
-          <Button
-            onClick={() => {
-              autoInitDone.current = false;
-              setConfig(null);
-              setIsLoading(true);
-              loadData();
-            }}
-            className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold"
-          >
-            إعادة المحاولة
-          </Button>
+    if (!config) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D] px-4">
+          <div className="text-center space-y-6">
+            <p className="text-4xl">⚠️</p>
+            <h2 className="text-2xl font-bold text-white">تعذر تحميل البيانات</h2>
+            <p className="text-white/50">حدث خطأ أثناء تجهيز بيانات المطعم. يرجى تسجيل الخروج ثم تسجيل الدخول مجدداً.</p>
+            <div className="flex flex-col gap-3">
+              <Button
+                onClick={() => {
+                  autoInitDone.current = false;
+                  setConfig(null);
+                  setIsLoading(true);
+                  loadData();
+                }}
+                className="bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold"
+              >
+                إعادة المحاولة
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  await logout();
+                  navigate("/login", { replace: true });
+                }}
+                className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+              >
+                <LogOut className="h-4 w-4 ml-1.5" />
+                تسجيل الخروج
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
   return (
     <div className="min-h-screen bg-[#0D0D0D]">

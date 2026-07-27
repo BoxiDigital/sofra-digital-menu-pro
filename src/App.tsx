@@ -18,13 +18,13 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/:slug" element={<MenuPage />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/admin" element={<Admin />} />
+                      <Route path="/:slug" element={<MenuPage />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
         </AuthProvider>
       </QueryClientProvider>
     </Router>
