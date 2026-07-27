@@ -14,8 +14,9 @@ export default function MenuPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+    const [restaurantId, setRestaurantId] = useState<string>("");
+    const [isLoading, setIsLoading] = useState(true);
+    const [notFound, setNotFound] = useState(false);
 
   // Keep CSS variables in sync so the loading/error states reflect the theme
   useEffect(() => {
@@ -50,7 +51,8 @@ export default function MenuPage() {
 
       // استخراج config بدون id و slug
       const { id, slug: _, ...cfg } = restaurant;
-      setConfig(cfg);
+            setRestaurantId(id);
+            setConfig(cfg);
       setCategories(cats);
       setDishes(dsh);
     } catch (err) {
@@ -90,7 +92,7 @@ export default function MenuPage() {
 
   return (
     <div className="relative min-h-screen">
-      <ClientView categories={categories} dishes={dishes} config={config} />
+      <ClientView categories={categories} dishes={dishes} config={config} restaurantId={restaurantId} />
 
       <footer className="bg-zinc-900 text-zinc-400 py-8 text-center text-xs border-t border-zinc-800">
         <div className="max-w-md mx-auto px-4 space-y-3">

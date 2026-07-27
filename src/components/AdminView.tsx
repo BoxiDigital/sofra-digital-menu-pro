@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Dish, Category, RestaurantConfig } from "../types";
+import { Dish, Category, RestaurantConfig, Review } from "../types";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { getMyReviews } from "../utils/storage";
 import {
   Plus, 
   Edit, 
@@ -28,10 +29,13 @@ import {
   Cake,
   Coffee,
   AlertCircle,
-  Ban,
-  RefreshCcw,
-  Loader2,
-} from "lucide-react";
+    Ban,
+    RefreshCcw,
+    Loader2,
+    Star,
+    MessageCircle,
+    ThumbsUp,
+  } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -100,6 +104,20 @@ export default function AdminView({
     };
   
     const [isSaving, setIsSaving] = useState(false);
+        const [reviews, setReviews] = useState<Review[]>([]);
+        const [reviewsLoading, setReviewsLoading] = useState(false);
+    
+        const loadReviews = async () => {
+          setReviewsLoading(true);
+          try {
+            const data = await getMyReviews();
+            setReviews(data);
+          } catch (err) {
+            console.error("[AdminView] loadReviews error:", err);
+          } finally {
+            setReviewsLoading(false);
+          }
+        };
     
       // ── حالة تغيير كلمة المرور ──
       const [currentPassword, setCurrentPassword] = useState("");
@@ -408,13 +426,14 @@ export default function AdminView({
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <Tabs defaultValue="dishes" className="space-y-6">
+        <Tabs defaultValue="dishes" className="space-y-6" onValueChange={(val) => { if (val === "reviews") loadReviews(); }}>
           <TabsList className="bg-white/[0.03] border border-white/[0.06] p-1 rounded-2xl w-full max-w-lg flex">
             <TabsTrigger value="dishes" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[var(--primary)] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الأطباق</TabsTrigger>
                         <TabsTrigger value="categories" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[var(--primary)] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الفئات</TabsTrigger>
                         <TabsTrigger value="settings" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[var(--primary)] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الإعدادات</TabsTrigger>
                                     <TabsTrigger value="account" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[var(--primary)] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الحساب</TabsTrigger>
-                      </TabsList>
+                                                            <TabsTrigger value="reviews" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[var(--primary)] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">التقييمات</TabsTrigger>
+                                                          </TabsList>
 
           {/* DISHES TAB */}
           <TabsContent value="dishes" className="space-y-5">
@@ -573,11 +592,16 @@ export default function AdminView({
                   <Input value={configForm.workingHoursFr} onChange={(e) => setConfigForm({ ...configForm, workingHoursFr: e.target.value })} className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm" />
                 </div>
                 <div>
-                  <Label className="text-white/60 text-xs">رقم واتساب (مع رمز الدولة)</Label>
-                  <Input value={configForm.whatsappNumber} onChange={(e) => setConfigForm({ ...configForm, whatsappNumber: e.target.value })} className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm" placeholder="212600000000" />
-                </div>
-                <div>
-                  <Label className="text-white/60 text-xs">العملة</Label>
+                                  <Label className="text-white/60 text-xs">رقم واتساب (مع رمز الدولة)</Label>
+                                  <Input value={configForm.whatsappNumber} onChange={(e) => setConfigForm({ ...configForm, whatsappNumber: e.target.value })} className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm" placeholder="212600000000" />
+                                </div>
+                                <div>
+                                  <Label className="text-white/60 text-xs">رابط خرائط Google</Label>
+                                  <Input value={configForm.googleMapsUrl || ""} onChange={(e) => setConfigForm({ ...configForm, googleMapsUrl: e.target.value })} className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm" placeholder="https://maps.google.com/?q=..." />
+                                  <p className="text-white/25 text-[10px] mt-1">يُستخدم لتوجيه التقييمات الإيجابية لصفحة مطعمك</p>
+                                </div>
+                                <div>
+                                  <Label className="text-white/60 text-xs">العملة</Label>
                   <div className="grid grid-cols-2 gap-2 mt-1.5">
                     <Input value={configForm.currencyAr} onChange={(e) => setConfigForm({ ...configForm, currencyAr: e.target.value })} className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm" placeholder="درهم" />
                     <Input value={configForm.currencyFr} onChange={(e) => setConfigForm({ ...configForm, currencyFr: e.target.value })} className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm" placeholder="MAD" />
@@ -845,10 +869,57 @@ export default function AdminView({
                         </Button>
                       </div>
                     </TabsContent>
-                  </Tabs>
-                </div>
-          
-                {/* Dish Dialog */}
+                    
+                                        {/* REVIEWS TAB */}
+                                        <TabsContent value="reviews" className="space-y-6">
+                                          <div>
+                                            <h2 className="text-xl font-bold text-white">التقييمات والشكاوى</h2>
+                                            <p className="text-xs text-white/35 mt-0.5">مراجعة تقييمات الزبائن وشكاواهم لتحسين الخدمة</p>
+                                          </div>
+                    
+                                          {reviewsLoading ? (
+                                            <div className="flex items-center justify-center py-20">
+                                              <Loader2 className="h-8 w-8 text-[var(--primary)] animate-spin" />
+                                            </div>
+                                          ) : reviews.length === 0 ? (
+                                            <div className="bg-white/[0.03] p-12 rounded-2xl border border-white/[0.06] text-center">
+                                              <MessageCircle className="h-12 w-12 mx-auto text-white/10 mb-4" />
+                                              <p className="text-white/40 text-lg">لا توجد تقييمات حالياً</p>
+                                              <p className="text-white/25 text-sm mt-1">ستظهر هنا تقييمات الزبائن وشكاواهم فور ورودها</p>
+                                            </div>
+                                          ) : (
+                                            <div className="space-y-4">
+                                              {reviews.map((review) => (
+                                                <div key={review.id} className="bg-white/[0.03] p-5 rounded-2xl border border-white/[0.06] space-y-3">
+                                                  <div className="flex items-center justify-between flex-wrap gap-3">
+                                                    <div className="flex items-center gap-2">
+                                                      {[1, 2, 3, 4, 5].map((star) => (
+                                                        <Star key={star} className={`h-5 w-5 ${star <= review.rating ? "text-yellow-400 fill-yellow-400" : "text-white/15"}`} />
+                                                      ))}
+                                                      <span className="text-xs text-white/35 mr-2">
+                                                        {new Date(review.created_at).toLocaleDateString("ar-MA", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                                      </span>
+                                                    </div>
+                                                    <Badge className={review.rating >= 4 ? "bg-green-500/20 text-green-400 border-0" : "bg-red-500/20 text-red-400 border-0"}>
+                                                      {review.rating >= 4 ? "تقييم إيجابي" : "شكوى"}
+                                                    </Badge>
+                                                  </div>
+                                                  {review.feedback ? (
+                                                    <div className="bg-white/[0.04] p-4 rounded-xl border border-white/[0.06]">
+                                                      <p className="text-white/70 text-sm leading-relaxed">{review.feedback}</p>
+                                                    </div>
+                                                  ) : (
+                                                    <p className="text-white/25 text-sm">بدون ملاحظات كتابية</p>
+                                                  )}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </TabsContent>
+                                      </Tabs>
+                                    </div>
+                              
+                                    {/* Dish Dialog */}
       <Dialog open={isDishDialogOpen} onOpenChange={setIsDishDialogOpen}>
         <DialogContent className="bg-[#1A1A1A] border-white/[0.08] text-white max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl" dir="rtl">
           <DialogHeader>

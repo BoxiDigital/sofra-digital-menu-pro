@@ -19,13 +19,15 @@ import {
   Menu,
   MapPin,
   MessageCircle,
-  Maximize2,
-} from "lucide-react";
+    Maximize2,
+    Star,
+  } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
+import { submitReview } from "../utils/storage";
 
 /** Lighten a hex color by mixing it with white */
 function lightenColor(hex: string, amount: number): string {
@@ -49,15 +51,21 @@ interface ClientViewProps {
   categories: Category[];
   dishes: Dish[];
   config: RestaurantConfig;
+  restaurantId: string;
 }
 
-export default function ClientView({ categories, dishes, config }: ClientViewProps) {
+export default function ClientView({ categories, dishes, config, restaurantId }: ClientViewProps) {
   const [lang, setLang] = useState<"ar" | "fr">("fr");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-  const { toast } = useToast();
+    const [ratingModalOpen, setRatingModalOpen] = useState(false);
+    const [selectedRating, setSelectedRating] = useState(0);
+    const [hoveredRating, setHoveredRating] = useState(0);
+    const [ratingSubmitted, setRatingSubmitted] = useState(false);
+    const [ratingFeedback, setRatingFeedback] = useState("");
+    const { toast } = useToast();
 
   // Apply primaryColor as CSS variable so all child components reflect the theme
   React.useEffect(() => {
@@ -152,9 +160,31 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${config.whatsappNumber}?text=${encodedMessage}`;
     window.open(whatsappUrl, "_blank");
-  };
-
-  const t = {
+      };
+    
+      const handleSubmitRating = async (rating: number) => {
+          setSelectedRating(rating);
+          setRatingSubmitted(true);
+          if (rating >= 4) {
+            await submitReview({ restaurant_id: restaurantId, rating, feedback: "" });
+          }
+        };
+      
+        const handleSubmitFeedback = async () => {
+          await submitReview({ restaurant_id: restaurantId, rating: selectedRating, feedback: ratingFeedback });
+        toast({
+          title: lang === "ar" ? "تم إرسال ملاحظتك" : "Avis envoyé",
+          description: lang === "ar" ? "شكراً لك، سنعمل على تحسين تجربتك" : "Merci, nous travaillerons à améliorer votre expérience",
+          duration: 3000,
+        });
+        setRatingModalOpen(false);
+        setSelectedRating(0);
+        setHoveredRating(0);
+        setRatingSubmitted(false);
+        setRatingFeedback("");
+      };
+    
+      const t = {
     workingHours: lang === "ar" ? "ساعات العمل" : "Heures d'ouverture",
     searchPlaceholder: lang === "ar" ? "ابحث عن طبقك المفضل..." : "Rechercher un plat...",
     all: lang === "ar" ? "الكل" : "TOUS",
@@ -433,7 +463,81 @@ export default function ClientView({ categories, dishes, config }: ClientViewPro
         </div>
       )}
 
-      {/* ─── Lightbox Modal ─── */}
+      {/* ─── Review Collector ─── */}
+            <div className="max-w-lg mx-auto px-4 pb-6">
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 text-center">
+                <p className="text-white/60 text-sm font-medium mb-3">
+                  {lang === "ar" ? "هل استمتعت بتجربتك؟" : "Avez-vous apprécié votre expérience ?"}
+                </p>
+                <button
+                  onClick={() => setRatingModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-[var(--primary)] font-bold text-sm hover:bg-[var(--primary)]/20 transition-all"
+                >
+                  <Star className="h-4 w-4" />
+                  <span>{lang === "ar" ? "قيّم تجربتك" : "Évaluez votre expérience"}</span>
+                </button>
+              </div>
+            </div>
+      
+            {/* ─── Rating Modal ─── */}
+            {ratingModalOpen && (
+              <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                <div className="bg-[#1A1A1A] border border-white/[0.08] rounded-2xl p-6 w-full max-w-sm space-y-5">
+                  {!ratingSubmitted ? (
+                    <>
+                      <div className="text-center space-y-2">
+                        <h3 className="text-white font-bold text-lg">
+                          {lang === "ar" ? "قيّم تجربتك" : "Évaluez votre expérience"}
+                        </h3>
+                        <p className="text-white/40 text-sm">
+                          {lang === "ar" ? "كيف كانت تجربتك معنا؟" : "Comment s'est passée votre expérience ?"}
+                        </p>
+                      </div>
+                      {/* Stars */}
+                                      <div className="flex justify-center gap-2 py-2">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                          <button
+                                            key={star}
+                                            onClick={() => handleSubmitRating(star)}
+                                            onMouseEnter={() => setHoveredRating(star)}
+                                            onMouseLeave={() => setHoveredRating(0)}
+                                            className="transition-transform hover:scale-110"
+                                          >
+                                            <Star
+                                              className={`h-10 w-10 transition-colors ${
+                                                star <= (hoveredRating || selectedRating)
+                                                  ? "text-yellow-400 fill-yellow-400"
+                                                  : "text-white/20"
+                                              }`}
+                                            />
+                                          </button>
+                                        ))}
+                                      </div>
+                    </>
+                  ) : (
+                    <RatingResult
+                      rating={selectedRating}
+                      lang={lang}
+                      feedback={ratingFeedback}
+                      setFeedback={setRatingFeedback}
+                      onSubmitFeedback={handleSubmitFeedback}
+                      onClose={() => setRatingModalOpen(false)}
+                      googleMapsUrl={config.googleMapsUrl}
+                    />
+                  )}
+                  {!ratingSubmitted && (
+                    <button
+                      onClick={() => { setRatingModalOpen(false); setSelectedRating(0); setHoveredRating(0); }}
+                      className="w-full text-white/30 hover:text-white/50 text-sm transition-colors"
+                    >
+                      {lang === "ar" ? "إلغاء" : "Annuler"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+      
+            {/* ─── Lightbox Modal ─── */}
       {lightboxImage && (
         <div
           className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200"
@@ -694,11 +798,120 @@ function PromoCard({
         )}
 
         {promoText && (
-          <div className="bg-[var(--primary)]/10 border border-[var(--primary)]/30 rounded-xl p-4 text-center">
-            <p className="text-[var(--primary)] font-bold text-sm">{promoText}</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+                  <div className="bg-[var(--primary)]/10 border border-[var(--primary)]/30 rounded-xl p-4 text-center">
+                    <p className="text-[var(--primary)] font-bold text-sm">{promoText}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }
+        
+        /* ─── Rating Result (after star selection) ─── */
+        function RatingResult({
+          rating,
+          lang,
+          feedback,
+          setFeedback,
+          onSubmitFeedback,
+          onClose,
+          googleMapsUrl,
+        }: {
+          rating: number;
+          lang: "ar" | "fr";
+          feedback: string;
+          setFeedback: (v: string) => void;
+          onSubmitFeedback: () => void;
+          onClose: () => void;
+          googleMapsUrl?: string;
+        }) {
+          const isPositive = rating >= 4;
+        
+          if (isPositive && googleMapsUrl) {
+            return (
+              <div className="text-center space-y-4">
+                <div className="text-5xl">🌟</div>
+                <h3 className="text-white font-bold text-lg">
+                  {lang === "ar" ? "شكراً لتقييمك!" : "Merci pour votre avis !"}
+                </h3>
+                <p className="text-white/50 text-sm">
+                  {lang === "ar"
+                    ? "يسعدنا تقييمك الإيجابي! هل تود مشاركته على Google Maps؟"
+                    : "Nous sommes ravis ! Voulez-vous partager votre avis sur Google Maps ?"}
+                </p>
+                <a
+                  href={googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-colors"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span>{lang === "ar" ? "تقييم على Google" : "Évaluer sur Google"}</span>
+                </a>
+                <button
+                  onClick={onClose}
+                  className="block w-full text-white/30 hover:text-white/50 text-sm transition-colors mt-3"
+                >
+                  {lang === "ar" ? "إغلاق" : "Fermer"}
+                </button>
+              </div>
+            );
+          }
+        
+          if (isPositive) {
+            return (
+              <div className="text-center space-y-4">
+                <div className="text-5xl">🌟</div>
+                <h3 className="text-white font-bold text-lg">
+                  {lang === "ar" ? "شكراً جزيلاً!" : "Merci beaucoup !"}
+                </h3>
+                <p className="text-white/50 text-sm">
+                  {lang === "ar" ? "تقييمك يهمنا ويساعدنا على التحسين" : "Votre avis compte et nous aide à nous améliorer"}
+                </p>
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm"
+                >
+                  {lang === "ar" ? "تم" : "OK"}
+                </button>
+              </div>
+            );
+          }
+        
+          return (
+            <div className="space-y-4">
+              <div className="text-center">
+                <div className="text-5xl">😔</div>
+                <h3 className="text-white font-bold text-lg mt-2">
+                  {lang === "ar" ? "نأسف لعدم رضاك" : "Nous sommes désolés"}
+                </h3>
+                <p className="text-white/50 text-sm mt-1">
+                  {lang === "ar"
+                    ? "أخبرنا بما لم يعجبك لنساعد في تحسين التجربة"
+                    : "Dites-nous ce qui n'a pas été à la hauteur"}
+                </p>
+              </div>
+              <textarea
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                placeholder={lang === "ar" ? "اكتب ملاحظتك هنا..." : "Écrivez votre remarque ici..."}
+                className="w-full bg-white/[0.04] border border-white/[0.08] text-white placeholder:text-white/20 rounded-xl p-4 text-sm min-h-[100px] resize-none focus:border-[var(--primary)]/40 focus:outline-none"
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={onSubmitFeedback}
+                  disabled={!feedback.trim()}
+                  className="flex-1 py-2.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  {lang === "ar" ? "إرسال الملاحظة" : "Envoyer"}
+                </button>
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/50 text-sm"
+                >
+                  {lang === "ar" ? "إلغاء" : "Annuler"}
+                </button>
+              </div>
+            </div>
+          );
+        }

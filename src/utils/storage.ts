@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Category, Dish, RestaurantConfig } from "../types";
+import { Category, Dish, RestaurantConfig, Review } from "../types";
 import { defaultCategories, defaultDishes, defaultRestaurantConfig } from "../data/defaultData";
 
 // ───────────────────────────────────────────
@@ -90,10 +90,11 @@ function mapConfigFromDB(row: any): RestaurantConfig & { id?: string; slug?: str
     primaryColor: row.primary_color,
     backgroundColor: row.background_color,
     currencyAr: row.currency_ar,
-    currencyFr: row.currency_fr,
-    id: row.id,
-    slug: row.slug,
-  };
+        currencyFr: row.currency_fr,
+        googleMapsUrl: row.google_maps_url || "",
+        id: row.id,
+        slug: row.slug,
+      };
 }
 
 function mapConfigToDB(config: RestaurantConfig): any {
@@ -112,7 +113,8 @@ function mapConfigToDB(config: RestaurantConfig): any {
     primary_color: config.primaryColor,
     background_color: config.backgroundColor,
     currency_ar: config.currencyAr,
-    currency_fr: config.currencyFr,
+        currency_fr: config.currencyFr,
+        google_maps_url: config.googleMapsUrl,
   };
 }
 
@@ -400,4 +402,46 @@ export function subscribeToDataChanges(callback: () => void): () => void {
   return () => {
     window.removeEventListener(DATA_CHANGE_EVENT, handler);
   };
+}
+
+// ───────────────────────────────────────────
+// التقييمات والشكاوى (Reviews)
+// ───────────────────────────────────────────
+
+export async function getMyReviews(): Promise<Review[]> {
+  const myRestaurant = await getMyRestaurant();
+  if (!myRestaurant) return [];
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("*")
+    .eq("restaurant_id", myRestaurant.id)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("[storage] getMyReviews error:", error);
+    return [];
+  }
+  return (data || []).map((r: any) => ({
+    id: r.id,
+    restaurant_id: r.restaurant_id,
+    rating: r.rating,
+    feedback: r.feedback,
+    created_at: r.created_at,
+  }));
+}
+
+export async function submitReview(review: {
+  restaurant_id: string;
+  rating: number;
+  feedback?: string;
+}): Promise<boolean> {
+  const { error } = await supabase.from("reviews").insert({
+    restaurant_id: review.restaurant_id,
+    rating: review.rating,
+    feedback: review.feedback || "",
+  });
+  if (error) {
+    console.error("[storage] submitReview error:", error);
+    return false;
+  }
+  return true;
 }

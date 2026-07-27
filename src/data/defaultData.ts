@@ -168,5 +168,6 @@ export const defaultRestaurantConfig: RestaurantConfig = {
   primaryColor: "#C8A24D",
   backgroundColor: "dark",
   currencyAr: "درهم",
-  currencyFr: "MAD",
-};
+    currencyFr: "MAD",
+    googleMapsUrl: "",
+  };

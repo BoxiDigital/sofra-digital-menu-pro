@@ -40,10 +40,11 @@ export interface RestaurantConfig {
  whatsappMessageAr: string;
  whatsappMessageFr: string;
  primaryColor: string; // hex color
- backgroundColor: 'cream' | 'dark' | 'white';
- currencyAr: string;
- currencyFr: string;
-}
+   backgroundColor: 'cream' | 'dark' | 'white';
+   currencyAr: string;
+   currencyFr: string;
+   googleMapsUrl?: string;
+ }
 
 export interface CartItem {
  dish: Dish;
@@ -65,13 +66,22 @@ export interface Restaurant {
  whatsappMessageAr: string;
  whatsappMessageFr: string;
  primaryColor: string;
- backgroundColor: 'cream' | 'dark' | 'white';
- currencyAr: string;
- currencyFr: string;
+   backgroundColor: 'cream' | 'dark' | 'white';
+   currencyAr: string;
+   currencyFr: string;
+   googleMapsUrl?: string;
+ }
+
+export interface Review {
+  id: string;
+  restaurant_id: string;
+  rating: number;
+  feedback: string;
+  created_at: string;
 }
 
 export interface AuthUser {
- id: string;
- email: string;
- restaurantId: string;
+  id: string;
+  email: string;
+  restaurantId: string;
 }
