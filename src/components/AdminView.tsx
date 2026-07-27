@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dish, Category, RestaurantConfig } from "../types";
 import { useAuth } from "../contexts/AuthContext";
-import { 
+import { supabase } from "@/integrations/supabase/client";
+import {
   Plus, 
   Edit, 
   Trash2, 
@@ -72,7 +73,7 @@ export default function AdminView({
   onReset,
 }: AdminViewProps) {
   const { toast } = useToast();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -81,8 +82,74 @@ export default function AdminView({
     };
   
     const [isSaving, setIsSaving] = useState(false);
-  
-    const handleSaveError = (err: any) => {
+    
+      // ── حالة تغيير كلمة المرور ──
+      const [currentPassword, setCurrentPassword] = useState("");
+      const [newPassword, setNewPassword] = useState("");
+      const [confirmNewPassword, setConfirmNewPassword] = useState("");
+      const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+      const [showNewPassword, setShowNewPassword] = useState(false);
+      const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+      const [isChangingPassword, setIsChangingPassword] = useState(false);
+      const [passwordError, setPasswordError] = useState("");
+      const [passwordSuccess, setPasswordSuccess] = useState("");
+    
+      const handleChangePassword = async () => {
+        setPasswordError("");
+        setPasswordSuccess("");
+    
+        if (!currentPassword) {
+          setPasswordError("يرجى إدخال كلمة المرور الحالية");
+          return;
+        }
+        if (!newPassword) {
+          setPasswordError("يرجى إدخال كلمة المرور الجديدة");
+          return;
+        }
+        if (newPassword.length < 6) {
+          setPasswordError("كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل");
+          return;
+        }
+        if (newPassword !== confirmNewPassword) {
+          setPasswordError("كلمة المرور الجديدة غير متطابقة");
+          return;
+        }
+    
+        setIsChangingPassword(true);
+        try {
+          // إعادة المصادقة بكلمة المرور الحالية
+          const { error: authError } = await supabase.auth.signInWithPassword({
+            email: user?.email || "",
+            password: currentPassword,
+          });
+          if (authError) {
+            setPasswordError("كلمة المرور الحالية غير صحيحة");
+            setIsChangingPassword(false);
+            return;
+          }
+    
+          // تحديث كلمة المرور
+          const { error: updateError } = await supabase.auth.updateUser({
+            password: newPassword,
+          });
+          if (updateError) {
+            setPasswordError(updateError.message);
+            setIsChangingPassword(false);
+            return;
+          }
+    
+          setPasswordSuccess("تم تغيير كلمة المرور بنجاح");
+          setCurrentPassword("");
+          setNewPassword("");
+          setConfirmNewPassword("");
+        } catch (err: any) {
+          setPasswordError(err?.message || "حدث خطأ أثناء تغيير كلمة المرور");
+        } finally {
+          setIsChangingPassword(false);
+        }
+      };
+    
+      const handleSaveError = (err: any) => {
       console.error("[AdminView] Save error:", err);
       toast({ title: "خطأ في الحفظ", description: err?.message || "حدث خطأ أثناء حفظ البيانات، يرجى المحاولة مرة أخرى", variant: "destructive" });
     };
@@ -294,7 +361,8 @@ export default function AdminView({
             <TabsTrigger value="dishes" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[#C8A24D] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الأطباق</TabsTrigger>
             <TabsTrigger value="categories" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[#C8A24D] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الفئات</TabsTrigger>
             <TabsTrigger value="settings" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[#C8A24D] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الإعدادات</TabsTrigger>
-          </TabsList>
+                        <TabsTrigger value="account" className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[#C8A24D] data-[state=active]:text-black data-[state=inactive]:text-white/40 data-[state=inactive]:hover:text-white/70 transition-all">الحساب</TabsTrigger>
+                      </TabsList>
 
           {/* DISHES TAB */}
           <TabsContent value="dishes" className="space-y-5">
@@ -573,10 +641,126 @@ export default function AdminView({
               </Button>
             </div>
           </TabsContent>
-        </Tabs>
-      </div>
-
-      {/* Dish Dialog */}
+          
+                    {/* ACCOUNT TAB */}
+                    <TabsContent value="account" className="space-y-6">
+                      <div>
+                        <h2 className="text-xl font-bold text-white">إعدادات الحساب</h2>
+                        <p className="text-xs text-white/35 mt-0.5">تغيير كلمة المرور الخاصة بحسابك</p>
+                      </div>
+          
+                      <div className="bg-white/[0.03] p-6 rounded-2xl border border-white/[0.06] space-y-5 max-w-md">
+                        {/* Current Password */}
+                        <div className="space-y-2">
+                          <Label className="text-white/60 text-xs">كلمة المرور الحالية</Label>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
+                            <Input
+                              type={showCurrentPassword ? "text" : "password"}
+                              value={currentPassword}
+                              onChange={(e) => { setCurrentPassword(e.target.value); setPasswordError(""); setPasswordSuccess(""); }}
+                              className="pl-10 pr-12 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-11 text-sm"
+                              placeholder="أدخل كلمة المرور الحالية"
+                              dir="ltr"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/50 transition-colors"
+                              tabIndex={-1}
+                            >
+                              {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        </div>
+          
+                        {/* New Password */}
+                        <div className="space-y-2">
+                          <Label className="text-white/60 text-xs">كلمة المرور الجديدة</Label>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
+                            <Input
+                              type={showNewPassword ? "text" : "password"}
+                              value={newPassword}
+                              onChange={(e) => { setNewPassword(e.target.value); setPasswordError(""); setPasswordSuccess(""); }}
+                              className="pl-10 pr-12 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-11 text-sm"
+                              placeholder="أدخل كلمة المرور الجديدة"
+                              dir="ltr"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowNewPassword(!showNewPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/50 transition-colors"
+                              tabIndex={-1}
+                            >
+                              {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        </div>
+          
+                        {/* Confirm New Password */}
+                        <div className="space-y-2">
+                          <Label className="text-white/60 text-xs">تأكيد كلمة المرور الجديدة</Label>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
+                            <Input
+                              type={showConfirmNewPassword ? "text" : "password"}
+                              value={confirmNewPassword}
+                              onChange={(e) => { setConfirmNewPassword(e.target.value); setPasswordError(""); setPasswordSuccess(""); }}
+                              className="pl-10 pr-12 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-11 text-sm"
+                              placeholder="أعد كتابة كلمة المرور الجديدة"
+                              dir="ltr"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/50 transition-colors"
+                              tabIndex={-1}
+                            >
+                              {showConfirmNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        </div>
+          
+                        {/* Error Message */}
+                        {passwordError && (
+                          <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-sm text-red-400">
+                            <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                            <span>{passwordError}</span>
+                          </div>
+                        )}
+          
+                        {/* Success Message */}
+                        {passwordSuccess && (
+                          <div className="flex items-start gap-3 bg-green-500/10 border border-green-500/20 rounded-xl p-4 text-sm text-green-400">
+                            <Check className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                            <span>{passwordSuccess}</span>
+                          </div>
+                        )}
+          
+                        <Button
+                          onClick={handleChangePassword}
+                          disabled={isChangingPassword}
+                          className="w-full bg-[#C8A24D] hover:bg-[#D4B35D] text-black font-bold rounded-xl h-11 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                        >
+                          {isChangingPassword ? (
+                            <span className="flex items-center gap-2">
+                              <span className="w-4 h-4 border-2 border-black/30 border-t-black/80 rounded-full animate-spin" />
+                              جاري تغيير كلمة المرور...
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5">
+                              <Lock className="h-4 w-4" />
+                              تغيير كلمة المرور
+                            </span>
+                          )}
+                        </Button>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+          
+                {/* Dish Dialog */}
       <Dialog open={isDishDialogOpen} onOpenChange={setIsDishDialogOpen}>
         <DialogContent className="bg-[#1A1A1A] border-white/[0.08] text-white max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl" dir="rtl">
           <DialogHeader>
