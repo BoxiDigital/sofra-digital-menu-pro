@@ -119,6 +119,21 @@ function mapConfigToDB(config: RestaurantConfig): any {
 }
 
 // ───────────────────────────────────────────
+// مساعد : وعد مع مهلة زمنية (timeout)
+// ───────────────────────────────────────────
+function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(errorMessage)), ms);
+  });
+
+  return Promise.race([
+    promise,
+    timeoutPromise,
+  ]).finally(() => clearTimeout(timeoutId));
+}
+
+// ───────────────────────────────────────────
 // دوال عامة (للزوار)
 // ───────────────────────────────────────────
 
@@ -436,7 +451,7 @@ export async function submitReview(review: {
     feedback: review.feedback?.substring(0, 50) 
   });
 
-  const { data, error } = await supabase
+  const insertPromise = supabase
     .from("reviews")
     .insert({
       restaurant_id: review.restaurant_id,
@@ -446,12 +461,19 @@ export async function submitReview(review: {
     .select()
     .single();
 
+  // إضافة مهلة زمنية 10 ثوانٍ لتفادي تعليق الطلب للأبد
+  const { data, error } = await withTimeout(
+    insertPromise,
+    10000,
+    "انتهت مهلة الاتصال بقاعدة البيانات، يرجى المحاولة لاحقاً"
+  );
+
   if (error) {
     console.error("[storage] submitReview error:", {
       message: error.message,
-      code: error.code,
-      details: error.details,
-      hint: error.hint,
+      code: (error as any)?.code,
+      details: (error as any)?.details,
+      hint: (error as any)?.hint,
     });
     throw new Error(error.message || "فشل في حفظ التقييم");
   }

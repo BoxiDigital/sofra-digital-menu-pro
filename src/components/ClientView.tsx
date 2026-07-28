@@ -38,6 +38,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
   const [ratingFeedback, setRatingFeedback] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [positiveReviewSaved, setPositiveReviewSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -125,6 +126,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
     setRatingSubmitted(true);
     setRatingFeedback("");
     setPositiveReviewSaved(false);
+    setSaveError(null);
 
     if (rating >= 4) {
       setIsSubmittingReview(true);
@@ -133,15 +135,17 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
         setPositiveReviewSaved(true);
       } catch (err: any) {
         console.error("[ClientView] submitReview (positive) error:", err);
+        setSaveError(err?.message || (lang === "ar" ? "فشل حفظ التقييم" : "Échec de l'enregistrement"));
       } finally {
         setIsSubmittingReview(false);
       }
     }
-  }, [restaurantId]);
+  }, [restaurantId, lang]);
 
   const handleSubmitFeedback = useCallback(async () => {
     if (!ratingFeedback.trim()) return;
     setIsSubmittingReview(true);
+    setSaveError(null);
     try {
       await submitReview({
         restaurant_id: restaurantId,
@@ -160,8 +164,10 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
       setRatingSubmitted(false);
       setRatingFeedback("");
       setPositiveReviewSaved(false);
+      setSaveError(null);
     } catch (err: any) {
       console.error("[ClientView] submitFeedback error:", err);
+      setSaveError(err?.message || (lang === "ar" ? "حدث خطأ" : "Erreur"));
       toast({
         title: lang === "ar" ? "❌ خطأ في الإرسال" : "❌ Erreur d'envoi",
         description: lang === "ar"
@@ -181,6 +187,8 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
     setRatingSubmitted(false);
     setRatingFeedback("");
     setPositiveReviewSaved(false);
+    setSaveError(null);
+    setIsSubmittingReview(false);
   }, []);
 
   const scrollToCategory = useCallback((categoryId: string | null) => {
@@ -459,6 +467,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                 googleMapsUrl={config.googleMapsUrl}
                 isSubmitting={isSubmittingReview}
                 reviewSaved={positiveReviewSaved}
+                saveError={saveError}
               />
             )}
           </div>
@@ -809,6 +818,7 @@ function RatingResult({
   googleMapsUrl,
   isSubmitting,
   reviewSaved,
+  saveError,
 }: {
   rating: number;
   lang: "ar" | "fr";
@@ -819,78 +829,81 @@ function RatingResult({
   googleMapsUrl?: string;
   isSubmitting: boolean;
   reviewSaved: boolean;
+  saveError: string | null;
 }) {
   const isPositive = rating >= 4;
 
-  if (isPositive && googleMapsUrl) {
+  // حالة إيجابية – انتظار الحفظ قبل إظهار زر Google Maps
+  if (isPositive) {
     return (
       <div className="text-center space-y-4">
         <div className="text-5xl">🌟</div>
         <h3 className="text-white font-bold text-lg">
           {lang === "ar" ? "شكراً لتقييمك!" : "Merci pour votre avis !"}
         </h3>
-        <p className="text-white/50 text-sm">
-          {lang === "ar"
-            ? "يسعدنا تقييمك الإيجابي! هل تود مشاركته على Google Maps؟"
-            : "Nous sommes ravis ! Voulez-vous partager votre avis sur Google Maps ?"}
-        </p>
-        {isSubmitting ? (
-          <div className="flex items-center justify-center gap-2 text-white/40">
-            <span className="w-4 h-4 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
-            <span className="text-sm">
-              {lang === "ar" ? "جاري الحفظ..." : "Enregistrement..."}
-            </span>
-          </div>
-        ) : (
-          <a
-            href={googleMapsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-colors"
-          >
-            <ExternalLink className="h-4 w-4" />
-            <span>{lang === "ar" ? "تقييم على Google" : "Évaluer sur Google"}</span>
-          </a>
-        )}
-        <button
-          onClick={onClose}
-          className="block w-full text-white/30 hover:text-white/50 text-sm transition-colors mt-3"
-        >
-          {lang === "ar" ? "إغلاق" : "Fermer"}
-        </button>
-      </div>
-    );
-  }
 
-  if (isPositive) {
-    return (
-      <div className="text-center space-y-4">
-        <div className="text-5xl">🌟</div>
-        <h3 className="text-white font-bold text-lg">
-          {lang === "ar" ? "شكراً جزيلاً!" : "Merci beaucoup !"}
-        </h3>
-        <p className="text-white/50 text-sm">
-          {lang === "ar" ? "تقييمك يهمنا ويساعدنا على التحسين" : "Votre avis compte et nous aide à nous améliorer"}
-        </p>
         {isSubmitting ? (
-          <div className="flex items-center justify-center gap-2 text-white/40">
-            <span className="w-4 h-4 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
+          <div className="flex flex-col items-center gap-3 text-white/40">
+            <span className="w-6 h-6 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
             <span className="text-sm">
-              {lang === "ar" ? "جاري الحفظ..." : "Enregistrement..."}
+              {lang === "ar" ? "جاري حفظ التقييم..." : "Enregistrement..."}
             </span>
           </div>
+        ) : saveError ? (
+          <div className="space-y-3">
+            <p className="text-red-400 text-sm">{saveError}</p>
+            <button
+              onClick={onClose}
+              className="px-6 py-2.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm"
+            >
+              {lang === "ar" ? "حسناً" : "OK"}
+            </button>
+          </div>
+        ) : reviewSaved && googleMapsUrl ? (
+          <div className="space-y-3">
+            <p className="text-white/50 text-sm">
+              {lang === "ar"
+                ? "تم حفظ تقييمك! هل تود مشاركته على Google Maps؟"
+                : "Votre avis a été enregistré ! Voulez-vous le partager sur Google Maps ?"}
+            </p>
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-colors"
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span>{lang === "ar" ? "تقييم على Google" : "Évaluer sur Google"}</span>
+            </a>
+          </div>
         ) : (
+          <div className="space-y-3">
+            <p className="text-white/50 text-sm">
+              {lang === "ar" ? "تقييمك يهمنا ويساعدنا على التحسين" : "Votre avis compte et nous aide à nous améliorer"}
+            </p>
+            <button
+              onClick={onClose}
+              className="px-6 py-2.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm"
+            >
+              {lang === "ar" ? "تم" : "OK"}
+            </button>
+          </div>
+        )}
+
+        {/* زر الإغلاق في حالة التحميل */}
+        {isSubmitting && (
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm"
+            className="block w-full text-white/30 hover:text-white/50 text-sm transition-colors mt-3"
           >
-            {lang === "ar" ? "تم" : "OK"}
+            {lang === "ar" ? "إغلاق" : "Fermer"}
           </button>
         )}
       </div>
     );
   }
 
+  // تقييم سلبي (1-3)
   return (
     <div className="space-y-4">
       <div className="text-center">
@@ -910,6 +923,11 @@ function RatingResult({
         placeholder={lang === "ar" ? "اكتب ملاحظتك هنا..." : "Écrivez votre remarque ici..."}
         className="w-full bg-white/[0.04] border border-white/[0.08] text-white placeholder:text-white/20 rounded-xl p-4 text-sm min-h-[100px] resize-none focus:border-[var(--primary)]/40 focus:outline-none"
       />
+      {saveError && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-xs text-red-400">
+          {saveError}
+        </div>
+      )}
       <div className="flex gap-3">
         <button
           onClick={onSubmitFeedback}
