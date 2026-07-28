@@ -106,19 +106,46 @@ export default function AdminView({
   
     const [isSaving, setIsSaving] = useState(false);
         const [reviews, setReviews] = useState<Review[]>([]);
-        const [reviewsLoading, setReviewsLoading] = useState(false);
+                const [reviewsLoading, setReviewsLoading] = useState(false);
+                const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null);
     
         const loadReviews = async () => {
-          setReviewsLoading(true);
-          try {
-            const data = await getMyReviews();
-            setReviews(data);
-          } catch (err) {
-            console.error("[AdminView] loadReviews error:", err);
-          } finally {
-            setReviewsLoading(false);
-          }
-        };
+                  setReviewsLoading(true);
+                  try {
+                    const data = await getMyReviews();
+                    setReviews(data);
+                  } catch (err) {
+                    console.error("[AdminView] loadReviews error:", err);
+                  } finally {
+                    setReviewsLoading(false);
+                  }
+                };
+        
+                const handleDeleteReview = async (reviewId: string) => {
+                  if (!confirm("هل أنت متأكد من حذف هذه الشكوى؟ لن تتمكن من استعادتها لاحقاً.")) return;
+                  setDeletingReviewId(reviewId);
+                  try {
+                    const { error } = await supabase
+                      .from("reviews")
+                      .delete()
+                      .eq("id", reviewId);
+                    if (error) throw error;
+                    setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+                    toast({
+                      title: "تم الحذف",
+                      description: "تم حذف الشكوى بنجاح",
+                    });
+                  } catch (err: any) {
+                    console.error("[AdminView] deleteReview error:", err);
+                    toast({
+                      title: "خطأ في الحذف",
+                      description: err?.message || "حدث خطأ أثناء حذف الشكوى",
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setDeletingReviewId(null);
+                  }
+                };
     
       // ── حالة تغيير كلمة المرور ──
       const [currentPassword, setCurrentPassword] = useState("");
@@ -916,18 +943,33 @@ export default function AdminView({
                                               {reviews.map((review) => (
                                                 <div key={review.id} className="bg-white/[0.03] p-5 rounded-2xl border border-white/[0.06] space-y-3">
                                                   <div className="flex items-center justify-between flex-wrap gap-3">
-                                                    <div className="flex items-center gap-2">
-                                                      {[1, 2, 3, 4, 5].map((star) => (
-                                                        <Star key={star} className={`h-5 w-5 ${star <= review.rating ? "text-yellow-400 fill-yellow-400" : "text-white/15"}`} />
-                                                      ))}
-                                                      <span className="text-xs text-white/35 mr-2">
-                                                        {new Date(review.created_at).toLocaleDateString("ar-MA", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                                                      </span>
-                                                    </div>
-                                                    <Badge className={review.rating >= 4 ? "bg-green-500/20 text-green-400 border-0" : "bg-red-500/20 text-red-400 border-0"}>
-                                                      {review.rating >= 4 ? "تقييم إيجابي" : "شكوى"}
-                                                    </Badge>
-                                                  </div>
+                                                                                                      <div className="flex items-center gap-2">
+                                                                                                        {[1, 2, 3, 4, 5].map((star) => (
+                                                                                                          <Star key={star} className={`h-5 w-5 ${star <= review.rating ? "text-yellow-400 fill-yellow-400" : "text-white/15"}`} />
+                                                                                                        ))}
+                                                                                                        <span className="text-xs text-white/35 mr-2">
+                                                                                                          {new Date(review.created_at).toLocaleDateString("ar-MA", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                                                                                        </span>
+                                                                                                      </div>
+                                                                                                      <div className="flex items-center gap-2">
+                                                                                                        <Badge className={review.rating >= 4 ? "bg-green-500/20 text-green-400 border-0" : "bg-red-500/20 text-red-400 border-0"}>
+                                                                                                          {review.rating >= 4 ? "تقييم إيجابي" : "شكوى"}
+                                                                                                        </Badge>
+                                                                                                        <Button
+                                                                                                          size="icon"
+                                                                                                          variant="ghost"
+                                                                                                          className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"
+                                                                                                          onClick={() => handleDeleteReview(review.id)}
+                                                                                                          disabled={deletingReviewId === review.id}
+                                                                                                        >
+                                                                                                          {deletingReviewId === review.id ? (
+                                                                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                                                                          ) : (
+                                                                                                            <Trash2 className="h-4 w-4" />
+                                                                                                          )}
+                                                                                                        </Button>
+                                                                                                      </div>
+                                                                                                    </div>
                                                   {review.feedback ? (
                                                     <div className="bg-white/[0.04] p-4 rounded-xl border border-white/[0.06]">
                                                                                                           <p className="text-white/70 text-sm leading-relaxed break-words whitespace-pre-wrap">{review.feedback}</p>
