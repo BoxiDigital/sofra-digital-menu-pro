@@ -413,8 +413,17 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
           </button>
         </div>
       </div>
-
-      {/* ─── Rating Modal ─── */}
+      
+            {/* ─── Footer ─── */}
+            <div className="text-center py-4 px-4">
+              <p className="text-white/15 text-[11px]">
+                {lang === "ar"
+                  ? `جميع الحقوق محفوظة © ${config.nameAr} ${new Date().getFullYear()}`
+                  : `Tous droits réservés © ${config.nameFr} ${new Date().getFullYear()}`}
+              </p>
+            </div>
+      
+            {/* ─── Rating Modal ─── */}
             {ratingModalOpen && (
               <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
                 <div className="bg-[#1A1A1A] border border-white/[0.08] rounded-2xl p-6 w-full max-w-sm space-y-5">
