@@ -35,6 +35,7 @@ import {
     Star,
     MessageCircle,
     ThumbsUp,
+    MapPin,
   } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -596,17 +597,40 @@ export default function AdminView({
                                   <Input value={configForm.whatsappNumber} onChange={(e) => setConfigForm({ ...configForm, whatsappNumber: e.target.value })} className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm" placeholder="212600000000" />
                                 </div>
                                 <div>
-                                  <Label className="text-white/60 text-xs">رابط خرائط Google</Label>
-                                  <Input value={configForm.googleMapsUrl || ""} onChange={(e) => setConfigForm({ ...configForm, googleMapsUrl: e.target.value })} className="mt-1.5 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm" placeholder="https://maps.google.com/?q=..." />
-                                  <p className="text-white/25 text-[10px] mt-1">يُستخدم لتوجيه التقييمات الإيجابية لصفحة مطعمك</p>
-                                </div>
-                                <div>
-                                  <Label className="text-white/60 text-xs">العملة</Label>
+                  <Label className="text-white/60 text-xs">العملة</Label>
                   <div className="grid grid-cols-2 gap-2 mt-1.5">
                     <Input value={configForm.currencyAr} onChange={(e) => setConfigForm({ ...configForm, currencyAr: e.target.value })} className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm" placeholder="درهم" />
                     <Input value={configForm.currencyFr} onChange={(e) => setConfigForm({ ...configForm, currencyFr: e.target.value })} className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-10 text-sm" placeholder="MAD" />
                   </div>
                 </div>
+              </div>
+
+              {/* ── رابط خرائط Google Maps ── */}
+              <div className="space-y-2 pt-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <MapPin className="h-4 w-4 text-[var(--primary)]" />
+                  <Label className="text-white/70 text-sm font-bold">رابط خرائط Google Maps للتقييمات</Label>
+                </div>
+                <Input 
+                  value={configForm.googleMapsUrl || ""} 
+                  onChange={(e) => setConfigForm({ ...configForm, googleMapsUrl: e.target.value })} 
+                  className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl h-11 text-sm" 
+                  placeholder="https://maps.google.com/?cid=..." 
+                  dir="ltr"
+                />
+                <p className="text-white/40 text-[11px] leading-relaxed">
+                  <MapPin className="h-3 w-3 inline-block ml-1 text-[var(--primary)]/70" />
+                  عند إضافة الرابط، سيتم توجيه الزبائن إليه مباشرة عند تقييمهم. يمكنك الحصول عليه من تطبيق Google Maps عبر: مشاركة → نسخ الرابط
+                </p>
+                {!configForm.googleMapsUrl && (
+                  <div className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 mt-2">
+                    <AlertCircle className="h-4 w-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-yellow-400/90 text-xs font-semibold">تنبيه: لم يتم إضافة رابط Google Maps بعد</p>
+                      <p className="text-yellow-400/60 text-[11px] mt-0.5">أضف رابط موقعك على Google Maps ليتم توجيه الزبائن إليه عند التقييم</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Preset Themes */}
