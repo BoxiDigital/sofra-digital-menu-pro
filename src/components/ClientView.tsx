@@ -775,7 +775,7 @@ function PromoCard({
         {!cartItem ? (
           <button
             onClick={() => addToCart(dish)}
-            className="w-full py-3 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-colors active:scale-[0.98]"
+            className="w-full py-3 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-all active:scale-[0.98]"
           >
             + {lang === "ar" ? "إضافة للسلة" : "Ajouter au panier"}
           </button>
