@@ -90,11 +90,11 @@ function mapConfigFromDB(row: any): RestaurantConfig & { id?: string; slug?: str
     primaryColor: row.primary_color,
     backgroundColor: row.background_color,
     currencyAr: row.currency_ar,
-        currencyFr: row.currency_fr,
-        googleMapsUrl: row.google_maps_url || "",
-        id: row.id,
-        slug: row.slug,
-      };
+    currencyFr: row.currency_fr,
+    googleMapsUrl: row.google_maps_url || "",
+    id: row.id,
+    slug: row.slug,
+  };
 }
 
 function mapConfigToDB(config: RestaurantConfig): any {
@@ -113,8 +113,8 @@ function mapConfigToDB(config: RestaurantConfig): any {
     primary_color: config.primaryColor,
     background_color: config.backgroundColor,
     currency_ar: config.currencyAr,
-        currency_fr: config.currencyFr,
-        google_maps_url: config.googleMapsUrl,
+    currency_fr: config.currencyFr,
+    google_maps_url: config.googleMapsUrl,
   };
 }
 
@@ -130,7 +130,6 @@ export async function hasAnyRestaurant(): Promise<boolean> {
   return (data?.length ?? 0) > 0;
 }
 
-// للتوافق مع الكود القديم
 export const hasRegisteredRestaurant = hasAnyRestaurant;
 
 export async function getRestaurantBySlug(slug: string): Promise<(RestaurantConfig & { id: string; slug: string }) | null> {
@@ -227,7 +226,6 @@ export async function saveMyCategories(categories: Category[]): Promise<void> {
 
   const rows = categories.map((cat) => mapCategoryToDB(cat, restaurantId));
 
-  // حذف الفئات المحذوفة
   const keptIds = categories.map((c) => c.id);
   const { data: existing } = await supabase.from("categories").select("id").eq("restaurant_id", restaurantId);
   const toDelete = (existing || []).filter((row) => !keptIds.includes(row.id)).map((row) => row.id);
@@ -248,7 +246,6 @@ export async function saveMyDishes(dishes: Dish[]): Promise<void> {
 
   const rows = dishes.map((dish) => mapDishToDB(dish, restaurantId));
 
-  // حذف الأطباق المحذوفة
   const keptIds = dishes.map((d) => d.id);
   const { data: existing } = await supabase.from("dishes").select("id").eq("restaurant_id", restaurantId);
   const toDelete = (existing || []).filter((row) => !keptIds.includes(row.id)).map((row) => row.id);
@@ -291,7 +288,6 @@ export async function seedMyDefaultData(nameAr?: string, nameFr?: string): Promi
   const finalNameAr = nameAr || `مطعم ${emailPrefix}` || defaultRestaurantConfig.nameAr;
   const finalNameFr = nameFr || `Restaurant ${emailPrefix}` || defaultRestaurantConfig.nameFr;
 
-  // توليد slug فريد
   const base = finalNameAr
     .trim()
     .replace(/\s+/g, "-")
@@ -302,7 +298,6 @@ export async function seedMyDefaultData(nameAr?: string, nameFr?: string): Promi
   const suffix = Math.random().toString(36).substring(2, 6);
   const slug = `${base}-${suffix}`;
 
-  // إدراج المطعم فقط — الـ Trigger سينسخ القالب الافتراضي تلقائياً
   const configRow = mapConfigToDB({
     ...defaultRestaurantConfig,
     nameAr: finalNameAr,
@@ -332,7 +327,6 @@ export async function resetMyToDefault(): Promise<void> {
   const catRows = defaultCategories.map((cat) => mapCategoryToDB({ ...cat, id: crypto.randomUUID() }, restaurantId));
   await supabase.from("categories").insert(catRows);
 
-  // إعادة تعيين معرفات الأطباق لتشير للفئات الجديدة
   const catMap = new Map<string, string>();
   defaultCategories.forEach((oldCat, i) => {
     catMap.set(oldCat.id, catRows[i].id);
@@ -347,12 +341,11 @@ export async function resetMyToDefault(): Promise<void> {
 }
 
 // ───────────────────────────────────────────
-// دوال متوافقة مع الكود القديم (تستخدم معرف المطعم الحالي)
+// دوال متوافقة مع الكود القديم
 // ───────────────────────────────────────────
 
 export async function getRestaurantConfig(): Promise<RestaurantConfig | null> {
   const myRestaurant = await getMyRestaurant();
-  // إزالة id و slug قبل الإرجاع للتوافق
   if (!myRestaurant) return null;
   const { id, slug, ...config } = myRestaurant as any;
   return config;
@@ -411,15 +404,18 @@ export function subscribeToDataChanges(callback: () => void): () => void {
 export async function getMyReviews(): Promise<Review[]> {
   const myRestaurant = await getMyRestaurant();
   if (!myRestaurant) return [];
+  
   const { data, error } = await supabase
     .from("reviews")
     .select("*")
     .eq("restaurant_id", myRestaurant.id)
     .order("created_at", { ascending: false });
+    
   if (error) {
     console.error("[storage] getMyReviews error:", error);
     return [];
   }
+  
   return (data || []).map((r: any) => ({
     id: r.id,
     restaurant_id: r.restaurant_id,
@@ -434,14 +430,33 @@ export async function submitReview(review: {
   rating: number;
   feedback?: string;
 }): Promise<boolean> {
-  const { error } = await supabase.from("reviews").insert({
-    restaurant_id: review.restaurant_id,
-    rating: review.rating,
-    feedback: review.feedback || "",
+  console.log("[storage] submitReview called with:", { 
+    restaurant_id: review.restaurant_id, 
+    rating: review.rating, 
+    feedback: review.feedback?.substring(0, 50) 
   });
+
+  const { data, error } = await supabase
+    .from("reviews")
+    .insert({
+      restaurant_id: review.restaurant_id,
+      rating: review.rating,
+      feedback: review.feedback || "",
+    })
+    .select()
+    .single();
+
   if (error) {
-    console.error("[storage] submitReview error:", error);
-    return false;
+    console.error("[storage] submitReview error:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
+    throw new Error(error.message || "فشل في حفظ التقييم");
   }
+
+  console.log("[storage] submitReview success:", data?.id);
+  dispatchDataChange();
   return true;
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Star, MessageCircle, ShoppingBag, X, Plus, Minus, Maximize2, MapPin, Clock, ExternalLink, AlertCircle } from "lucide-react";
+import { Star, MessageCircle, ShoppingBag, X, Plus, Minus, Maximize2, MapPin, Clock, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -14,7 +14,6 @@ interface ClientViewProps {
   restaurantId: string;
 }
 
-/** Lighten a hex color by mixing it with white */
 function lightenColor(hex: string, amount: number): string {
   hex = hex.replace("#", "");
   if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
@@ -32,22 +31,20 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
   const [cart, setCart] = useState<CartItem[]>([]);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
-  // Review modal state
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [selectedRating, setSelectedRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const [ratingFeedback, setRatingFeedback] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [positiveReviewSaved, setPositiveReviewSaved] = useState(false);
 
-  // Sync primaryColor to CSS variables
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty("--primary", config.primaryColor);
     root.style.setProperty("--primary-hover", lightenColor(config.primaryColor, 0.15));
   }, [config.primaryColor]);
 
-  // Translations
   const t = useMemo(() => ({
     cartTitle: lang === "ar" ? "سلة الطلبات" : "Mon panier",
     currency: lang === "ar" ? config.currencyAr : config.currencyFr,
@@ -64,18 +61,15 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
     noDishes: lang === "ar" ? "لا توجد أطباق في هذه الفئة" : "Aucun plat dans cette catégorie",
   }), [lang, config]);
 
-  // Filtered dishes
   const filteredDishes = useMemo(() => {
     const available = dishes.filter((d) => d.isAvailable);
     if (!selectedCategory) return available;
     return available.filter((d) => d.category === selectedCategory);
   }, [dishes, selectedCategory]);
 
-  // Find promo dishes for special display
   const promoDishes = useMemo(() => filteredDishes.filter((d) => d.isPromo), [filteredDishes]);
   const normalDishes = useMemo(() => filteredDishes.filter((d) => !d.isPromo), [filteredDishes]);
 
-  // Cart logic
   const cartCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
   const cartTotal = useMemo(() => cart.reduce((sum, item) => sum + item.dish.price * item.quantity, 0), [cart]);
 
@@ -107,7 +101,6 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
     setCart([]);
   }, []);
 
-  // WhatsApp order message
   const generateWhatsAppMessage = useCallback(() => {
     const itemsText = cart
       .map((item) => {
@@ -127,21 +120,23 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
     return `https://wa.me/${config.whatsappNumber}?text=${message}`;
   }, [generateWhatsAppMessage, config.whatsappNumber]);
 
-  // Review handlers
   const handleSubmitRating = useCallback(async (rating: number) => {
     setSelectedRating(rating);
     setRatingSubmitted(true);
     setRatingFeedback("");
+    setPositiveReviewSaved(false);
 
     if (rating >= 4) {
-      // Positive rating - just submit and redirect to Google if available
+      setIsSubmittingReview(true);
       try {
         await submitReview({ restaurant_id: restaurantId, rating });
-      } catch (err) {
-        console.error("[ClientView] submitReview error:", err);
+        setPositiveReviewSaved(true);
+      } catch (err: any) {
+        console.error("[ClientView] submitReview (positive) error:", err);
+      } finally {
+        setIsSubmittingReview(false);
       }
     }
-    // For negative ratings (1-3), keep showing the feedback form
   }, [restaurantId]);
 
   const handleSubmitFeedback = useCallback(async () => {
@@ -154,25 +149,24 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
         feedback: ratingFeedback.trim(),
       });
       toast({
-        title: lang === "ar" ? "تم الإرسال" : "Envoyé",
+        title: lang === "ar" ? "✅ تم الإرسال" : "✅ Envoyé",
         description: lang === "ar"
           ? "شكراً لملاحظاتك، سنعمل على تحسين الخدمة"
           : "Merci pour votre retour, nous allons nous améliorer",
       });
-      // Close modal after submitting feedback
       setRatingModalOpen(false);
-      // Reset all review state
       setSelectedRating(0);
       setHoveredRating(0);
       setRatingSubmitted(false);
       setRatingFeedback("");
-    } catch (err) {
+      setPositiveReviewSaved(false);
+    } catch (err: any) {
       console.error("[ClientView] submitFeedback error:", err);
       toast({
-        title: lang === "ar" ? "خطأ" : "Erreur",
+        title: lang === "ar" ? "❌ خطأ في الإرسال" : "❌ Erreur d'envoi",
         description: lang === "ar"
-          ? "حدث خطأ أثناء الإرسال، حاول مرة أخرى"
-          : "Une erreur est survenue, veuillez réessayer",
+          ? "حدث خطأ أثناء حفظ التقييم. يرجى المحاولة مرة أخرى."
+          : "Une erreur est survenue lors de l'enregistrement. Veuillez réessayer.",
         variant: "destructive",
       });
     } finally {
@@ -182,14 +176,13 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
 
   const handleCloseModal = useCallback(() => {
     setRatingModalOpen(false);
-    // IMPORTANT: Reset all review state when closing modal (fix for Annuler reset issue)
     setSelectedRating(0);
     setHoveredRating(0);
     setRatingSubmitted(false);
     setRatingFeedback("");
+    setPositiveReviewSaved(false);
   }, []);
 
-  // Scroll to a dish by clicking on a category pill
   const scrollToCategory = useCallback((categoryId: string | null) => {
     setSelectedCategory(categoryId);
   }, []);
@@ -225,7 +218,6 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
   const mutedText = mutedTextMap[config.backgroundColor] || mutedTextMap.dark;
   const cardBg = cardBgMap[config.backgroundColor] || cardBgMap.dark;
   const pillBg = pillBgMap[config.backgroundColor] || pillBgMap.dark;
-
   const isDark = config.backgroundColor === "dark";
 
   return (
@@ -243,7 +235,6 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
               }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-            {/* Logo over cover */}
             {config.logoUrl && (
               <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
                 <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border-2 border-white/20 shadow-xl">
@@ -251,7 +242,6 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                 </div>
               </div>
             )}
-            {/* Language Toggle */}
             <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex gap-1 bg-black/40 backdrop-blur-sm rounded-full p-0.5">
               <button
                 onClick={() => setLang("ar")}
@@ -307,14 +297,12 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
           </div>
         )}
 
-        {/* Restaurant Info */}
         <div className={`px-4 sm:px-6 pb-6 ${config.coverUrl ? "-mt-16 relative z-10" : "pt-4"}`}>
-          <div className={`max-w-lg mx-auto ${config.coverUrl ? "" : ""}`}>
+          <div className="max-w-lg mx-auto">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
               {lang === "ar" ? config.nameAr : config.nameFr}
             </h1>
             <p className="text-white/60 text-sm mt-1">{t.slogan}</p>
-            {/* Info pills */}
             <div className="flex flex-wrap gap-2 mt-3">
               {config.workingHoursAr && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.06] rounded-full text-xs text-white/60">
@@ -371,7 +359,6 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
 
       {/* ─── Dishes Grid ─── */}
       <div className="max-w-lg mx-auto px-4 pb-32 space-y-4">
-        {/* Promo dishes first */}
         {promoDishes.map((dish) => (
           <PromoCard
             key={dish.id}
@@ -385,7 +372,6 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
           />
         ))}
 
-        {/* Normal dishes */}
         {normalDishes.length === 0 && promoDishes.length === 0 ? (
           <div className="text-center py-20">
             <p className={`${mutedText} text-sm`}>{t.noDishes}</p>
@@ -436,7 +422,6 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                     {lang === "ar" ? "كيف كانت تجربتك معنا؟" : "Comment s'est passée votre expérience ?"}
                   </p>
                 </div>
-                {/* Stars */}
                 <div className="flex justify-center gap-2 py-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -473,6 +458,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                 onClose={handleCloseModal}
                 googleMapsUrl={config.googleMapsUrl}
                 isSubmitting={isSubmittingReview}
+                reviewSaved={positiveReviewSaved}
               />
             )}
           </div>
@@ -584,7 +570,6 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                     </div>
                   ))}
 
-                  {/* Total */}
                   <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--primary)]/10 border border-[var(--primary)]/20">
                     <span className="text-white font-bold">{t.total}</span>
                     <span className="text-[var(--primary)] font-bold text-lg">
@@ -592,7 +577,6 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                     </span>
                   </div>
 
-                  {/* WhatsApp Send Button */}
                   <a
                     href={whatsappUrl}
                     target="_blank"
@@ -635,7 +619,6 @@ function DishCard({
 
   return (
     <div className="flex gap-3 p-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] hover:border-white/[0.10] transition-all duration-200">
-      {/* Square Image on the side */}
       <div
         className="w-28 h-28 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer group relative"
         onClick={() => onImageClick(dish.image)}
@@ -654,7 +637,6 @@ function DishCard({
         </div>
       </div>
 
-      {/* Info + Actions */}
       <div className="flex-1 min-w-0 flex flex-col justify-between">
         <div>
           <h3 className="text-white font-bold text-sm leading-snug">
@@ -663,7 +645,6 @@ function DishCard({
           <p className="text-white/35 text-xs mt-1 line-clamp-2 leading-relaxed">
             {lang === "ar" ? dish.descriptionAr : dish.descriptionFr}
           </p>
-          {/* Badges */}
           <div className="flex flex-wrap gap-1 mt-1.5">
             {dish.isNew && (
               <Badge className="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-1.5 py-0 rounded-full border-0">
@@ -683,7 +664,6 @@ function DishCard({
           </div>
         </div>
 
-        {/* Action */}
         <div className="mt-2 flex items-center justify-between">
           <span className="text-[var(--primary)] font-bold text-sm">
             {dish.price} {currency}
@@ -744,7 +724,6 @@ function PromoCard({
 
   return (
     <div className="rounded-2xl overflow-hidden border border-[var(--primary)]/20 bg-[#1A1A1A]">
-      {/* Image */}
       <div
         className="relative h-52 w-full overflow-hidden cursor-pointer group"
         onClick={() => onImageClick(dish.image)}
@@ -769,7 +748,6 @@ function PromoCard({
         </div>
       </div>
 
-      {/* Content */}
       <div className="p-5 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -830,6 +808,7 @@ function RatingResult({
   onClose,
   googleMapsUrl,
   isSubmitting,
+  reviewSaved,
 }: {
   rating: number;
   lang: "ar" | "fr";
@@ -839,6 +818,7 @@ function RatingResult({
   onClose: () => void;
   googleMapsUrl?: string;
   isSubmitting: boolean;
+  reviewSaved: boolean;
 }) {
   const isPositive = rating >= 4;
 
@@ -854,15 +834,24 @@ function RatingResult({
             ? "يسعدنا تقييمك الإيجابي! هل تود مشاركته على Google Maps؟"
             : "Nous sommes ravis ! Voulez-vous partager votre avis sur Google Maps ?"}
         </p>
-        <a
-          href={googleMapsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-colors"
-        >
-          <ExternalLink className="h-4 w-4" />
-          <span>{lang === "ar" ? "تقييم على Google" : "Évaluer sur Google"}</span>
-        </a>
+        {isSubmitting ? (
+          <div className="flex items-center justify-center gap-2 text-white/40">
+            <span className="w-4 h-4 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
+            <span className="text-sm">
+              {lang === "ar" ? "جاري الحفظ..." : "Enregistrement..."}
+            </span>
+          </div>
+        ) : (
+          <a
+            href={googleMapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-colors"
+          >
+            <ExternalLink className="h-4 w-4" />
+            <span>{lang === "ar" ? "تقييم على Google" : "Évaluer sur Google"}</span>
+          </a>
+        )}
         <button
           onClick={onClose}
           className="block w-full text-white/30 hover:text-white/50 text-sm transition-colors mt-3"
@@ -883,12 +872,21 @@ function RatingResult({
         <p className="text-white/50 text-sm">
           {lang === "ar" ? "تقييمك يهمنا ويساعدنا على التحسين" : "Votre avis compte et nous aide à nous améliorer"}
         </p>
-        <button
-          onClick={onClose}
-          className="px-6 py-2.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm"
-        >
-          {lang === "ar" ? "تم" : "OK"}
-        </button>
+        {isSubmitting ? (
+          <div className="flex items-center justify-center gap-2 text-white/40">
+            <span className="w-4 h-4 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
+            <span className="text-sm">
+              {lang === "ar" ? "جاري الحفظ..." : "Enregistrement..."}
+            </span>
+          </div>
+        ) : (
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm"
+          >
+            {lang === "ar" ? "تم" : "OK"}
+          </button>
+        )}
       </div>
     );
   }
@@ -919,9 +917,13 @@ function RatingResult({
           className="flex-1 py-2.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
         >
           {isSubmitting ? (
-            <span className="w-4 h-4 border-2 border-black/30 border-t-black/80 rounded-full animate-spin" />
-          ) : null}
-          <span>{lang === "ar" ? "إرسال الملاحظة" : "Envoyer"}</span>
+            <>
+              <span className="w-4 h-4 border-2 border-black/30 border-t-black/80 rounded-full animate-spin" />
+              <span>{lang === "ar" ? "جاري الإرسال..." : "Envoi..."}</span>
+            </>
+          ) : (
+            <span>{lang === "ar" ? "إرسال الملاحظة" : "Envoyer"}</span>
+          )}
         </button>
         <button
           onClick={onClose}
