@@ -463,7 +463,7 @@ export async function submitReview(review: {
 
   // إضافة مهلة زمنية 10 ثوانٍ لتفادي تعليق الطلب للأبد
   const { data, error } = await withTimeout(
-    insertPromise,
+    insertPromise as Promise<{ data: any; error: any }>,
     10000,
     "انتهت مهلة الاتصال بقاعدة البيانات، يرجى المحاولة لاحقاً"
   );
