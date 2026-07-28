@@ -419,9 +419,9 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                 </p>
                 <button
                   onClick={() => setRatingModalOpen(true)}
-                  className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full backdrop-blur-xl bg-white/[0.04] border border-white/[0.08] text-[var(--primary)] font-bold text-sm hover:bg-white/[0.07] hover:border-white/[0.14] transition-all duration-500 shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-[0_6px_30px_rgba(200,162,77,0.1)]"
+                  className="inline-flex items-center gap-3 px-16 py-7 rounded-full backdrop-blur-xl bg-white/[0.04] border border-white/[0.08] text-[var(--primary)] font-bold text-2xl hover:bg-white/[0.07] hover:border-white/[0.14] transition-all duration-500 shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-[0_6px_30px_rgba(200,162,77,0.1)]"
                 >
-                  <Star className="h-4 w-4" />
+                  <Star className="h-7 w-7" />
                   <span>{lang === "ar" ? "قيّم تجربتك" : "Évaluez votre expérience"}</span>
                 </button>
               </div>
