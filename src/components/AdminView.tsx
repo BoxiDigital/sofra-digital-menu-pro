@@ -364,28 +364,7 @@ export default function AdminView({
 
   return (
     <div className="min-h-screen pb-16 relative" dir="rtl">
-      {/* Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#060606]/70 border-b border-white/[0.04] shadow-[0_1px_0_rgba(255,255,255,0.02),0_4px_20px_rgba(0,0,0,0.3)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] border border-[var(--primary)]/15 shadow-[0_0_20px_rgba(200,162,77,0.1)]">
-              <Settings className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-base font-bold text-white tracking-tight">لوحة إدارة شِي نُو</h1>
-              <p className="text-[11px] text-white/25">تعديل فوري لقائمة الطعام والمظهر</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-white/20 hidden sm:block">مرحباً، مدير المطعم</span>
-            <Button variant="ghost" size="sm" className="text-red-400/70 hover:text-red-300 hover:bg-red-500/8 rounded-xl text-xs transition-all duration-300" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 ml-1.5" /><span>خروج</span>
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         <Tabs defaultValue="dishes" className="space-y-8" onValueChange={(val) => { if (val === "reviews") loadReviews(); }}>
           {/* ── Tabs Navigation ── */}
           <TabsList className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.04] p-1 rounded-2xl w-full max-w-lg flex shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
