@@ -930,8 +930,8 @@ export default function AdminView({
                                                   </div>
                                                   {review.feedback ? (
                                                     <div className="bg-white/[0.04] p-4 rounded-xl border border-white/[0.06]">
-                                                      <p className="text-white/70 text-sm leading-relaxed">{review.feedback}</p>
-                                                    </div>
+                                                                                                          <p className="text-white/70 text-sm leading-relaxed break-words whitespace-pre-wrap">{review.feedback}</p>
+                                                                                                        </div>
                                                   ) : (
                                                     <p className="text-white/25 text-sm">بدون ملاحظات كتابية</p>
                                                   )}
