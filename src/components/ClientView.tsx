@@ -335,7 +335,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
       {/* ─── Category Pills ─── */}
       <div className={`px-4 sm:px-6 pb-4 ${isDark ? "" : "bg-white border-b border-black/5"}`}>
         <div className="max-w-4xl mx-auto">
-          <div className="flex gap-2 overflow-x-auto category-scrollbar pb-2 category-fade-mask">
+          <div className="flex gap-2 overflow-x-auto category-scrollbar pb-2">
             <button
               onClick={() => scrollToCategory(null)}
               className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all ${
