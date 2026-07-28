@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dish, Category, RestaurantConfig, CartItem } from "../types";
-import { submitReview } from "../utils/storage";
 import { useToast } from "@/hooks/use-toast";
 
 interface ClientViewProps {
@@ -34,11 +33,6 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [selectedRating, setSelectedRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
-  const [ratingSubmitted, setRatingSubmitted] = useState(false);
-  const [ratingFeedback, setRatingFeedback] = useState("");
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const [positiveReviewSaved, setPositiveReviewSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -121,74 +115,29 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
     return `https://wa.me/${config.whatsappNumber}?text=${message}`;
   }, [generateWhatsAppMessage, config.whatsappNumber]);
 
-  const handleSubmitRating = useCallback(async (rating: number) => {
+  const handleRatingClick = useCallback((rating: number) => {
     setSelectedRating(rating);
-    setRatingSubmitted(true);
-    setRatingFeedback("");
-    setPositiveReviewSaved(false);
-    setSaveError(null);
-
-    if (rating >= 4) {
-      setIsSubmittingReview(true);
-      try {
-        await submitReview({ restaurant_id: restaurantId, rating });
-        setPositiveReviewSaved(true);
-      } catch (err: any) {
-        console.error("[ClientView] submitReview (positive) error:", err);
-        setSaveError(err?.message || (lang === "ar" ? "فشل حفظ التقييم" : "Échec de l'enregistrement"));
-      } finally {
-        setIsSubmittingReview(false);
-      }
-    }
-  }, [restaurantId, lang]);
-
-  const handleSubmitFeedback = useCallback(async () => {
-    if (!ratingFeedback.trim()) return;
-    setIsSubmittingReview(true);
-    setSaveError(null);
-    try {
-      await submitReview({
-        restaurant_id: restaurantId,
-        rating: selectedRating,
-        feedback: ratingFeedback.trim(),
-      });
+    setRatingModalOpen(false);
+    if (config.googleMapsUrl) {
+      window.open(config.googleMapsUrl, "_blank");
+    } else {
       toast({
-        title: lang === "ar" ? "✅ تم الإرسال" : "✅ Envoyé",
+        title: lang === "ar" ? "شكراً لتقييمك!" : "Merci pour votre avis !",
         description: lang === "ar"
-          ? "شكراً لملاحظاتك، سنعمل على تحسين الخدمة"
-          : "Merci pour votre retour, nous allons nous améliorer",
+          ? "نقدر وقتك ونعدك بتقديم الأفضل دائماً"
+          : "Nous apprécions votre temps et promettons de toujours offrir le meilleur",
       });
-      setRatingModalOpen(false);
+    }
+    setTimeout(() => {
       setSelectedRating(0);
       setHoveredRating(0);
-      setRatingSubmitted(false);
-      setRatingFeedback("");
-      setPositiveReviewSaved(false);
-      setSaveError(null);
-    } catch (err: any) {
-      console.error("[ClientView] submitFeedback error:", err);
-      setSaveError(err?.message || (lang === "ar" ? "حدث خطأ" : "Erreur"));
-      toast({
-        title: lang === "ar" ? "❌ خطأ في الإرسال" : "❌ Erreur d'envoi",
-        description: lang === "ar"
-          ? "حدث خطأ أثناء حفظ التقييم. يرجى المحاولة مرة أخرى."
-          : "Une erreur est survenue lors de l'enregistrement. Veuillez réessayer.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmittingReview(false);
-    }
-  }, [ratingFeedback, selectedRating, restaurantId, lang, toast]);
+    }, 500);
+  }, [config.googleMapsUrl, lang, toast]);
 
-  const handleCloseModal = useCallback(() => {
+  const handleCloseRatingModal = useCallback(() => {
     setRatingModalOpen(false);
     setSelectedRating(0);
     setHoveredRating(0);
-    setRatingSubmitted(false);
-    setRatingFeedback("");
-    setPositiveReviewSaved(false);
-    setSaveError(null);
-    setIsSubmittingReview(false);
   }, []);
 
   const scrollToCategory = useCallback((categoryId: string | null) => {
@@ -420,56 +369,41 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
       {ratingModalOpen && (
         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#1A1A1A] border border-white/[0.08] rounded-2xl p-6 w-full max-w-sm space-y-5">
-            {!ratingSubmitted ? (
-              <>
-                <div className="text-center space-y-2">
-                  <h3 className="text-white font-bold text-lg">
-                    {lang === "ar" ? "قيّم تجربتك" : "Évaluez votre expérience"}
-                  </h3>
-                  <p className="text-white/40 text-sm">
-                    {lang === "ar" ? "كيف كانت تجربتك معنا؟" : "Comment s'est passée votre expérience ?"}
-                  </p>
-                </div>
-                <div className="flex justify-center gap-2 py-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={() => handleSubmitRating(star)}
-                      onMouseEnter={() => setHoveredRating(star)}
-                      onMouseLeave={() => setHoveredRating(0)}
-                      className="transition-transform hover:scale-110"
-                    >
-                      <Star
-                        className={`h-10 w-10 transition-colors ${
-                          star <= (hoveredRating || selectedRating)
-                            ? "text-yellow-400 fill-yellow-400"
-                            : "text-white/20"
-                        }`}
-                      />
-                    </button>
-                  ))}
-                </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-white font-bold text-lg">
+                {lang === "ar" ? "قيّم تجربتك" : "Évaluez votre expérience"}
+              </h3>
+              <p className="text-white/40 text-sm">
+                {lang === "ar"
+                  ? "اختر تقييمك وسنوجهك لصفحة التقييم"
+                  : "Choisissez votre note, vous serez redirigé"}
+              </p>
+            </div>
+            <div className="flex justify-center gap-2 py-2">
+              {[1, 2, 3, 4, 5].map((star) => (
                 <button
-                  onClick={handleCloseModal}
-                  className="w-full text-white/30 hover:text-white/50 text-sm transition-colors"
+                  key={star}
+                  onClick={() => handleRatingClick(star)}
+                  onMouseEnter={() => setHoveredRating(star)}
+                  onMouseLeave={() => setHoveredRating(0)}
+                  className="transition-transform hover:scale-110"
                 >
-                  {lang === "ar" ? "إلغاء" : "Annuler"}
+                  <Star
+                    className={`h-10 w-10 transition-colors ${
+                      star <= (hoveredRating || selectedRating)
+                        ? "text-yellow-400 fill-yellow-400"
+                        : "text-white/20"
+                    }`}
+                  />
                 </button>
-              </>
-            ) : (
-              <RatingResult
-                rating={selectedRating}
-                lang={lang}
-                feedback={ratingFeedback}
-                setFeedback={setRatingFeedback}
-                onSubmitFeedback={handleSubmitFeedback}
-                onClose={handleCloseModal}
-                googleMapsUrl={config.googleMapsUrl}
-                isSubmitting={isSubmittingReview}
-                reviewSaved={positiveReviewSaved}
-                saveError={saveError}
-              />
-            )}
+              ))}
+            </div>
+            <button
+              onClick={handleCloseRatingModal}
+              className="w-full text-white/30 hover:text-white/50 text-sm transition-colors"
+            >
+              {lang === "ar" ? "إلغاء" : "Annuler"}
+            </button>
           </div>
         </div>
       )}
@@ -802,153 +736,6 @@ function PromoCard({
             <p className="text-[var(--primary)] font-bold text-sm">{promoText}</p>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-/* ─── Rating Result ─── */
-function RatingResult({
-  rating,
-  lang,
-  feedback,
-  setFeedback,
-  onSubmitFeedback,
-  onClose,
-  googleMapsUrl,
-  isSubmitting,
-  reviewSaved,
-  saveError,
-}: {
-  rating: number;
-  lang: "ar" | "fr";
-  feedback: string;
-  setFeedback: (v: string) => void;
-  onSubmitFeedback: () => void;
-  onClose: () => void;
-  googleMapsUrl?: string;
-  isSubmitting: boolean;
-  reviewSaved: boolean;
-  saveError: string | null;
-}) {
-  const isPositive = rating >= 4;
-
-  // حالة إيجابية – انتظار الحفظ قبل إظهار زر Google Maps
-  if (isPositive) {
-    return (
-      <div className="text-center space-y-4">
-        <div className="text-5xl">🌟</div>
-        <h3 className="text-white font-bold text-lg">
-          {lang === "ar" ? "شكراً لتقييمك!" : "Merci pour votre avis !"}
-        </h3>
-
-        {isSubmitting ? (
-          <div className="flex flex-col items-center gap-3 text-white/40">
-            <span className="w-6 h-6 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
-            <span className="text-sm">
-              {lang === "ar" ? "جاري حفظ التقييم..." : "Enregistrement..."}
-            </span>
-          </div>
-        ) : saveError ? (
-          <div className="space-y-3">
-            <p className="text-red-400 text-sm">{saveError}</p>
-            <button
-              onClick={onClose}
-              className="px-6 py-2.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm"
-            >
-              {lang === "ar" ? "حسناً" : "OK"}
-            </button>
-          </div>
-        ) : reviewSaved && googleMapsUrl ? (
-          <div className="space-y-3">
-            <p className="text-white/50 text-sm">
-              {lang === "ar"
-                ? "تم حفظ تقييمك! هل تود مشاركته على Google Maps؟"
-                : "Votre avis a été enregistré ! Voulez-vous le partager sur Google Maps ?"}
-            </p>
-            <a
-              href={googleMapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-colors"
-            >
-              <ExternalLink className="h-4 w-4" />
-              <span>{lang === "ar" ? "تقييم على Google" : "Évaluer sur Google"}</span>
-            </a>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-white/50 text-sm">
-              {lang === "ar" ? "تقييمك يهمنا ويساعدنا على التحسين" : "Votre avis compte et nous aide à nous améliorer"}
-            </p>
-            <button
-              onClick={onClose}
-              className="px-6 py-2.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm"
-            >
-              {lang === "ar" ? "تم" : "OK"}
-            </button>
-          </div>
-        )}
-
-        {/* زر الإغلاق في حالة التحميل */}
-        {isSubmitting && (
-          <button
-            onClick={onClose}
-            className="block w-full text-white/30 hover:text-white/50 text-sm transition-colors mt-3"
-          >
-            {lang === "ar" ? "إغلاق" : "Fermer"}
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  // تقييم سلبي (1-3)
-  return (
-    <div className="space-y-4">
-      <div className="text-center">
-        <div className="text-5xl">😔</div>
-        <h3 className="text-white font-bold text-lg mt-2">
-          {lang === "ar" ? "نأسف لعدم رضاك" : "Nous sommes désolés"}
-        </h3>
-        <p className="text-white/50 text-sm mt-1">
-          {lang === "ar"
-            ? "أخبرنا بما لم يعجبك لنساعد في تحسين التجربة"
-            : "Dites-nous ce qui n'a pas été à la hauteur"}
-        </p>
-      </div>
-      <textarea
-        value={feedback}
-        onChange={(e) => setFeedback(e.target.value)}
-        placeholder={lang === "ar" ? "اكتب ملاحظتك هنا..." : "Écrivez votre remarque ici..."}
-        className="w-full bg-white/[0.04] border border-white/[0.08] text-white placeholder:text-white/20 rounded-xl p-4 text-sm min-h-[100px] resize-none focus:border-[var(--primary)]/40 focus:outline-none"
-      />
-      {saveError && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-xs text-red-400">
-          {saveError}
-        </div>
-      )}
-      <div className="flex gap-3">
-        <button
-          onClick={onSubmitFeedback}
-          disabled={!feedback.trim() || isSubmitting}
-          className="flex-1 py-2.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-        >
-          {isSubmitting ? (
-            <>
-              <span className="w-4 h-4 border-2 border-black/30 border-t-black/80 rounded-full animate-spin" />
-              <span>{lang === "ar" ? "جاري الإرسال..." : "Envoi..."}</span>
-            </>
-          ) : (
-            <span>{lang === "ar" ? "إرسال الملاحظة" : "Envoyer"}</span>
-          )}
-        </button>
-        <button
-          onClick={onClose}
-          className="px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/50 text-sm"
-        >
-          {lang === "ar" ? "إلغاء" : "Annuler"}
-        </button>
       </div>
     </div>
   );
