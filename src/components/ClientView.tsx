@@ -364,7 +364,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
       </div>
 
       {/* ─── Dishes Grid ─── */}
-      <div className="max-w-lg mx-auto px-4 pb-32 space-y-4">
+            <div className="max-w-lg mx-auto px-4 pb-4 space-y-4">
         {promoDishes.map((dish) => (
           <PromoCard
             key={dish.id}
@@ -399,15 +399,15 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
       </div>
 
       {/* ─── Review Collector ─── */}
-      <div className="max-w-lg mx-auto px-4 pb-6">
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 text-center">
-          <p className="text-white/60 text-sm font-medium mb-3">
-            {lang === "ar" ? "هل استمتعت بتجربتك؟" : "Avez-vous apprécié votre expérience ?"}
-          </p>
-          <button
-            onClick={() => setRatingModalOpen(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-[var(--primary)] font-bold text-sm hover:bg-[var(--primary)]/20 transition-all"
-          >
+            <div className="px-0 pb-0">
+              <div className="rounded-none border-y border-white/[0.06] bg-white/[0.03] py-6 px-4 text-center">
+                <p className="text-white/60 text-sm font-medium mb-3">
+                  {lang === "ar" ? "هل استمتعت بتجربتك؟" : "Avez-vous apprécié votre expérience ?"}
+                </p>
+                <button
+                  onClick={() => setRatingModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-[var(--primary)] font-bold text-sm hover:bg-[var(--primary)]/20 transition-all"
+                >
             <Star className="h-4 w-4" />
             <span>{lang === "ar" ? "قيّم تجربتك" : "Évaluez votre expérience"}</span>
           </button>
