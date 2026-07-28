@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dish, Category, RestaurantConfig, CartItem } from "../types";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ClientViewProps {
   categories: Category[];
@@ -31,8 +32,11 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
-  const [selectedRating, setSelectedRating] = useState(0);
-  const [hoveredRating, setHoveredRating] = useState(0);
+    const [selectedRating, setSelectedRating] = useState(0);
+    const [hoveredRating, setHoveredRating] = useState(0);
+    const [showFeedback, setShowFeedback] = useState(false);
+    const [feedbackText, setFeedbackText] = useState("");
+    const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -116,29 +120,74 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
   }, [generateWhatsAppMessage, config.whatsappNumber]);
 
   const handleRatingClick = useCallback((rating: number) => {
-    setSelectedRating(rating);
-    setRatingModalOpen(false);
-    if (config.googleMapsUrl) {
-      window.open(config.googleMapsUrl, "_blank");
-    } else {
-      toast({
-        title: lang === "ar" ? "شكراً لتقييمك!" : "Merci pour votre avis !",
-        description: lang === "ar"
-          ? "نقدر وقتك ونعدك بتقديم الأفضل دائماً"
-          : "Nous apprécions votre temps et promettons de toujours offrir le meilleur",
-      });
-    }
-    setTimeout(() => {
+      setSelectedRating(rating);
+      setHoveredRating(rating);
+      if (rating >= 4) {
+        // 4-5 stars: redirect to Google Maps
+        setRatingModalOpen(false);
+        if (config.googleMapsUrl) {
+          window.open(config.googleMapsUrl, "_blank");
+        }
+        toast({
+          title: lang === "ar" ? "شكراً لتقييمك!" : "Merci pour votre avis !",
+          description: lang === "ar"
+            ? "نقدر وقتك ونعدك بتقديم الأفضل دائماً"
+            : "Nous apprécions votre temps et promettons de toujours offrir le meilleur",
+        });
+        setTimeout(() => {
+          setSelectedRating(0);
+          setHoveredRating(0);
+        }, 500);
+      } else {
+        // 1-3 stars: show feedback form
+        setShowFeedback(true);
+      }
+    }, [config.googleMapsUrl, lang, toast]);
+  
+    const handleSubmitFeedback = useCallback(async () => {
+      if (!feedbackText.trim()) return;
+      setSubmittingReview(true);
+      try {
+        const { error } = await supabase
+          .from("reviews")
+          .insert({
+            restaurant_id: restaurantId,
+            rating: selectedRating,
+            feedback: feedbackText.trim(),
+          });
+        if (error) throw error;
+        toast({
+          title: lang === "ar" ? "تم الإرسال" : "Envoyé !",
+          description: lang === "ar"
+            ? "شكراً لملاحظاتك، سنعمل على التحسين"
+            : "Merci pour votre retour, nous allons nous améliorer",
+        });
+        setRatingModalOpen(false);
+        setShowFeedback(false);
+        setFeedbackText("");
+        setSelectedRating(0);
+        setHoveredRating(0);
+      } catch (err) {
+        toast({
+          title: lang === "ar" ? "خطأ" : "Erreur",
+          description: lang === "ar"
+            ? "حدث خطأ، حاول مرة أخرى"
+            : "Une erreur est survenue, réessayez",
+          variant: "destructive",
+        });
+        console.error("Failed to submit review:", err);
+      } finally {
+        setSubmittingReview(false);
+      }
+    }, [feedbackText, restaurantId, selectedRating, lang, toast]);
+  
+    const handleCloseRatingModal = useCallback(() => {
+      setRatingModalOpen(false);
       setSelectedRating(0);
       setHoveredRating(0);
-    }, 500);
-  }, [config.googleMapsUrl, lang, toast]);
-
-  const handleCloseRatingModal = useCallback(() => {
-    setRatingModalOpen(false);
-    setSelectedRating(0);
-    setHoveredRating(0);
-  }, []);
+      setShowFeedback(false);
+      setFeedbackText("");
+    }, []);
 
   const scrollToCategory = useCallback((categoryId: string | null) => {
     setSelectedCategory(categoryId);
@@ -366,47 +415,105 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
       </div>
 
       {/* ─── Rating Modal ─── */}
-      {ratingModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1A1A1A] border border-white/[0.08] rounded-2xl p-6 w-full max-w-sm space-y-5">
-            <div className="text-center space-y-2">
-              <h3 className="text-white font-bold text-lg">
-                {lang === "ar" ? "قيّم تجربتك" : "Évaluez votre expérience"}
-              </h3>
-              <p className="text-white/40 text-sm">
-                {lang === "ar"
-                  ? "اختر تقييمك وسنوجهك لصفحة التقييم"
-                  : "Choisissez votre note, vous serez redirigé"}
-              </p>
-            </div>
-            <div className="flex justify-center gap-2 py-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => handleRatingClick(star)}
-                  onMouseEnter={() => setHoveredRating(star)}
-                  onMouseLeave={() => setHoveredRating(0)}
-                  className="transition-transform hover:scale-110"
-                >
-                  <Star
-                    className={`h-10 w-10 transition-colors ${
-                      star <= (hoveredRating || selectedRating)
-                        ? "text-yellow-400 fill-yellow-400"
-                        : "text-white/20"
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={handleCloseRatingModal}
-              className="w-full text-white/30 hover:text-white/50 text-sm transition-colors"
-            >
-              {lang === "ar" ? "إلغاء" : "Annuler"}
-            </button>
-          </div>
-        </div>
-      )}
+            {ratingModalOpen && (
+              <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                <div className="bg-[#1A1A1A] border border-white/[0.08] rounded-2xl p-6 w-full max-w-sm space-y-5">
+                  {!showFeedback ? (
+                    <>
+                      <div className="text-center space-y-2">
+                        <h3 className="text-white font-bold text-lg">
+                          {lang === "ar" ? "قيّم تجربتك" : "Évaluez votre expérience"}
+                        </h3>
+                        <p className="text-white/40 text-sm">
+                          {lang === "ar"
+                            ? "اختر تقييمك وسنوجهك لصفحة التقييم"
+                            : "Choisissez votre note, vous serez redirigé"}
+                        </p>
+                      </div>
+                      <div className="flex justify-center gap-2 py-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={() => handleRatingClick(star)}
+                            onMouseEnter={() => setHoveredRating(star)}
+                            onMouseLeave={() => setHoveredRating(0)}
+                            className="transition-transform hover:scale-110"
+                          >
+                            <Star
+                              className={`h-10 w-10 transition-colors ${
+                                star <= (hoveredRating || selectedRating)
+                                  ? "text-yellow-400 fill-yellow-400"
+                                  : "text-white/20"
+                              }`}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={handleCloseRatingModal}
+                        className="w-full text-white/30 hover:text-white/50 text-sm transition-colors"
+                      >
+                        {lang === "ar" ? "إلغاء" : "Annuler"}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-center space-y-2">
+                        <div className="flex justify-center gap-1 mb-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-6 w-6 ${
+                                star <= selectedRating
+                                  ? "text-yellow-400 fill-yellow-400"
+                                  : "text-white/20"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <h3 className="text-white font-bold text-lg">
+                          {lang === "ar" ? "نأسف لسماع ذلك" : "Nous sommes désolés"}
+                        </h3>
+                        <p className="text-white/40 text-sm">
+                          {lang === "ar"
+                            ? "أخبرنا بما لم يعجبك لنساعد في تحسين تجربتك"
+                            : "Dites-nous ce qui n'a pas été à la hauteur pour améliorer votre expérience"}
+                        </p>
+                      </div>
+                      <textarea
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        placeholder={lang === "ar" ? "اكتب ملاحظاتك هنا..." : "Écrivez vos remarques ici..."}
+                        className="w-full h-28 bg-white/[0.06] border border-white/[0.10] rounded-xl p-3 text-white text-sm resize-none focus:outline-none focus:border-white/20 placeholder:text-white/20"
+                        autoFocus
+                      />
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => {
+                            setShowFeedback(false);
+                            setSelectedRating(0);
+                            setHoveredRating(0);
+                            setFeedbackText("");
+                          }}
+                          className="flex-1 py-2.5 rounded-xl border border-white/[0.10] text-white/50 text-sm font-medium hover:bg-white/[0.04] transition-colors"
+                        >
+                          {lang === "ar" ? "رجوع" : "Retour"}
+                        </button>
+                        <button
+                          onClick={handleSubmitFeedback}
+                          disabled={!feedbackText.trim() || submittingReview}
+                          className="flex-1 py-2.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {submittingReview
+                            ? (lang === "ar" ? "جاري الإرسال..." : "Envoi...")
+                            : (lang === "ar" ? "إرسال" : "Envoyer")}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
       {/* ─── Lightbox Modal ─── */}
       {lightboxImage && (
