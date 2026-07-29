@@ -36,6 +36,7 @@ import {
   MessageCircle,
   ThumbsUp,
   MapPin,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -250,6 +251,7 @@ export default function AdminView({
       category: categories[0]?.id || "",
       image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80",
       isAvailable: true, isNew: false, isBestSeller: false, isVegetarian: false, isHalal: true, isGlutenFree: false,
+      upsellIds: [],
     });
     setIsDishDialogOpen(true);
   };
@@ -362,6 +364,18 @@ export default function AdminView({
   const positiveReviews = reviews.filter((r) => r.rating >= 4).length;
   const complaints = reviews.filter((r) => r.rating < 4).length;
 
+  // Upsells helper
+  const currentDishId = editingDish?.id || "";
+  const upsellCandidates = dishes.filter(d => d.id !== currentDishId && d.isAvailable);
+  const currentUpsellIds: string[] = (dishForm as any).upsellIds || [];
+
+  const toggleUpsell = (id: string) => {
+    const current = new Set(currentUpsellIds);
+    if (current.has(id)) current.delete(id);
+    else current.add(id);
+    setDishForm({ ...dishForm, upsellIds: Array.from(current) });
+  };
+
   return (
     <div className="min-h-screen pb-16 relative" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
@@ -423,6 +437,7 @@ export default function AdminView({
             <div className="space-y-2">
               {availableDishes.map((dish) => {
                 const cat = categories.find((c) => c.id === dish.category);
+                const upsellCount = (dish.upsellIds || []).length;
                 return (
                   <div key={dish.id}
                     className="bg-white/[0.02] backdrop-blur-2xl p-4 rounded-2xl border border-white/[0.04] flex items-center justify-between hover:border-white/[0.08] hover:bg-white/[0.03] transition-all duration-300 gap-3 shadow-[0_2px_16px_rgba(0,0,0,0.2)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
@@ -434,6 +449,7 @@ export default function AdminView({
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-bold text-white text-sm truncate">{dish.nameAr}</h3>
                           {dish.isPromo && <Badge className="bg-[var(--primary)]/15 text-[var(--primary)] border border-[var(--primary)]/20 text-[10px] font-bold px-1.5 py-0 rounded-full backdrop-blur-sm">عرض</Badge>}
+                          {upsellCount > 0 && <Badge className="bg-purple-500/10 text-purple-400/80 border border-purple-500/15 text-[10px] font-bold px-1.5 py-0 rounded-full backdrop-blur-sm"><Link2 className="h-2.5 w-2.5 inline-block ml-0.5" />{upsellCount} مكملات</Badge>}
                           {cat && <span className="text-[10px] text-white/25">({cat.nameAr})</span>}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
@@ -1094,6 +1110,66 @@ export default function AdminView({
                 </div>
               </div>
             )}
+
+            {/* ══════ قسم المكملات المقترحة (Upsells) ══════ */}
+            <div className="pt-4 border-t border-white/[0.06]">
+              <div className="flex items-center gap-2 mb-3">
+                <Link2 className="h-4 w-4 text-purple-400" />
+                <Label className="text-white/50 text-sm font-bold">المكملات المقترحة (Upsells)</Label>
+              </div>
+              <p className="text-white/25 text-xs mb-3 leading-relaxed">
+                اختر أطباقاً إضافية لتُقترح على الزبون عند إضافة هذا الطبق إلى السلة. مثلاً: بطاطس مقلية، مشروب، صوص إضافي...
+              </p>
+              {upsellCandidates.length === 0 ? (
+                <p className="text-white/20 text-xs py-3 text-center bg-white/[0.01] rounded-xl border border-white/[0.04]">
+                  لا توجد أطباق أخرى متاحة للربط. أضف أطباقاً أخرى أولاً.
+                </p>
+              ) : (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 bg-white/[0.01] rounded-xl border border-white/[0.04] p-2">
+                  {upsellCandidates.map((candidate) => {
+                    const isChecked = currentUpsellIds.includes(candidate.id);
+                    return (
+                      <button
+                        key={candidate.id}
+                        type="button"
+                        onClick={() => toggleUpsell(candidate.id)}
+                        className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all duration-200 border ${
+                          isChecked
+                            ? "bg-purple-500/8 border-purple-500/20 hover:bg-purple-500/12"
+                            : "bg-white/[0.01] border-transparent hover:bg-white/[0.03] hover:border-white/[0.05]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 border border-white/[0.06]">
+                            <img src={candidate.image} alt={candidate.nameAr} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="text-right min-w-0">
+                            <div className="text-white/70 text-xs font-semibold truncate">{candidate.nameAr}</div>
+                            <div className="text-white/30 text-[10px]">{candidate.price} {config.currencyAr}</div>
+                          </div>
+                        </div>
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                          isChecked
+                            ? "bg-purple-500 border-purple-500"
+                            : "border-white/[0.12] bg-transparent"
+                        }`}>
+                          {isChecked && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {currentUpsellIds.length > 0 && (
+                <div className="mt-2 flex items-center gap-2">
+                  <Badge className="bg-purple-500/10 text-purple-400/80 border border-purple-500/15 text-[10px]">
+                    <Link2 className="h-2.5 w-2.5 ml-1 inline-block" />
+                    {currentUpsellIds.length} مكملات مقترحة
+                  </Badge>
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="ghost" onClick={() => setIsDishDialogOpen(false)}
                 className="text-white/40 hover:text-white/70 hover:bg-white/[0.04] rounded-xl transition-all">إلغاء</Button>
