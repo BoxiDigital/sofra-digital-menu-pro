@@ -26,6 +26,19 @@ function mapCategoryToDB(cat: Category, restaurantId: string): any {
 }
 
 function mapDishFromDB(row: any): Dish {
+  let upsellIds: string[] = [];
+  if (row.upsell_ids) {
+    if (Array.isArray(row.upsell_ids)) {
+      upsellIds = row.upsell_ids;
+    } else if (typeof row.upsell_ids === "string") {
+      try {
+        upsellIds = JSON.parse(row.upsell_ids);
+      } catch {
+        upsellIds = [];
+      }
+    }
+  }
+
   return {
     id: row.id,
     nameAr: row.name_ar,
@@ -46,6 +59,7 @@ function mapDishFromDB(row: any): Dish {
     promoLabelFr: row.promo_label_fr,
     promoTextAr: row.promo_text_ar,
     promoTextFr: row.promo_text_fr,
+    upsellIds,
   };
 }
 
@@ -71,6 +85,7 @@ function mapDishToDB(dish: Dish, restaurantId: string): any {
     promo_text_ar: dish.promoTextAr || "",
     promo_text_fr: dish.promoTextFr || "",
     restaurant_id: restaurantId,
+    upsell_ids: dish.upsellIds || [],
   };
 }
 
