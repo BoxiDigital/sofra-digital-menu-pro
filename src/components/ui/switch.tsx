@@ -9,10 +9,10 @@ const Switch = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SwitchPrimitives.Root
     className={cn(
-      "peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
-      // OFF state: dark gray background
+      "peer inline-flex h-6 w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
+      // OFF: dark gray track
       "bg-zinc-700",
-      // ON state: same gold as all other primary buttons (var(--primary))
+      // ON: gold track matching site identity (var(--primary) = #C8A24D)
       "data-[state=checked]:bg-[var(--primary)]",
       className
     )}
@@ -21,11 +21,12 @@ const Switch = React.forwardRef<
   >
     <SwitchPrimitives.Thumb
       className={cn(
-        "pointer-events-none block h-[18px] w-[18px] rounded-full bg-white shadow-md ring-0 transition-transform",
-        // OFF position: thumb sits inside the left edge
-        "data-[state=unchecked]:translate-x-[2px]",
-        // ON position: thumb sits inside the right edge
-        "data-[state=checked]:translate-x-[20px]"
+        // Thumb is ALWAYS pure white — never colored gold
+        "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-md ring-0 transition-transform",
+        // OFF: thumb rests at start edge (right in RTL, left in LTR)
+        "data-[state=unchecked]:translate-x-0",
+        // ON: thumb slides to opposite edge (fully contained within gold track)
+        "data-[state=checked]:translate-x-5"
       )}
     />
   </SwitchPrimitives.Root>
