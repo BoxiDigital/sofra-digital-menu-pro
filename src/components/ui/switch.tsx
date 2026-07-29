@@ -9,11 +9,11 @@ const Switch = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SwitchPrimitives.Root
     className={cn(
-      "peer inline-flex h-6 w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
-      // OFF: dark gray track
-      "bg-zinc-700",
-      // ON: gold track matching site identity (var(--primary) = #C8A24D)
-      "data-[state=checked]:bg-[var(--primary)]",
+      "peer inline-flex h-6 w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors overflow-hidden",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+      "disabled:cursor-not-allowed disabled:opacity-50",
+      // خلفية الكبسولة فقط هي التي تتغير
+      "bg-zinc-700 data-[state=checked]:bg-[var(--primary)]",
       className
     )}
     {...props}
@@ -21,12 +21,12 @@ const Switch = React.forwardRef<
   >
     <SwitchPrimitives.Thumb
       className={cn(
-        // Thumb is ALWAYS pure white — never colored gold
+        // الدائرة الصغيرة بيضاء دائماً - أبداً لا تتلون
         "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-md ring-0 transition-transform",
-        // OFF: thumb rests at start edge (right in RTL, left in LTR)
-        "data-[state=unchecked]:translate-x-0",
-        // ON: thumb slides to opposite edge (fully contained within gold track)
-        "data-[state=checked]:translate-x-5"
+        // OFF: في أقصى اليسار
+        "translate-x-0.5",
+        // ON: تتحرك لليمين داخل الكبسولة الذهبية
+        "data-[state=checked]:translate-x-[22px]"
       )}
     />
   </SwitchPrimitives.Root>
