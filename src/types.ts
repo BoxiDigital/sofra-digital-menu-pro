@@ -18,6 +18,7 @@ export interface Dish {
  promoLabelFr?: string;
  promoTextAr?: string;
  promoTextFr?: string;
+ upsellIds?: string[]; // معرفات الأطباق المقترحة كمكملات (upsells)
 }
 
 export interface Category {
