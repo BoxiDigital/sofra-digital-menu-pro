@@ -504,7 +504,7 @@ export default function AdminView({
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <Switch checked={dish.isAvailable} onCheckedChange={() => toggleDishAvailability(dish.id, dish.isAvailable)}
-                        className="data-[state=checked]:bg-[var(--primary)]" />
+                        className="overflow-hidden data-[state=checked]:bg-[var(--primary)]" />
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-[var(--primary)]/70 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-lg transition-all" onClick={() => openEditDish(dish)}>
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -1097,38 +1097,38 @@ export default function AdminView({
               <div className="flex items-center justify-between bg-white/[0.02] px-3 py-2 rounded-xl border border-white/[0.04]">
                 <Label className="text-white/40 text-xs">متوفر</Label>
                 <Switch checked={dishForm.isAvailable} onCheckedChange={(v) => setDishForm({ ...dishForm, isAvailable: v })}
-                  className="data-[state=checked]:bg-[var(--primary)]" />
+                  className="overflow-hidden data-[state=checked]:bg-[var(--primary)]" />
               </div>
               <div className="flex items-center justify-between bg-white/[0.02] px-3 py-2 rounded-xl border border-white/[0.04]">
                 <Label className="text-white/40 text-xs">جديد</Label>
                 <Switch checked={dishForm.isNew} onCheckedChange={(v) => setDishForm({ ...dishForm, isNew: v })}
-                  className="data-[state=checked]:bg-[var(--primary)]" />
+                  className="overflow-hidden data-[state=checked]:bg-[var(--primary)]" />
               </div>
               <div className="flex items-center justify-between bg-white/[0.02] px-3 py-2 rounded-xl border border-white/[0.04]">
                 <Label className="text-white/40 text-xs">الأكثر طلباً</Label>
                 <Switch checked={dishForm.isBestSeller} onCheckedChange={(v) => setDishForm({ ...dishForm, isBestSeller: v })}
-                  className="data-[state=checked]:bg-[var(--primary)]" />
+                  className="overflow-hidden data-[state=checked]:bg-[var(--primary)]" />
               </div>
               <div className="flex items-center justify-between bg-white/[0.02] px-3 py-2 rounded-xl border border-white/[0.04]">
                 <Label className="text-white/40 text-xs">نباتي</Label>
                 <Switch checked={dishForm.isVegetarian} onCheckedChange={(v) => setDishForm({ ...dishForm, isVegetarian: v })}
-                  className="data-[state=checked]:bg-[var(--primary)]" />
+                  className="overflow-hidden data-[state=checked]:bg-[var(--primary)]" />
               </div>
               <div className="flex items-center justify-between bg-white/[0.02] px-3 py-2 rounded-xl border border-white/[0.04]">
                 <Label className="text-white/40 text-xs">حلال</Label>
                 <Switch checked={dishForm.isHalal} onCheckedChange={(v) => setDishForm({ ...dishForm, isHalal: v })}
-                  className="data-[state=checked]:bg-[var(--primary)]" />
+                  className="overflow-hidden data-[state=checked]:bg-[var(--primary)]" />
               </div>
               <div className="flex items-center justify-between bg-white/[0.02] px-3 py-2 rounded-xl border border-white/[0.04]">
                 <Label className="text-white/40 text-xs">خالي من الغلوتين</Label>
                 <Switch checked={dishForm.isGlutenFree} onCheckedChange={(v) => setDishForm({ ...dishForm, isGlutenFree: v })}
-                  className="data-[state=checked]:bg-[var(--primary)]" />
+                  className="overflow-hidden data-[state=checked]:bg-[var(--primary)]" />
               </div>
             </div>
             <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] bg-white/[0.02] px-3 py-2 rounded-xl">
               <Label className="text-white/40 text-xs">عرض ترويجي</Label>
               <Switch checked={dishForm.isPromo} onCheckedChange={(v) => setDishForm({ ...dishForm, isPromo: v })}
-                className="data-[state=checked]:bg-[var(--primary)]" />
+                className="overflow-hidden data-[state=checked]:bg-[var(--primary)]" />
             </div>
             {dishForm.isPromo && (
               <div className="grid grid-cols-2 gap-3">
