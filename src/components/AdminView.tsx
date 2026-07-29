@@ -193,22 +193,44 @@ export default function AdminView({
     toast({ title: "خطأ في الحفظ", description: err?.message || "حدث خطأ أثناء حفظ البيانات، يرجى المحاولة مرة أخرى", variant: "destructive" });
   };
 
+  // Wrapped save functions that properly handle errors and loading state
   const handleUpdateDishesSafe = async (updatedDishes: Dish[]) => {
-    if (isSaving) return;
+    if (isSaving) throw new Error("عملية حفظ جارية");
     setIsSaving(true);
-    try { await onUpdateDishes(updatedDishes); } catch (err) { handleSaveError(err); } finally { setIsSaving(false); }
+    try {
+      await onUpdateDishes(updatedDishes);
+    } catch (err) {
+      handleSaveError(err);
+      throw err; // rethrow so caller can handle
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleUpdateCategoriesSafe = async (updatedCategories: Category[]) => {
-    if (isSaving) return;
+    if (isSaving) throw new Error("عملية حفظ جارية");
     setIsSaving(true);
-    try { await onUpdateCategories(updatedCategories); } catch (err) { handleSaveError(err); } finally { setIsSaving(false); }
+    try {
+      await onUpdateCategories(updatedCategories);
+    } catch (err) {
+      handleSaveError(err);
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleUpdateConfigSafe = async (cfg: RestaurantConfig) => {
-    if (isSaving) return;
+    if (isSaving) throw new Error("عملية حفظ جارية");
     setIsSaving(true);
-    try { await onUpdateConfig(cfg); } catch (err) { handleSaveError(err); } finally { setIsSaving(false); }
+    try {
+      await onUpdateConfig(cfg);
+    } catch (err) {
+      handleSaveError(err);
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
@@ -270,27 +292,37 @@ export default function AdminView({
       const newDish: Dish = { ...(dishForm as Dish), id: `dish_${Date.now()}` };
       updatedDishes = [...dishes, newDish];
     }
-    await handleUpdateDishesSafe(updatedDishes);
-    setIsDishDialogOpen(false);
-    toast({ title: editingDish ? "تم التعديل" : "تم الإضافة", description: editingDish ? "تم تعديل الطبق بنجاح" : "تم إضافة الطبق الجديد بنجاح" });
+    try {
+      await handleUpdateDishesSafe(updatedDishes);
+      setIsDishDialogOpen(false);
+      toast({ title: editingDish ? "تم التعديل" : "تم الإضافة", description: editingDish ? "تم تعديل الطبق بنجاح" : "تم إضافة الطبق الجديد بنجاح" });
+    } catch (err) {
+      // Error toast already shown by handleSaveError
+    }
   };
 
   const deleteDish = async (id: string) => {
     if (confirm("هل أنت متأكد من حذف هذا الطبق؟")) {
-      await handleUpdateDishesSafe(dishes.filter((d) => d.id !== id));
-      toast({ title: "تم الحذف", description: "تم حذف الطبق بنجاح" });
+      try {
+        await handleUpdateDishesSafe(dishes.filter((d) => d.id !== id));
+        toast({ title: "تم الحذف", description: "تم حذف الطبق بنجاح" });
+      } catch (err) {}
     }
   };
 
   const toggleDishAvailability = async (id: string, currentStatus: boolean) => {
     const updated = dishes.map((d) => d.id === id ? { ...d, isAvailable: !currentStatus } : d);
-    await handleUpdateDishesSafe(updated);
-    toast({ title: !currentStatus ? "تم تفعيل الطبق" : "تم تعطيل الطبق", description: !currentStatus ? "الطبق متوفر الآن للزبائن" : "الطبق غير متوفر حالياً (مخفي عن الزبائن)" });
+    try {
+      await handleUpdateDishesSafe(updated);
+      toast({ title: !currentStatus ? "تم تفعيل الطبق" : "تم تعطيل الطبق", description: !currentStatus ? "الطبق متوفر الآن للزبائن" : "الطبق غير متوفر حالياً (مخفي عن الزبائن)" });
+    } catch (err) {}
   };
 
   const reactivateDish = async (id: string) => {
-    await handleUpdateDishesSafe(dishes.map((d) => d.id === id ? { ...d, isAvailable: true } : d));
-    toast({ title: "تم إعادة تفعيل الطبق", description: "عاد الطبق للظهور في قائمة الزبائن" });
+    try {
+      await handleUpdateDishesSafe(dishes.map((d) => d.id === id ? { ...d, isAvailable: true } : d));
+      toast({ title: "تم إعادة تفعيل الطبق", description: "عاد الطبق للظهور في قائمة الزبائن" });
+    } catch (err) {}
   };
 
   const openAddCategory = () => {
@@ -303,7 +335,7 @@ export default function AdminView({
 
   const saveCategory = async () => {
     if (!categoryForm.nameAr || !categoryForm.nameFr) {
-      toast({ title: "تنبيه", description: "يرجى ملء جميع الحقول المطلوبة", variant: "destructive" });
+      toast({ title: "تنبيه", description: "يرجى ملء جميع الحقلين المطلوبين", variant: "destructive" });
       return;
     }
     let updatedCategories: Category[];
@@ -313,9 +345,13 @@ export default function AdminView({
       const newCategory: Category = { ...(categoryForm as Category), id: `cat_${Date.now()}` };
       updatedCategories = [...categories, newCategory];
     }
-    await handleUpdateCategoriesSafe(updatedCategories);
-    setIsCategoryDialogOpen(false);
-    toast({ title: editingCategory ? "تم التعديل" : "تم الإضافة", description: editingCategory ? "تم تعديل الفئة بنجاح" : "تم إضافة الفئة الجديدة بنجاح" });
+    try {
+      await handleUpdateCategoriesSafe(updatedCategories);
+      setIsCategoryDialogOpen(false);
+      toast({ title: editingCategory ? "تم التعديل" : "تم الإضافة", description: editingCategory ? "تم تعديل الفئة بنجاح" : "تم إضافة الفئة الجديدة بنجاح" });
+    } catch (err) {
+      // error toast already shown
+    }
   };
 
   const deleteCategory = async (id: string) => {
@@ -325,21 +361,29 @@ export default function AdminView({
       return;
     }
     if (confirm("هل أنت متأكد من حذف هذه الفئة؟")) {
-      await handleUpdateCategoriesSafe(categories.filter((c) => c.id !== id));
-      toast({ title: "تم الحذف", description: "تم حذف الفئة بنجاح" });
+      try {
+        await handleUpdateCategoriesSafe(categories.filter((c) => c.id !== id));
+        toast({ title: "تم الحذف", description: "تم حذف الفئة بنجاح" });
+      } catch (err) {}
     }
   };
 
   const saveConfig = async () => {
-    await handleUpdateConfigSafe(configForm);
-    toast({ title: "✅ تم حفظ الإعدادات بنجاح", description: "تم تحديث معلومات المطعم والألوان بنجاح", duration: 3000 });
+    try {
+      await handleUpdateConfigSafe(configForm);
+      toast({ title: "✅ تم حفظ الإعدادات بنجاح", description: "تم تحديث معلومات المطعم والألوان بنجاح", duration: 3000 });
+    } catch (err) {
+      // error toast already shown
+    }
   };
 
   const applyTheme = async (theme: typeof PRESET_THEMES[number]) => {
     const updatedConfig = { ...configForm, primaryColor: theme.primaryColor, backgroundColor: theme.backgroundColor };
     setConfigForm(updatedConfig);
-    await handleUpdateConfigSafe(updatedConfig);
-    toast({ title: "✅ تم تطبيق الثيم", description: `تم تطبيق ثيم "${theme.label}" وحفظه بنجاح`, duration: 2500 });
+    try {
+      await handleUpdateConfigSafe(updatedConfig);
+      toast({ title: "✅ تم تطبيق الثيم", description: `تم تطبيق ثيم "${theme.label}" وحفظه بنجاح`, duration: 2500 });
+    } catch (err) {}
   };
 
   const menuUrl = `${window.location.origin}/${restaurantSlug}`;
