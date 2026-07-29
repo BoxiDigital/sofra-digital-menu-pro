@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Dish, Category, RestaurantConfig, CartItem } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import UpsellModal from "./UpsellModal";
 
 interface ClientViewProps {
   categories: Category[];
@@ -30,6 +31,10 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  // Upsell state
+  const [upsellDish, setUpsellDish] = useState<Dish | null>(null);
+  const [upsellItems, setUpsellItems] = useState<Dish[]>([]);
 
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
     const [selectedRating, setSelectedRating] = useState(0);
@@ -73,6 +78,21 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
   const cartTotal = useMemo(() => cart.reduce((sum, item) => sum + item.dish.price * item.quantity, 0), [cart]);
 
   const addToCart = useCallback((dish: Dish) => {
+    // Check if dish has upsell suggestions
+    const upsellIds = dish.upsellIds || [];
+    if (upsellIds.length > 0) {
+      const upsellDishes = dishes.filter(d => upsellIds.includes(d.id) && d.isAvailable);
+      if (upsellDishes.length > 0) {
+        setUpsellDish(dish);
+        setUpsellItems(upsellDishes);
+        return;
+      }
+    }
+    // No upsells, add directly
+    addToCartDirect(dish);
+  }, [dishes]);
+
+  const addToCartDirect = useCallback((dish: Dish) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.dish.id === dish.id);
       if (existing) {
@@ -83,6 +103,22 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
       return [...prev, { dish, quantity: 1 }];
     });
   }, []);
+
+  const handleUpsellAddToCart = useCallback((dish: Dish, selectedUpsells: Dish[]) => {
+    addToCartDirect(dish);
+    selectedUpsells.forEach(u => addToCartDirect(u));
+    setUpsellDish(null);
+    setUpsellItems([]);
+  }, [addToCartDirect]);
+
+  const handleUpsellClose = useCallback(() => {
+    // Add just the main dish when user skips
+    if (upsellDish) {
+      addToCartDirect(upsellDish);
+    }
+    setUpsellDish(null);
+    setUpsellItems([]);
+  }, [upsellDish, addToCartDirect]);
 
   const updateQuantity = useCallback((dishId: string, delta: number) => {
     setCart((prev) =>
@@ -228,6 +264,18 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
 
   return (
       <div className={`min-h-screen ${bg} ${textColor} transition-colors duration-500 relative`}>
+        {/* Upsell Modal */}
+        {upsellDish && (
+          <UpsellModal
+            lang={lang}
+            currency={t.currency}
+            dish={upsellDish}
+            upsells={upsellItems}
+            onClose={handleUpsellClose}
+            onAddToCart={handleUpsellAddToCart}
+          />
+        )}
+
         {/* ─── Atmospheric Lighting Effects ─── */}
         <div className="fixed inset-0 pointer-events-none z-0">
           {/* Top warm glow */}
