@@ -19,6 +19,7 @@ let makeWASocket: any;
 let useMultiFileAuthState: any;
 let DisconnectReason: any;
 let fetchLatestBaileysVersion: any;
+let makeCacheableSignalKeyStore: any;
 let baileysLoaded = false;
 
 const AUTH_DIR = "./.salesbot-auth";
@@ -41,6 +42,7 @@ async function loadBaileys() {
       useMultiFileAuthState = b.useMultiFileAuthState;
       DisconnectReason = b.DisconnectReason;
       fetchLatestBaileysVersion = b.fetchLatestBaileysVersion;
+      makeCacheableSignalKeyStore = b.makeCacheableSignalKeyStore;
       baileysLoaded = true;
       console.log("[SalesBot] ✅ Baileys تم تحميله بنجاح");
     } catch (e: any) {
@@ -216,20 +218,23 @@ export async function startBot(): Promise<BotState> {
     // ⚙️ إعدادات الاتصال المحسّنة
     sock = makeWASocket({
       version,
-      auth: authState,
+      auth: {
+        creds: authState.creds,
+        keys: makeCacheableSignalKeyStore(authState.keys, logger),
+      },
       logger,
       // محاكاة متصفح واتساب ويب الحقيقي (مهم جداً لتجنب Error 515)
-      browser: ["Safari", "macOS", "10.15.7"],
+      browser: ["Ubuntu", "Chrome", "20.0.04"],
       // إعدادات timeout
-      connectTimeoutMs: 60_000,   // مهلة الاتصال: 60 ثانية
-      qrTimeout: 60_000,          // مهلة QR Code: 60 ثانية
+      connectTimeoutMs: 60_000,
+      qrTimeout: 60_000,
       defaultQueryTimeoutMs: 30_000,
       // تحسين الأداء
-      syncFullHistory: false,     // لا تحمّل تاريخ المحادثات كامل
-      markOnlineOnConnect: false, // لا تظهر online فوراً
+      syncFullHistory: false,
+      markOnlineOnConnect: false,
       generateHighQualityLinkPreview: false,
       // طباعة QR في Terminal للمساعدة
-      printQRInTerminal: false,   // نعتمد على ملف PNG
+      printQRInTerminal: false,
     });
 
     sock.ev.on("creds.update", saveCreds);
