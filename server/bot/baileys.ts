@@ -2,17 +2,14 @@
  * WhatsApp Connection Manager using Baileys
  * 
  * إعدادات محسّنة للاتصال بـ WebSocket مع سرفيرات واتساب.
- * يتضمن:
- * - محاكاة متصفح واتساب ويب الحقيقي
- * - إعدادات timeout مناسبة (QR يبقى صالح 5 دقائق، الاتصال 3 دقائق)
- * - إعادة اتصال ذكية مع تأخير تصاعدي
- * - تنظيف تلقائي للجلسة القديمة
- * - حفظ QR Code كصورة PNG مباشرة في مجلد المشروع
- * - تجديد تلقائي لـ QR Code عند انتهاء صلاحيته
+ * يستخدم الآن طريقة "رمز الاقتران" (Pairing Code) بدل QR Code لاتصال أسرع وأكثر استقراراً.
+ * 
+ * الطريقة: اكتب رقم هاتف واتساب في المتغير أدناه، وسيتم توليد رمز اقتران.
+ * افتح واتساب ← الأجهزة المرتبطة ← رابط برقم الهاتف ← أدخل الرمز.
  */
 
 import type { Boom } from "@hapi/boom";
-import { existsSync, rmSync, mkdirSync } from "fs";
+import { existsSync, rmSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import pino from "pino";
 
@@ -24,11 +21,14 @@ let makeCacheableSignalKeyStore: any;
 let baileysLoaded = false;
 
 const AUTH_DIR = "./.salesbot-auth";
-const QR_FILE_PATH = "./qr-code.png";
+const PAIRING_CODE_FILE = "./pairing-code.txt";
+
+// ⚙️ رقم هاتف واتساب المراد ربطه (مع رمز الدولة، بدون + ولا مسافات)
+// مثال: 212612345678
+const WHATSAPP_PHONE_NUMBER = "212600000000";
 
 // ⏱️ إعدادات التوقيت (بالمللي ثانية)
-const QR_TIMEOUT = 300_000;        // 5 دقائق — صلاحية QR Code
-const CONNECT_TIMEOUT = 180_000;   // 3 دقائق — وقت محاولة الاتصال
+const CONNECT_TIMEOUT = 300_000;   // 5 دقائق — وقت محاولة الاتصال
 const QUERY_TIMEOUT = 60_000;      // دقيقة — مهلة الاستعلامات
 
 // Logger صامت (فقط للأخطاء) لتجنب spam في Terminal
@@ -36,7 +36,7 @@ const logger = pino({
   level: "silent",
   transport: {
     target: "pino/file",
-    options: { destination: 1 }, // stdout
+    options: { destination: 1 },
   },
 });
 
@@ -73,38 +73,6 @@ function cleanupOldSession(): void {
   }
 }
 
-/**
- * حفظ QR Code كصورة PNG عالية الجودة في مجلد المشروع
- */
-async function saveQRCodeImage(qrCode: string): Promise<string | null> {
-  try {
-    const qrcode = await import("qrcode");
-    await qrcode.toFile(QR_FILE_PATH, qrCode, { 
-      width: 500, 
-      margin: 2,
-      color: {
-        dark: "#000000",
-        light: "#ffffff"
-      }
-    });
-    console.log("");
-    console.log("╔═══════════════════════════════════════════════════╗");
-    console.log("║  ✅ تم إنشاء/تحديث كود QR بنجاح!                 ║");
-    console.log("║                                                   ║");
-    console.log("║  📁 مكان الملف: qr-code.png                      ║");
-    console.log("║  📱 افتح الملف وامسح الكود من واتساب تاعك       ║");
-    console.log("║  📲 واتساب ← الأجهزة المرتبطة ← امسح الكود      ║");
-    console.log("║                                                   ║");
-    console.log("║  🔄 الكود صالح لمدة 5 دقائق ويتجدد تلقائياً      ║");
-    console.log("╚═══════════════════════════════════════════════════╝");
-    console.log("");
-    return QR_FILE_PATH;
-  } catch (error: any) {
-    console.error("[SalesBot] ⚠️ فشل حفظ صورة QR:", error.message);
-    return null;
-  }
-}
-
 // ── الحالة ──────────────────────────────────────────────
 
 export type BotStatus = "disconnected" | "connecting" | "connected" | "error";
@@ -112,6 +80,7 @@ export type BotStatus = "disconnected" | "connecting" | "connected" | "error";
 export interface BotState {
   status: BotStatus;
   qrCode: string | null;
+  pairingCode: string | null;
   phoneNumber: string | null;
   startedAt: string | null;
   lastError: string | null;
@@ -123,6 +92,7 @@ export interface BotState {
 const state: BotState = {
   status: "disconnected",
   qrCode: null,
+  pairingCode: null,
   phoneNumber: null,
   startedAt: null,
   lastError: null,
@@ -189,6 +159,69 @@ function scheduleReconnect() {
   }, delay);
 }
 
+/**
+ * طلب رمز اقتران (Pairing Code) من واتساب
+ * يُظهر الرمز في Terminal ويحفظه في ملف pairing-code.txt
+ */
+async function requestPairingCode(socket: any, phoneNumber: string): Promise<string | null> {
+  try {
+    // نتأكد أن الرقم بالتنسيق الصحيح (بدون + ولا مسافات)
+    const cleanNumber = phoneNumber.replace(/[+\s]/g, "");
+    
+    console.log(`[SalesBot] 📱 جاري طلب رمز الاقتران للرقم: ${cleanNumber}...`);
+    
+    // طلب رمز الاقتران من واتساب
+    const code = await socket.requestPairingCode(cleanNumber);
+    
+    if (!code || code === "INVALID_PHONE_NUMBER") {
+      console.error("[SalesBot] ❌ رقم الهاتف غير صالح أو لا يدعم الاقتران");
+      console.error("[SalesBot] تأكد من صحة الرقم وأن واتساب مثبت على الهاتف");
+      return null;
+    }
+
+    // حفظ الرمز في ملف
+    const codeMsg = `رقم الهاتف: ${cleanNumber}\nرمز الاقتران: ${code}\nصالح لمدة دقيقتين\n`;
+    writeFileSync(PAIRING_CODE_FILE, codeMsg, "utf-8");
+
+    // عرض الرمز بشكل بارز في Terminal
+    console.log("");
+    console.log("╔═══════════════════════════════════════════════════╗");
+    console.log("║  ✅ تم إنشاء رمز الاقتران بنجاح!                 ║");
+    console.log("║                                                   ║");
+    console.log(`║  📱 رقم الهاتف: ${cleanNumber.padEnd(34)}║`);
+    console.log(`║  🔢 رمز الاقتران: ${code.padEnd(32)}║`);
+    console.log("║                                                   ║");
+    console.log("║  📲 للربط:                                        ║");
+    console.log("║  1. افتح واتساب على هاتفك                          ║");
+    console.log("║  2. اذهب إلى: الأجهزة المرتبطة                    ║");
+    console.log("║  3. اختر: ربط باستخدام رقم الهاتف                 ║");
+    console.log("║  4. أدخل الرمز أعلاه                              ║");
+    console.log("║                                                   ║");
+    console.log(`║  📁 الرمز محفوظ أيضاً في: ${PAIRING_CODE_FILE.padEnd(20)}║`);
+    console.log("║  ⏱️  الرمز صالح لمدة دقيقتين فقط                  ║");
+    console.log("╚═══════════════════════════════════════════════════╝");
+    console.log("");
+
+    return code;
+  } catch (err: any) {
+    console.error("[SalesBot] ❌ فشل طلب رمز الاقتران:", err.message);
+    
+    // في بعض الإصدارات، الدالة قد تسمى requestPairingCode أو تختلف
+    if (err.message?.includes("is not a function")) {
+      console.log("[SalesBot] ℹ️ جاري تجربة طريقة بديلة لرمز الاقتران...");
+      try {
+        // بعض إصدارات Baileys تستخدم طريقة مختلفة
+        const code = await socket.authState.creds.requestPairingCode?.(cleanNumber);
+        return code || null;
+      } catch {
+        console.error("[SalesBot] ❌ جميع محاولات الاقتران فشلت");
+        return null;
+      }
+    }
+    return null;
+  }
+}
+
 // ── بدء / إيقاف البوت ───────────────────────────────────
 
 export async function startBot(): Promise<BotState> {
@@ -207,11 +240,9 @@ export async function startBot(): Promise<BotState> {
     return getBotState();
   }
 
-  // لا ننظف الجلسة إلا إذا طلب الخروج يدوياً
-  // cleanupOldSession(); ← معطل: الجلسة محفوظة لتجنب طلب QR كل مرة
-
   state.status = "connecting";
   state.qrCode = null;
+  state.pairingCode = null;
   state.lastError = null;
 
   try {
@@ -233,32 +264,37 @@ export async function startBot(): Promise<BotState> {
       },
       logger,
       browser: ["Ubuntu", "Chrome", "20.0.04"],
-      // ⏱️ إعدادات التوقيت المحسّنة
-      connectTimeoutMs: CONNECT_TIMEOUT,      // 3 دقائق
-      qrTimeout: QR_TIMEOUT,                   // 5 دقائق
+      connectTimeoutMs: CONNECT_TIMEOUT,      // 5 دقائق
       defaultQueryTimeoutMs: QUERY_TIMEOUT,    // دقيقة
       syncFullHistory: false,
       markOnlineOnConnect: false,
       generateHighQualityLinkPreview: false,
       printQRInTerminal: false,
+      mobile: false, // نتأكد من استخدام اتصال سطح المكتب العادي
     });
 
     sock.ev.on("creds.update", saveCreds);
 
-    sock.ev.on("connection.update", (update: any) => {
+    sock.ev.on("connection.update", async (update: any) => {
       const { connection, lastDisconnect, qr } = update;
 
-      // ── QR Code جديد ──
-      if (qr) {
-        console.log("[SalesBot] 📱 QR Code جديد تم استلامه — جاري الحفظ والتجديد...");
-        
-        saveQRCodeImage(qr).then((filePath) => {
-          if (filePath) {
-            state.qrCode = filePath;
+      // ── تم فتح الاتصال وجاهز لطلب رمز الاقتران ──
+      if (connection === "connecting" && !state.pairingCode) {
+        // ننتظر قليلاً حتى يصبح socket جاهزاً لاستقبال طلب الاقتران
+        setTimeout(async () => {
+          if (sock && state.status === "connecting" && !state.pairingCode) {
+            const code = await requestPairingCode(sock, WHATSAPP_PHONE_NUMBER);
+            if (code) {
+              state.pairingCode = code;
+            }
           }
-        }).catch((err: any) => {
-          console.error("[SalesBot] ❌ فشل حفظ QR Code:", err.message);
-        });
+        }, 3000);
+      }
+
+      // ── QR Code (خطة بديلة في حالة فشل الاقتران) ──
+      if (qr && !state.pairingCode) {
+        console.log("[SalesBot] 📱 QR Code متاح كخطة بديلة");
+        state.qrCode = qr;
       }
 
       // ── تم الاتصال بنجاح ──
@@ -266,11 +302,19 @@ export async function startBot(): Promise<BotState> {
         reconnectAttempts = 0;
         state.status = "connected";
         state.qrCode = null;
+        state.pairingCode = null;
         state.startedAt = new Date().toISOString();
         state.lastError = null;
         state.phoneNumber = sock?.user?.id?.split(":")[0] || null;
         console.log(`[SalesBot] ✅ متصل بالواتساب! الرقم: ${state.phoneNumber}`);
         console.log("[SalesBot] 🟢 البوت نشط ومستعد لاستقبال الرسائل 24/7");
+        
+        // حذف ملف رمز الاقتران بعد الاتصال الناجح
+        try {
+          if (existsSync(PAIRING_CODE_FILE)) {
+            rmSync(PAIRING_CODE_FILE);
+          }
+        } catch {}
       }
 
       // ── انقطع الاتصال ──
@@ -285,37 +329,22 @@ export async function startBot(): Promise<BotState> {
           errorMessage?.includes("logged out") ||
           errorMessage?.includes("Stream Errored");
 
-        // هل انتهت صلاحية QR بدون مسح؟ (Error 428 أو timeout)
-        const isQRExpired =
-          statusCode === 428 ||
-          errorMessage?.includes("QR") ||
-          errorMessage?.includes("timed out") ||
-          errorMessage?.includes("QR ref");
-
         if (isLoggedOut) {
           console.log("[SalesBot] 🚪 تم تسجيل الخروج. تنظيف وإعادة بدء...");
           state.status = "disconnected";
           state.qrCode = null;
+          state.pairingCode = null;
           state.phoneNumber = null;
           sock = null;
           cleanupOldSession();
-          // إعادة تشغيل تلقائي مع QR جديد
           setTimeout(() => {
-            reconnectAttempts = 0; // تصفير العداد لبداية جديدة
+            reconnectAttempts = 0;
             startBot();
           }, 2000);
-        } else if (isQRExpired) {
-          // 🔄 انتهت صلاحية QR — إعادة المحاولة فوراً مع QR جديد
-          console.log("[SalesBot] 🔄 انتهت صلاحية QR Code — جاري إنشاء QR جديد تلقائياً...");
-          state.status = "disconnected";
-          state.qrCode = null;
-          sock = null;
-          reconnectAttempts = 0; // تصفير العداد
-          // إعادة تشغيل فورية بدون تأخير
-          setTimeout(() => startBot(), 500);
         } else {
           // انقطاع مؤقت: إعادة اتصال
           state.status = "connecting";
+          state.pairingCode = null;
           sock = null;
           scheduleReconnect();
         }
@@ -360,7 +389,7 @@ export async function startBot(): Promise<BotState> {
       }
     });
 
-    console.log("[SalesBot] ⏳ في انتظار الاتصال... افتح qr-code.png وامسح الكود");
+    console.log("[SalesBot] ⏳ جاري إنشاء رمز الاقتران... انتظر لحظة");
     return getBotState();
   } catch (e: any) {
     state.status = "error";
@@ -390,6 +419,7 @@ export async function stopBot(): Promise<void> {
   }
   state.status = "disconnected";
   state.qrCode = null;
+  state.pairingCode = null;
   state.phoneNumber = null;
   state.startedAt = null;
 }
