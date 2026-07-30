@@ -129,23 +129,29 @@ export async function startBot(): Promise<BotState> {
           const { connection, lastDisconnect, qr } = update;
     
           if (qr) {
-            // توليد QR code كـ base64 للعرض في صفحة الويب
-            import("qrcode").then(m => {
-              m.toDataURL(qr, { width: 400 }).then((url: string) => {
-                state.qrCode = url;
-                console.log("");
-                console.log("┌─────────────────────────────────────────────────┐");
-                console.log("│  📱 امسح QR Code من واتسابك                     │");
-                console.log("│                                                 │");
-                console.log("│  🔗 افتح الرابط في المتصفح:                     │");
-                console.log("│  👉 http://localhost:8080/api/bot/qr              │");
-                console.log("│                                                 │");
-                console.log("│  📲 واتساب ← الأجهزة المرتبطة ← امسح الكود      │");
-                console.log("└─────────────────────────────────────────────────┘");
-                console.log("");
-              }).catch(() => { state.qrCode = qr; });
-            }).catch(() => { state.qrCode = qr; });
-          }
+                      // توليد QR code كـ base64 للعرض في صفحة الويب
+                      import("qrcode").then(m => {
+                        m.toDataURL(qr, { width: 400 }).then((url: string) => {
+                          state.qrCode = url;
+                        }).catch(() => { state.qrCode = qr; });
+          
+                        // طباعة QR Code كـ ASCII في Terminal عشان تقدر تمسحه مباشرة
+                        m.toString(qr, { type: "terminal", small: true }, (err: any, ascii: string) => {
+                          if (!err && ascii) {
+                            console.log("");
+                            console.log("╔═══════════════════════════════════════════════════╗");
+                            console.log("║   📱 امسح هاد QR Code من واتساب تاعك ديركت:     ║");
+                            console.log("╚═══════════════════════════════════════════════════╝");
+                            console.log("");
+                            console.log(ascii);
+                            console.log("");
+                            console.log("🔗 أو افتح: http://localhost:8080/api/bot/qr");
+                            console.log("📲 واتساب ← الأجهزة المرتبطة ← امسح الكود");
+                            console.log("");
+                          }
+                        });
+                      }).catch(() => { state.qrCode = qr; });
+                    }
 
       if (connection === "open") {
         state.status = "connected";
