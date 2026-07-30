@@ -24,8 +24,7 @@ const AUTH_DIR = "./.salesbot-auth";
 const PAIRING_CODE_FILE = "./pairing-code.txt";
 
 // ⚙️ رقم هاتف واتساب المراد ربطه (مع رمز الدولة، بدون + ولا مسافات)
-// مثال: 212612345678
-const WHATSAPP_PHONE_NUMBER = "212600000000";
+const WHATSAPP_PHONE_NUMBER = "212699954816";
 
 // ⏱️ إعدادات التوقيت (بالمللي ثانية)
 const CONNECT_TIMEOUT = 300_000;   // 5 دقائق — وقت محاولة الاتصال
@@ -239,6 +238,9 @@ export async function startBot(): Promise<BotState> {
     state.lastError = "حزمة Baileys غير مثبتة. شغّل: npm install @whiskeysockets/baileys@latest qrcode pino";
     return getBotState();
   }
+
+  // تنظيف الجلسة القديمة لبداية جديدة تماماً
+  cleanupOldSession();
 
   state.status = "connecting";
   state.qrCode = null;
