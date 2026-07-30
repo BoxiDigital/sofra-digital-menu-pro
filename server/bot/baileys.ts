@@ -119,23 +119,33 @@ export async function startBot(): Promise<BotState> {
     console.log(`[SalesBot] إصدار WA: v${version.join(".")}`);
 
     sock = makeWASocket({
-      version,
-      auth: authState,
-      printQRInTerminal: true,
-    });
-
-    sock.ev.on("creds.update", saveCreds);
-
-    sock.ev.on("connection.update", (update: any) => {
-      const { connection, lastDisconnect, qr } = update;
-
-      if (qr) {
-        import("qrcode").then(m => {
-          m.toDataURL(qr, { width: 400 }).then((url: string) => {
-            state.qrCode = url;
-          }).catch(() => { state.qrCode = qr; });
-        }).catch(() => { state.qrCode = qr; });
-      }
+          version,
+          auth: authState,
+        });
+    
+        sock.ev.on("creds.update", saveCreds);
+    
+        sock.ev.on("connection.update", (update: any) => {
+          const { connection, lastDisconnect, qr } = update;
+    
+          if (qr) {
+            // توليد QR code كـ base64 للعرض في صفحة الويب
+            import("qrcode").then(m => {
+              m.toDataURL(qr, { width: 400 }).then((url: string) => {
+                state.qrCode = url;
+                console.log("");
+                console.log("┌─────────────────────────────────────────────────┐");
+                console.log("│  📱 امسح QR Code من واتسابك                     │");
+                console.log("│                                                 │");
+                console.log("│  🔗 افتح الرابط في المتصفح:                     │");
+                console.log("│  👉 http://localhost:8080/api/bot/qr              │");
+                console.log("│                                                 │");
+                console.log("│  📲 واتساب ← الأجهزة المرتبطة ← امسح الكود      │");
+                console.log("└─────────────────────────────────────────────────┘");
+                console.log("");
+              }).catch(() => { state.qrCode = qr; });
+            }).catch(() => { state.qrCode = qr; });
+          }
 
       if (connection === "open") {
         state.status = "connected";
