@@ -5,7 +5,7 @@
 
 import { defineHandler } from "nitro";
 import { getQuery } from "nitro/h3";
-import { getRecentLogs } from "../../bot/conversations";
+import { getRecentLogs } from "../../../bot/conversations";
 
 export default defineHandler(async (event) => {
   const query = getQuery(event);

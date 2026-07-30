@@ -4,7 +4,7 @@
  */
 
 import { defineHandler } from "nitro";
-import { stopBot } from "../../bot/baileys";
+import { stopBot } from "../../../bot/baileys";
 
 export default defineHandler(async () => {
   await stopBot();

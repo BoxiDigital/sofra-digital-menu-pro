@@ -4,8 +4,8 @@
  */
 
 import { defineHandler } from "nitro";
-import { startBot } from "../../bot/baileys";
-import { initSalesBot } from "../../bot/init";
+import { startBot } from "../../../bot/baileys";
+import { initSalesBot } from "../../../bot/init";
 
 export default defineHandler(async () => {
   await initSalesBot();

@@ -4,9 +4,9 @@
  */
 
 import { defineHandler } from "nitro";
-import { initSalesBot } from "../../bot/init";
-import { getBotState } from "../../bot/baileys";
-import { getRecentLogs, getActiveCount } from "../../bot/conversations";
+import { initSalesBot } from "../../../bot/init";
+import { getBotState } from "../../../bot/baileys";
+import { getRecentLogs, getActiveCount } from "../../../bot/conversations";
 
 export default defineHandler(async () => {
   // تأكد أن البوت يعمل

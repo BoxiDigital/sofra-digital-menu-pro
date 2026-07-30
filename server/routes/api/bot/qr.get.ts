@@ -5,9 +5,9 @@
  */
 
 import { defineHandler } from "nitro";
-import { initSalesBot } from "../../bot/init";
-import { getBotState } from "../../bot/baileys";
-import { getActiveCount, getRecentLogs } from "../../bot/conversations";
+import { initSalesBot } from "../../../bot/init";
+import { getBotState } from "../../../bot/baileys";
+import { getActiveCount, getRecentLogs } from "../../../bot/conversations";
 
 const CSS = `
 * { margin: 0; padding: 0; box-sizing: border-box; }
