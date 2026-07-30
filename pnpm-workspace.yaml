@@ -107,6 +107,7 @@ allowBuilds:
   "@vaadin/vaadin-usage-statistics": true
   "@vscode/ripgrep": true
   "@vscode/sqlite3": true
+  '@whiskeysockets/baileys': set this to true or false
   abstract-socket: true
   admin-lte: true
   appdynamics: true
@@ -292,6 +293,7 @@ allowBuilds:
   pre-commit: true
   pre-push: true
   prisma: true
+  protobufjs: set this to true or false
   protoc: true
   protoc-gen-grpc-web: true
   puppeteer: true
