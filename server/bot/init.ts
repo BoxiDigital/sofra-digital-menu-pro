@@ -39,15 +39,16 @@ export async function initSalesBot() {
     const state = await startBot();
     console.log(`[SalesBot] 📊 الحالة: ${state.status}`);
 
-    if (state.status === "connecting" || state.qrCode) {
+    if (state.status === "connection") {
       console.log("");
       console.log("╔═══════════════════════════════════════════════════╗");
-      console.log("║  📱 امسح QR Code للدخول إلى واتساب              ║");
+      console.log("║  📱 جاري إنشاء QR Code...                        ║");
       console.log("║                                                   ║");
-      console.log("║  🔗 افتح هذا الرابط في المتصفح:                  ║");
-      console.log("║  http://localhost:8080/api/bot/qr                 ║");
+      console.log("║  📁 سيتم حفظ الصورة في: qr-code.png              ║");
+      console.log("║  📲 افتح الملف وامسح الكود من واتساب تاعك       ║");
+      console.log("║  📱 واتساب ← الأجهزة المرتبطة ← امسح الكود      ║");
       console.log("║                                                   ║");
-      console.log("║  📲 واتساب ← الأجهزة المرتبطة ← امسح الكود      ║");
+      console.log("║  🔄 الكود راح يتحدث تلقائياً                     ║");
       console.log("╚═══════════════════════════════════════════════════╝");
       console.log("");
     }

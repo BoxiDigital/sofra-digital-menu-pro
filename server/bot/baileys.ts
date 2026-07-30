@@ -7,6 +7,7 @@
  * - إعدادات timeout مناسبة
  * - إعادة اتصال ذكية مع تأخير تصاعدي
  * - تنظيف تلقائي للجلسة القديمة
+ * - حفظ QR Code كصورة PNG مباشرة في مجلد المشروع
  */
 
 import type { Boom } from "@hapi/boom";
@@ -21,6 +22,7 @@ let fetchLatestBaileysVersion: any;
 let baileysLoaded = false;
 
 const AUTH_DIR = "./.salesbot-auth";
+const QR_FILE_PATH = "./qr-code.png";
 
 // Logger صامت (فقط للأخطاء) لتجنب spam في Terminal
 const logger = pino({
@@ -60,6 +62,38 @@ function cleanupOldSession(): void {
     console.log("[SalesBot] ✨ تم تجهيز مجلد مصادقة جديد");
   } catch (e: any) {
     console.error("[SalesBot] ⚠️ خطأ في تنظيف الجلسة:", e.message);
+  }
+}
+
+/**
+ * حفظ QR Code كصورة PNG عالية الجودة في مجلد المشروع
+ */
+async function saveQRCodeImage(qrCode: string): Promise<string | null> {
+  try {
+    const qrcode = await import("qrcode");
+    await qrcode.toFile(QR_FILE_PATH, qrCode, { 
+      width: 500, 
+      margin: 2,
+      color: {
+        dark: "#000000",
+        light: "#ffffff"
+      }
+    });
+    console.log("");
+    console.log("╔═══════════════════════════════════════════════════╗");
+    console.log("║  ✅ تم إنشاء/تحديث كود QR بنجاح!                 ║");
+    console.log("║                                                   ║");
+    console.log("║  📁 مكان الملف: qr-code.png                      ║");
+    console.log("║  📱 افتح الملف وامسح الكود من واتساب تاعك       ║");
+    console.log("║  📲 واتساب ← الأجهزة المرتبطة ← امسح الكود      ║");
+    console.log("║                                                   ║");
+    console.log("║  🔄 راح يتحدث الكود تلقائياً كل ما تحتاج         ║");
+    console.log("╚═══════════════════════════════════════════════════╝");
+    console.log("");
+    return QR_FILE_PATH;
+  } catch (error: any) {
+    console.error("[SalesBot] ⚠️ فشل حفظ صورة QR:", error.message);
+    return null;
   }
 }
 
@@ -205,31 +239,15 @@ export async function startBot(): Promise<BotState> {
 
       // ── QR Code جديد ──
       if (qr) {
-        console.log("[SalesBot] 📱 QR Code جديد تم استلامه");
-        import("qrcode").then(m => {
-          // حفظ الصورة في مجلد المشروع
-          m.toFile("./qr-code-1.png", qr, { width: 400 }, (err: any) => {
-            if (!err) {
-              console.log("");
-              console.log("╔═══════════════════════════════════════════════════╗");
-              console.log("║  ✅ تم حفظ صورة QR في: qr-code-1.png             ║");
-              console.log("║  📱 افتح الملف وامسح الكود من واتساب تاعك       ║");
-              console.log("║  📲 واتساب ← الأجهزة المرتبطة ← امسح الكود      ║");
-              console.log("╚═══════════════════════════════════════════════════╝");
-              console.log("");
-            } else {
-              console.error("[SalesBot] ⚠️ فشل حفظ ملف QR:", err.message);
-            }
-          });
-
-          // توليد base64 للـ API
-          m.toDataURL(qr, { width: 400 }).then((url: string) => {
-            state.qrCode = url;
-          }).catch(() => {
-            state.qrCode = qr;
-          });
-        }).catch(() => {
-          state.qrCode = qr;
+        console.log("[SalesBot] 📱 QR Code جديد تم استلامه - جاري حفظه كصورة...");
+        
+        // حفظ الصورة مباشرة في مجلد المشروع
+        saveQRCodeImage(qr).then((filePath) => {
+          if (filePath) {
+            state.qrCode = filePath; // نخزن مسار الملف بدل base64
+          }
+        }).catch((err: any) => {
+          console.error("[SalesBot] ❌ فشل حفظ QR Code:", err.message);
         });
       }
 
