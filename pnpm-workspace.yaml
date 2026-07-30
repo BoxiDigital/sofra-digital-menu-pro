@@ -1,4 +1,6 @@
 allowBuilds:
+  "@whiskeysockets/baileys@7.0.0-rc14(sharp@0.35.3(@types/node": false # dyad-auto-denied
+  protobufjs: false # dyad-auto-denied
   # dyad-default-allow-builds begin
   # dyad-default-allow-builds-schema=v1
   # dyad-default-allow-builds-data-version=2026-07-08.1
@@ -107,7 +109,6 @@ allowBuilds:
   "@vaadin/vaadin-usage-statistics": true
   "@vscode/ripgrep": true
   "@vscode/sqlite3": true
-  '@whiskeysockets/baileys': set this to true or false
   abstract-socket: true
   admin-lte: true
   appdynamics: true
@@ -293,7 +294,6 @@ allowBuilds:
   pre-commit: true
   pre-push: true
   prisma: true
-  protobufjs: set this to true or false
   protoc: true
   protoc-gen-grpc-web: true
   puppeteer: true
