@@ -31,5 +31,5 @@ dist-ssr
 .dyad/
 
 # Sales Bot
-qr-code.png
+qr-code*.png
 .salesbot-auth/

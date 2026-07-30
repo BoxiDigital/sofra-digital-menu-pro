@@ -6,15 +6,22 @@
  * 
  * هذا الملف خاص بي أنا فقط (صاحب المنصة). يدير اتصال بوت المبيعات
  * برقم واتسابي الشخصي للرد التلقائي على أصحاب المطاعم.
+ * 
+ * 🔄 التنظيف التلقائي: يحذف جلسة واتساب القديمة عند كل تشغيل
+ *    لتوليد QR Code جديد ونظيف تلقائياً.
  */
 
 import type { Boom } from "@hapi/boom";
+import { existsSync, rmSync, mkdirSync } from "fs";
+import { join } from "path";
 
 let makeWASocket: any;
 let useMultiFileAuthState: any;
 let DisconnectReason: any;
 let fetchLatestBaileysVersion: any;
 let baileysLoaded = false;
+
+const AUTH_DIR = "./.salesbot-auth";
 
 async function loadBaileys() {
   if (!baileysLoaded) {
@@ -29,6 +36,25 @@ async function loadBaileys() {
       console.error("[SalesBot] ⚠️ Baileys غير مثبت. شغّل: npm install @whiskeysockets/baileys qrcode pino");
       throw new Error("BAILEYS_NOT_INSTALLED");
     }
+  }
+}
+
+/**
+ * تنظيف الجلسة القديمة تلقائياً
+ * يحذف مجلد المصادقة القديم لبدء جلسة جديدة تماماً
+ */
+function cleanupOldSession(): void {
+  try {
+    const authPath = join(process.cwd(), AUTH_DIR);
+    if (existsSync(authPath)) {
+      rmSync(authPath, { recursive: true, force: true });
+      console.log("[SalesBot] 🧹 تم تنظيف جلسة المصادقة القديمة");
+    }
+    // إعادة إنشاء المجلد نظيف
+    mkdirSync(authPath, { recursive: true });
+    console.log("[SalesBot] ✨ تم تجهيز مجلد مصادقة جديد");
+  } catch (e: any) {
+    console.error("[SalesBot] ⚠️ خطأ في تنظيف الجلسة:", e.message);
   }
 }
 
@@ -109,49 +135,52 @@ export async function startBot(): Promise<BotState> {
     return getBotState();
   }
 
+  // 🧹 تنظيف الجلسة القديمة تلقائياً
+  cleanupOldSession();
+
   state.status = "connecting";
   state.qrCode = null;
   state.lastError = null;
 
   try {
-    const { state: authState, saveCreds } = await useMultiFileAuthState("./.salesbot-auth");
+    const { state: authState, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
     const { version } = await fetchLatestBaileysVersion();
     console.log(`[SalesBot] إصدار WA: v${version.join(".")}`);
 
     sock = makeWASocket({
-          version,
-          auth: authState,
-        });
-    
-        sock.ev.on("creds.update", saveCreds);
-    
-        sock.ev.on("connection.update", (update: any) => {
-          const { connection, lastDisconnect, qr } = update;
-    
-          if (qr) {
-                      import("qrcode").then(m => {
-                        // 1. حفظ صورة QR حقيقية في ملف PNG
-                        m.toFile("./qr-code.png", qr, { width: 400 }, (err: any) => {
-                          if (!err) {
-                            console.log("");
-                            console.log("╔═══════════════════════════════════════════════════╗");
-                            console.log("║  ✅ تم حفظ صورة QR في: qr-code.png               ║");
-                            console.log("║  📱 افتح الملف وامسح الكود من واتساب تاعك       ║");
-                            console.log("║  📲 واتساب ← الأجهزة المرتبطة ← امسح الكود      ║");
-                            console.log("╚═══════════════════════════════════════════════════╝");
-                            console.log("");
-                            console.log("🔗 أو افتح هاد الرابط في المتصفح:");
-                            console.log("   http://localhost:8080/api/bot/qr");
-                            console.log("");
-                          }
-                        });
-          
-                        // 2. توليد base64 لصفحة الويب
-                        m.toDataURL(qr, { width: 400 }).then((url: string) => {
-                          state.qrCode = url;
-                        }).catch(() => { state.qrCode = qr; });
-                      }).catch(() => { state.qrCode = qr; });
-                    }
+      version,
+      auth: authState,
+    });
+
+    sock.ev.on("creds.update", saveCreds);
+
+    sock.ev.on("connection.update", (update: any) => {
+      const { connection, lastDisconnect, qr } = update;
+
+      if (qr) {
+        import("qrcode").then(m => {
+          // 1. حفظ صورة QR حقيقية في ملف PNG
+          m.toFile("./qr-code-1.png", qr, { width: 400 }, (err: any) => {
+            if (!err) {
+              console.log("");
+              console.log("╔═══════════════════════════════════════════════════╗");
+              console.log("║  ✅ تم حفظ صورة QR في: qr-code-1.png             ║");
+              console.log("║  📱 افتح الملف وامسح الكود من واتساب تاعك       ║");
+              console.log("║  📲 واتساب ← الأجهزة المرتبطة ← امسح الكود      ║");
+              console.log("╚═══════════════════════════════════════════════════╝");
+              console.log("");
+              console.log("🔗 أو افتح هاد الرابط في المتصفح:");
+              console.log("   http://localhost:8080/api/bot/qr");
+              console.log("");
+            }
+          });
+
+          // 2. توليد base64 لصفحة الويب
+          m.toDataURL(qr, { width: 400 }).then((url: string) => {
+            state.qrCode = url;
+          }).catch(() => { state.qrCode = qr; });
+        }).catch(() => { state.qrCode = qr; });
+      }
 
       if (connection === "open") {
         state.status = "connected";
