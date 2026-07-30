@@ -4,10 +4,11 @@
  * إعدادات محسّنة للاتصال بـ WebSocket مع سرفيرات واتساب.
  * يتضمن:
  * - محاكاة متصفح واتساب ويب الحقيقي
- * - إعدادات timeout مناسبة
+ * - إعدادات timeout مناسبة (QR يبقى صالح 5 دقائق، الاتصال 3 دقائق)
  * - إعادة اتصال ذكية مع تأخير تصاعدي
  * - تنظيف تلقائي للجلسة القديمة
  * - حفظ QR Code كصورة PNG مباشرة في مجلد المشروع
+ * - تجديد تلقائي لـ QR Code عند انتهاء صلاحيته
  */
 
 import type { Boom } from "@hapi/boom";
@@ -24,6 +25,11 @@ let baileysLoaded = false;
 
 const AUTH_DIR = "./.salesbot-auth";
 const QR_FILE_PATH = "./qr-code.png";
+
+// ⏱️ إعدادات التوقيت (بالمللي ثانية)
+const QR_TIMEOUT = 300_000;        // 5 دقائق — صلاحية QR Code
+const CONNECT_TIMEOUT = 180_000;   // 3 دقائق — وقت محاولة الاتصال
+const QUERY_TIMEOUT = 60_000;      // دقيقة — مهلة الاستعلامات
 
 // Logger صامت (فقط للأخطاء) لتجنب spam في Terminal
 const logger = pino({
@@ -89,7 +95,7 @@ async function saveQRCodeImage(qrCode: string): Promise<string | null> {
     console.log("║  📱 افتح الملف وامسح الكود من واتساب تاعك       ║");
     console.log("║  📲 واتساب ← الأجهزة المرتبطة ← امسح الكود      ║");
     console.log("║                                                   ║");
-    console.log("║  🔄 راح يتحدث الكود تلقائياً كل ما تحتاج         ║");
+    console.log("║  🔄 الكود صالح لمدة 5 دقائق ويتجدد تلقائياً      ║");
     console.log("╚═══════════════════════════════════════════════════╝");
     console.log("");
     return QR_FILE_PATH;
@@ -170,7 +176,7 @@ export async function sendMessage(to: string, text: string): Promise<boolean> {
 function scheduleReconnect() {
   if (reconnectTimer) clearTimeout(reconnectTimer);
 
-  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 60000); // 1s, 2s, 4s, 8s, 16s, 32s, 60s (max)
+  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 60000);
   reconnectAttempts++;
 
   console.log(`[SalesBot] 🔄 محاولة إعادة الاتصال رقم ${reconnectAttempts} بعد ${delay / 1000} ثواني...`);
@@ -186,12 +192,10 @@ function scheduleReconnect() {
 // ── بدء / إيقاف البوت ───────────────────────────────────
 
 export async function startBot(): Promise<BotState> {
-  // إذا كان متصلاً بالفعل، لا تفعل شيئاً
   if (state.status === "connected") {
     return getBotState();
   }
 
-  // إذا كان يحاول الاتصال، انتظر
   if (state.status === "connecting") {
     console.log("[SalesBot] ⏳ الاتصال قيد التقدم...");
     return getBotState();
@@ -203,19 +207,24 @@ export async function startBot(): Promise<BotState> {
     return getBotState();
   }
 
-  cleanupOldSession();
+  // لا ننظف الجلسة إلا إذا طلب الخروج يدوياً
+  // cleanupOldSession(); ← معطل: الجلسة محفوظة لتجنب طلب QR كل مرة
 
   state.status = "connecting";
   state.qrCode = null;
   state.lastError = null;
 
   try {
+    const authDir = join(process.cwd(), AUTH_DIR);
+    if (!existsSync(authDir)) {
+      mkdirSync(authDir, { recursive: true });
+    }
+
     const { state: authState, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
     const { version, isLatest } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 3000, 0], isLatest: true }));
 
     console.log(`[SalesBot] 📦 إصدار Baileys: ${version.join(".")} — ${isLatest ? "✅ أحدث إصدار" : "⚠️ يوجد إصدار أحدث"}`);
 
-    // ⚙️ إعدادات الاتصال المحسّنة
     sock = makeWASocket({
       version,
       auth: {
@@ -223,17 +232,14 @@ export async function startBot(): Promise<BotState> {
         keys: makeCacheableSignalKeyStore(authState.keys, logger),
       },
       logger,
-      // محاكاة متصفح واتساب ويب الحقيقي (مهم جداً لتجنب Error 515)
       browser: ["Ubuntu", "Chrome", "20.0.04"],
-      // إعدادات timeout
-      connectTimeoutMs: 60_000,
-      qrTimeout: 60_000,
-      defaultQueryTimeoutMs: 30_000,
-      // تحسين الأداء
+      // ⏱️ إعدادات التوقيت المحسّنة
+      connectTimeoutMs: CONNECT_TIMEOUT,      // 3 دقائق
+      qrTimeout: QR_TIMEOUT,                   // 5 دقائق
+      defaultQueryTimeoutMs: QUERY_TIMEOUT,    // دقيقة
       syncFullHistory: false,
       markOnlineOnConnect: false,
       generateHighQualityLinkPreview: false,
-      // طباعة QR في Terminal للمساعدة
       printQRInTerminal: false,
     });
 
@@ -244,12 +250,11 @@ export async function startBot(): Promise<BotState> {
 
       // ── QR Code جديد ──
       if (qr) {
-        console.log("[SalesBot] 📱 QR Code جديد تم استلامه - جاري حفظه كصورة...");
+        console.log("[SalesBot] 📱 QR Code جديد تم استلامه — جاري الحفظ والتجديد...");
         
-        // حفظ الصورة مباشرة في مجلد المشروع
         saveQRCodeImage(qr).then((filePath) => {
           if (filePath) {
-            state.qrCode = filePath; // نخزن مسار الملف بدل base64
+            state.qrCode = filePath;
           }
         }).catch((err: any) => {
           console.error("[SalesBot] ❌ فشل حفظ QR Code:", err.message);
@@ -258,13 +263,14 @@ export async function startBot(): Promise<BotState> {
 
       // ── تم الاتصال بنجاح ──
       if (connection === "open") {
-        reconnectAttempts = 0; // تصفير عداد المحاولات
+        reconnectAttempts = 0;
         state.status = "connected";
         state.qrCode = null;
         state.startedAt = new Date().toISOString();
         state.lastError = null;
         state.phoneNumber = sock?.user?.id?.split(":")[0] || null;
         console.log(`[SalesBot] ✅ متصل بالواتساب! الرقم: ${state.phoneNumber}`);
+        console.log("[SalesBot] 🟢 البوت نشط ومستعد لاستقبال الرسائل 24/7");
       }
 
       // ── انقطع الاتصال ──
@@ -274,11 +280,17 @@ export async function startBot(): Promise<BotState> {
 
         console.log(`[SalesBot] ⚠️ انقطع الاتصال (Code: ${statusCode || "غير معروف"}) — ${errorMessage}`);
 
-        // هل خرج المستخدم يدوياً؟
         const isLoggedOut =
           statusCode === DisconnectReason?.loggedOut ||
           errorMessage?.includes("logged out") ||
           errorMessage?.includes("Stream Errored");
+
+        // هل انتهت صلاحية QR بدون مسح؟ (Error 428 أو timeout)
+        const isQRExpired =
+          statusCode === 428 ||
+          errorMessage?.includes("QR") ||
+          errorMessage?.includes("timed out") ||
+          errorMessage?.includes("QR ref");
 
         if (isLoggedOut) {
           console.log("[SalesBot] 🚪 تم تسجيل الخروج. تنظيف وإعادة بدء...");
@@ -287,8 +299,20 @@ export async function startBot(): Promise<BotState> {
           state.phoneNumber = null;
           sock = null;
           cleanupOldSession();
-          // إعادة تشغيل تلقائي بعد ثانيتين
-          setTimeout(() => startBot(), 2000);
+          // إعادة تشغيل تلقائي مع QR جديد
+          setTimeout(() => {
+            reconnectAttempts = 0; // تصفير العداد لبداية جديدة
+            startBot();
+          }, 2000);
+        } else if (isQRExpired) {
+          // 🔄 انتهت صلاحية QR — إعادة المحاولة فوراً مع QR جديد
+          console.log("[SalesBot] 🔄 انتهت صلاحية QR Code — جاري إنشاء QR جديد تلقائياً...");
+          state.status = "disconnected";
+          state.qrCode = null;
+          sock = null;
+          reconnectAttempts = 0; // تصفير العداد
+          // إعادة تشغيل فورية بدون تأخير
+          setTimeout(() => startBot(), 500);
         } else {
           // انقطاع مؤقت: إعادة اتصال
           state.status = "connecting";
@@ -336,13 +360,13 @@ export async function startBot(): Promise<BotState> {
       }
     });
 
+    console.log("[SalesBot] ⏳ في انتظار الاتصال... افتح qr-code.png وامسح الكود");
     return getBotState();
   } catch (e: any) {
     state.status = "error";
     state.lastError = e.message || "خطأ غير معروف";
     console.error("[SalesBot] ❌ خطأ في بدء البوت:", e.message);
 
-    // إعادة محاولة بعد التأخير
     scheduleReconnect();
     return getBotState();
   }

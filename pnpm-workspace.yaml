@@ -374,7 +374,6 @@ allowBuilds:
   zeromq: true
   zlib-sync: true
   zopflipng-bin: true
-  '@whiskeysockets/baileys': set this to true or false
   # dyad-default-allow-builds end
 
 packages:
