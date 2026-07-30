@@ -1,19 +1,18 @@
 /**
  * WhatsApp Connection Manager using Baileys
  * 
- * تثبيت الحزمة المطلوبة:
- * npm install @whiskeysockets/baileys qrcode pino
- * 
- * هذا الملف خاص بي أنا فقط (صاحب المنصة). يدير اتصال بوت المبيعات
- * برقم واتسابي الشخصي للرد التلقائي على أصحاب المطاعم.
- * 
- * 🔄 التنظيف التلقائي: يحذف جلسة واتساب القديمة عند كل تشغيل
- *    لتوليد QR Code جديد ونظيف تلقائياً.
+ * إعدادات محسّنة للاتصال بـ WebSocket مع سرفيرات واتساب.
+ * يتضمن:
+ * - محاكاة متصفح واتساب ويب الحقيقي
+ * - إعدادات timeout مناسبة
+ * - إعادة اتصال ذكية مع تأخير تصاعدي
+ * - تنظيف تلقائي للجلسة القديمة
  */
 
 import type { Boom } from "@hapi/boom";
 import { existsSync, rmSync, mkdirSync } from "fs";
 import { join } from "path";
+import pino from "pino";
 
 let makeWASocket: any;
 let useMultiFileAuthState: any;
@@ -22,6 +21,15 @@ let fetchLatestBaileysVersion: any;
 let baileysLoaded = false;
 
 const AUTH_DIR = "./.salesbot-auth";
+
+// Logger صامت (فقط للأخطاء) لتجنب spam في Terminal
+const logger = pino({
+  level: "silent",
+  transport: {
+    target: "pino/file",
+    options: { destination: 1 }, // stdout
+  },
+});
 
 async function loadBaileys() {
   if (!baileysLoaded) {
@@ -32,17 +40,15 @@ async function loadBaileys() {
       DisconnectReason = b.DisconnectReason;
       fetchLatestBaileysVersion = b.fetchLatestBaileysVersion;
       baileysLoaded = true;
-    } catch {
-      console.error("[SalesBot] ⚠️ Baileys غير مثبت. شغّل: npm install @whiskeysockets/baileys qrcode pino");
+      console.log("[SalesBot] ✅ Baileys تم تحميله بنجاح");
+    } catch (e: any) {
+      console.error("[SalesBot] ⚠️ Baileys غير مثبت أو فشل التحميل:", e.message);
+      console.error("[SalesBot] شغّل: npm install @whiskeysockets/baileys@latest qrcode pino");
       throw new Error("BAILEYS_NOT_INSTALLED");
     }
   }
 }
 
-/**
- * تنظيف الجلسة القديمة تلقائياً
- * يحذف مجلد المصادقة القديم لبدء جلسة جديدة تماماً
- */
 function cleanupOldSession(): void {
   try {
     const authPath = join(process.cwd(), AUTH_DIR);
@@ -50,7 +56,6 @@ function cleanupOldSession(): void {
       rmSync(authPath, { recursive: true, force: true });
       console.log("[SalesBot] 🧹 تم تنظيف جلسة المصادقة القديمة");
     }
-    // إعادة إنشاء المجلد نظيف
     mkdirSync(authPath, { recursive: true });
     console.log("[SalesBot] ✨ تم تجهيز مجلد مصادقة جديد");
   } catch (e: any) {
@@ -86,6 +91,8 @@ const state: BotState = {
 
 let sock: any = null;
 let messageHandler: ((msg: IncomingMessage) => Promise<string | null>) | null = null;
+let reconnectAttempts = 0;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ── الأنواع ─────────────────────────────────────────────
 
@@ -122,20 +129,44 @@ export async function sendMessage(to: string, text: string): Promise<boolean> {
   }
 }
 
+// ── إعادة الاتصال بتأخير تصاعدي ─────────────────────────
+
+function scheduleReconnect() {
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+
+  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 60000); // 1s, 2s, 4s, 8s, 16s, 32s, 60s (max)
+  reconnectAttempts++;
+
+  console.log(`[SalesBot] 🔄 محاولة إعادة الاتصال رقم ${reconnectAttempts} بعد ${delay / 1000} ثواني...`);
+  reconnectTimer = setTimeout(async () => {
+    try {
+      await startBot();
+    } catch (e) {
+      console.error("[SalesBot] ❌ فشلت محاولة إعادة الاتصال:", e);
+    }
+  }, delay);
+}
+
 // ── بدء / إيقاف البوت ───────────────────────────────────
 
 export async function startBot(): Promise<BotState> {
-  if (state.status === "connected" || state.status === "connecting") {
+  // إذا كان متصلاً بالفعل، لا تفعل شيئاً
+  if (state.status === "connected") {
+    return getBotState();
+  }
+
+  // إذا كان يحاول الاتصال، انتظر
+  if (state.status === "connecting") {
+    console.log("[SalesBot] ⏳ الاتصال قيد التقدم...");
     return getBotState();
   }
 
   try { await loadBaileys(); } catch {
     state.status = "error";
-    state.lastError = "حزمة Baileys غير مثبتة. شغّل: npm install @whiskeysockets/baileys qrcode pino";
+    state.lastError = "حزمة Baileys غير مثبتة. شغّل: npm install @whiskeysockets/baileys@latest qrcode pino";
     return getBotState();
   }
 
-  // 🧹 تنظيف الجلسة القديمة تلقائياً
   cleanupOldSession();
 
   state.status = "connecting";
@@ -144,12 +175,27 @@ export async function startBot(): Promise<BotState> {
 
   try {
     const { state: authState, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
-    const { version } = await fetchLatestBaileysVersion();
-    console.log(`[SalesBot] إصدار WA: v${version.join(".")}`);
+    const { version, isLatest } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 3000, 0], isLatest: true }));
 
+    console.log(`[SalesBot] 📦 إصدار Baileys: ${version.join(".")} — ${isLatest ? "✅ أحدث إصدار" : "⚠️ يوجد إصدار أحدث"}`);
+
+    // ⚙️ إعدادات الاتصال المحسّنة
     sock = makeWASocket({
       version,
       auth: authState,
+      logger,
+      // محاكاة متصفح واتساب ويب الحقيقي (مهم جداً لتجنب Error 515)
+      browser: ["Safari", "macOS", "10.15.7"],
+      // إعدادات timeout
+      connectTimeoutMs: 60_000,   // مهلة الاتصال: 60 ثانية
+      qrTimeout: 60_000,          // مهلة QR Code: 60 ثانية
+      defaultQueryTimeoutMs: 30_000,
+      // تحسين الأداء
+      syncFullHistory: false,     // لا تحمّل تاريخ المحادثات كامل
+      markOnlineOnConnect: false, // لا تظهر online فوراً
+      generateHighQualityLinkPreview: false,
+      // طباعة QR في Terminal للمساعدة
+      printQRInTerminal: false,   // نعتمد على ملف PNG
     });
 
     sock.ev.on("creds.update", saveCreds);
@@ -157,9 +203,11 @@ export async function startBot(): Promise<BotState> {
     sock.ev.on("connection.update", (update: any) => {
       const { connection, lastDisconnect, qr } = update;
 
+      // ── QR Code جديد ──
       if (qr) {
+        console.log("[SalesBot] 📱 QR Code جديد تم استلامه");
         import("qrcode").then(m => {
-          // 1. حفظ صورة QR حقيقية في ملف PNG
+          // حفظ الصورة في مجلد المشروع
           m.toFile("./qr-code-1.png", qr, { width: 400 }, (err: any) => {
             if (!err) {
               console.log("");
@@ -169,54 +217,75 @@ export async function startBot(): Promise<BotState> {
               console.log("║  📲 واتساب ← الأجهزة المرتبطة ← امسح الكود      ║");
               console.log("╚═══════════════════════════════════════════════════╝");
               console.log("");
-              console.log("🔗 أو افتح هاد الرابط في المتصفح:");
-              console.log("   http://localhost:8080/api/bot/qr");
-              console.log("");
+            } else {
+              console.error("[SalesBot] ⚠️ فشل حفظ ملف QR:", err.message);
             }
           });
 
-          // 2. توليد base64 لصفحة الويب
+          // توليد base64 للـ API
           m.toDataURL(qr, { width: 400 }).then((url: string) => {
             state.qrCode = url;
-          }).catch(() => { state.qrCode = qr; });
-        }).catch(() => { state.qrCode = qr; });
+          }).catch(() => {
+            state.qrCode = qr;
+          });
+        }).catch(() => {
+          state.qrCode = qr;
+        });
       }
 
+      // ── تم الاتصال بنجاح ──
       if (connection === "open") {
+        reconnectAttempts = 0; // تصفير عداد المحاولات
         state.status = "connected";
         state.qrCode = null;
         state.startedAt = new Date().toISOString();
         state.lastError = null;
         state.phoneNumber = sock?.user?.id?.split(":")[0] || null;
-        console.log("[SalesBot] ✅ متصل بالواتساب");
+        console.log(`[SalesBot] ✅ متصل بالواتساب! الرقم: ${state.phoneNumber}`);
       }
 
+      // ── انقطع الاتصال ──
       if (connection === "close") {
-        const code = (lastDisconnect?.error as Boom)?.output?.statusCode;
-        const loggedOut = code === DisconnectReason?.loggedOut;
-        console.log(`[SalesBot] اتصال مغلق. إعادة اتصال: ${!loggedOut}`);
+        const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
+        const errorMessage = (lastDisconnect?.error as Error)?.message || "";
 
-        if (!loggedOut) {
-          state.status = "connecting";
-          startBot();
-        } else {
+        console.log(`[SalesBot] ⚠️ انقطع الاتصال (Code: ${statusCode || "غير معروف"}) — ${errorMessage}`);
+
+        // هل خرج المستخدم يدوياً؟
+        const isLoggedOut =
+          statusCode === DisconnectReason?.loggedOut ||
+          errorMessage?.includes("logged out") ||
+          errorMessage?.includes("Stream Errored");
+
+        if (isLoggedOut) {
+          console.log("[SalesBot] 🚪 تم تسجيل الخروج. تنظيف وإعادة بدء...");
           state.status = "disconnected";
           state.qrCode = null;
           state.phoneNumber = null;
           sock = null;
+          cleanupOldSession();
+          // إعادة تشغيل تلقائي بعد ثانيتين
+          setTimeout(() => startBot(), 2000);
+        } else {
+          // انقطاع مؤقت: إعادة اتصال
+          state.status = "connecting";
+          sock = null;
+          scheduleReconnect();
         }
       }
     });
 
-    // استقبال الرسائل
+    // ── استقبال الرسائل ──
     sock.ev.on("messages.upsert", async (m: any) => {
       if (m.type !== "notify") return;
       for (const msg of m.messages) {
         if (msg.key.fromMe) continue;
+
         const text =
           msg.message?.conversation ||
           msg.message?.extendedTextMessage?.text ||
           msg.message?.imageMessage?.caption || "";
+
         if (!text?.trim()) continue;
 
         state.messagesReceived++;
@@ -227,15 +296,18 @@ export async function startBot(): Promise<BotState> {
           timestamp: (msg.messageTimestamp as number) * 1000 || Date.now(),
         };
 
+        console.log(`[SalesBot] 📩 رسالة من ${incoming.fromName}: ${text.substring(0, 50)}...`);
+
         if (messageHandler) {
           try {
             const reply = await messageHandler(incoming);
             if (reply) {
               await sock.sendMessage(incoming.from, { text: reply });
               state.messagesSent++;
+              console.log(`[SalesBot] 📤 رد إلى ${incoming.fromName}: ${reply.substring(0, 50)}...`);
             }
           } catch (e) {
-            console.error("[SalesBot] خطأ في معالج الرسائل:", e);
+            console.error("[SalesBot] ❌ خطأ في معالجة الرسالة:", e);
           }
         }
       }
@@ -245,14 +317,28 @@ export async function startBot(): Promise<BotState> {
   } catch (e: any) {
     state.status = "error";
     state.lastError = e.message || "خطأ غير معروف";
-    console.error("[SalesBot] خطأ في البدء:", e);
+    console.error("[SalesBot] ❌ خطأ في بدء البوت:", e.message);
+
+    // إعادة محاولة بعد التأخير
+    scheduleReconnect();
     return getBotState();
   }
 }
 
 export async function stopBot(): Promise<void> {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  reconnectAttempts = 0;
+
   if (sock) {
-    try { await sock.logout(); } catch {}
+    try {
+      await sock.logout();
+      console.log("[SalesBot] 👋 تم تسجيل الخروج");
+    } catch (e: any) {
+      console.log("[SalesBot] ℹ️ تسجيل الخروج:", e.message);
+    }
     sock = null;
   }
   state.status = "disconnected";
