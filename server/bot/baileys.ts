@@ -129,27 +129,27 @@ export async function startBot(): Promise<BotState> {
           const { connection, lastDisconnect, qr } = update;
     
           if (qr) {
-                      // توليد QR code كـ base64 للعرض في صفحة الويب
                       import("qrcode").then(m => {
-                        m.toDataURL(qr, { width: 400 }).then((url: string) => {
-                          state.qrCode = url;
-                        }).catch(() => { state.qrCode = qr; });
-          
-                        // طباعة QR Code كـ ASCII في Terminal عشان تقدر تمسحه مباشرة
-                        m.toString(qr, { type: "terminal", small: true }, (err: any, ascii: string) => {
-                          if (!err && ascii) {
+                        // 1. حفظ صورة QR حقيقية في ملف PNG
+                        m.toFile("./qr-code.png", qr, { width: 400 }, (err: any) => {
+                          if (!err) {
                             console.log("");
                             console.log("╔═══════════════════════════════════════════════════╗");
-                            console.log("║   📱 امسح هاد QR Code من واتساب تاعك ديركت:     ║");
+                            console.log("║  ✅ تم حفظ صورة QR في: qr-code.png               ║");
+                            console.log("║  📱 افتح الملف وامسح الكود من واتساب تاعك       ║");
+                            console.log("║  📲 واتساب ← الأجهزة المرتبطة ← امسح الكود      ║");
                             console.log("╚═══════════════════════════════════════════════════╝");
                             console.log("");
-                            console.log(ascii);
-                            console.log("");
-                            console.log("🔗 أو افتح: http://localhost:8080/api/bot/qr");
-                            console.log("📲 واتساب ← الأجهزة المرتبطة ← امسح الكود");
+                            console.log("🔗 أو افتح هاد الرابط في المتصفح:");
+                            console.log("   http://localhost:8080/api/bot/qr");
                             console.log("");
                           }
                         });
+          
+                        // 2. توليد base64 لصفحة الويب
+                        m.toDataURL(qr, { width: 400 }).then((url: string) => {
+                          state.qrCode = url;
+                        }).catch(() => { state.qrCode = qr; });
                       }).catch(() => { state.qrCode = qr; });
                     }
 
