@@ -1,9 +1,11 @@
 /**
  * Nitro Server Plugin — التشغيل التلقائي لبوت المبيعات
- * 
+ *
  * يتم استدعاء هذا الملف تلقائياً عند بدء تشغيل خادم Nitro.
  * يضمن أن بوت المبيعات يعمل 24/7 في السحاب دون تدخل يدوي.
  */
+
+import { defineNitroPlugin } from "nitro";
 
 export default defineNitroPlugin(() => {
   // تأخير بسيط لضمان جاهزية الخادم
