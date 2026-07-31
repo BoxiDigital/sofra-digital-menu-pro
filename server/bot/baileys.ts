@@ -1,17 +1,8 @@
 /**
  * WhatsApp Connection Manager using Baileys
  * 
- * 🔧 تشخيص الاتصال: تم تفعيل logging عالي المستوى لمعرفة سبب فشل الاتصال بالضبط.
- * 
- * الأسباب المحتملة لفشل WebSocket:
- * 1. Port 5222 محجوب في البيئة (Render / Railway / بعض VPS)
- * 2. DNS لا يحل web.whatsapp.com
- * 3. وكيل (Proxy) يعترض الاتصال
- * 
- * الحلول التقنية حسب السبب:
- * - السبب 1: لا يمكن تجاوزه مباشرة من الكود. تحتاج VPS مع بورتات مفتوحة أو Railway/Render مع خطة Pro.
- * - السبب 2: يمكننا إضافة fallback DNS.
- * - السبب 3: يمكننا تكوين Baileys لاستخدام وكيل (proxy).
+ * 🔧 وضع البدء النظيف: يتم حذف الجلسة القديمة وطلب كود اقتران طازج فور الإقلاع.
+ * الرقم الحصري: 212699954816
  */
 
 import type { Boom } from "@hapi/boom";
@@ -36,13 +27,12 @@ const WHATSAPP_PHONE_NUMBER = "212699954816";
 const CONNECT_TIMEOUT = 300_000;   // 5 دقائق
 const QUERY_TIMEOUT = 60_000;      // دقيقة
 
-// 🔧 Logger مفعّل عالياً لتشخيص المشكلة
-// level: "debug" = يظهر كل التفاصيل بما فيها WebSocket errors
+// Logger صامت (فقط الأخطاء المهمة تظهر)
 const logger = pino({
-  level: "debug",
+  level: "silent",
   transport: {
     target: "pino/file",
-    options: { destination: 1 }, // stdout = Terminal
+    options: { destination: 1 },
   },
 });
 
@@ -64,17 +54,30 @@ async function loadBaileys() {
   }
 }
 
-function cleanupOldSession(): void {
+/**
+ * حذف الجلسة القديمة وملف الكود القديم بالكامل
+ * لضمان بداية نظيفة 100% في كل إقلاع
+ */
+function cleanupEverything(): void {
   try {
+    // حذف مجلد الجلسة القديمة
     const authPath = join(process.cwd(), AUTH_DIR);
     if (existsSync(authPath)) {
       rmSync(authPath, { recursive: true, force: true });
-      console.log("[SalesBot] 🧹 تم تنظيف جلسة المصادقة القديمة");
+      console.log("[SalesBot] 🧹 تم حذف مجلد الجلسة القديم بالكامل");
     }
     mkdirSync(authPath, { recursive: true });
-    console.log("[SalesBot] ✨ تم تجهيز مجلد مصادقة جديد");
+
+    // حذف ملف الكود القديم
+    const pairingPath = join(process.cwd(), PAIRING_CODE_FILE);
+    if (existsSync(pairingPath)) {
+      rmSync(pairingPath, { force: true });
+      console.log("[SalesBot] 🧹 تم حذف ملف pairing-code.txt القديم");
+    }
+
+    console.log("[SalesBot] ✨ جاهز لبداية نظيفة 100%");
   } catch (e: any) {
-    console.error("[SalesBot] ⚠️ خطأ في تنظيف الجلسة:", e.message);
+    console.error("[SalesBot] ⚠️ خطأ في التنظيف:", e.message);
   }
 }
 
@@ -110,6 +113,7 @@ let sock: any = null;
 let messageHandler: ((msg: IncomingMessage) => Promise<string | null>) | null = null;
 let reconnectAttempts = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let pairingRequested = false; // نتأكد أننا نطلب الكود مرة واحدة فقط
 
 // ── الأنواع ─────────────────────────────────────────────
 
@@ -166,23 +170,31 @@ function scheduleReconnect(reason: string) {
 
 /**
  * طلب رمز اقتران (Pairing Code) من واتساب
+ * يُظهر الرمز في Terminal ويحفظه في ملف pairing-code.txt
  */
 async function requestPairingCode(socket: any, phoneNumber: string): Promise<string | null> {
+  if (pairingRequested) return null; // لا نطلب مرتين
+  pairingRequested = true;
+
   try {
     const cleanNumber = phoneNumber.replace(/[+\s]/g, "");
     
-    console.log(`[SalesBot] 📱 طلب رمز الاقتران للرقم: ${cleanNumber}...`);
+    console.log(`[SalesBot] 📱 جاري طلب رمز اقتران طازج للرقم: ${cleanNumber}...`);
     
     const code = await socket.requestPairingCode(cleanNumber);
     
     if (!code || code === "INVALID_PHONE_NUMBER") {
       console.error("[SalesBot] ❌ رقم الهاتف غير صالح أو لا يدعم الاقتران");
+      pairingRequested = false; // نسمح بإعادة المحاولة
       return null;
     }
 
+    // حفظ الرمز في الملف فوراً
     const codeMsg = `رقم الهاتف: ${cleanNumber}\nرمز الاقتران: ${code}\nصالح لمدة دقيقتين\n`;
     writeFileSync(PAIRING_CODE_FILE, codeMsg, "utf-8");
+    console.log(`[SalesBot] 💾 تم حفظ رمز الاقتران فوراً في: ${PAIRING_CODE_FILE}`);
 
+    // عرض الرمز بشكل بارز في Terminal
     console.log("");
     console.log("╔═══════════════════════════════════════════════════╗");
     console.log("║  ✅ تم إنشاء رمز الاقتران بنجاح!                 ║");
@@ -197,12 +209,14 @@ async function requestPairingCode(socket: any, phoneNumber: string): Promise<str
     console.log("║  4. أدخل الرمز أعلاه                              ║");
     console.log("║                                                   ║");
     console.log(`║  📁 الرمز محفوظ في: ${PAIRING_CODE_FILE.padEnd(20)}║`);
+    console.log("║  ⏱️  الرمز صالح لمدة دقيقتين فقط                  ║");
     console.log("╚═══════════════════════════════════════════════════╝");
     console.log("");
 
     return code;
   } catch (err: any) {
     console.error("[SalesBot] ❌ فشل طلب رمز الاقتران:", err.message);
+    pairingRequested = false; // نسمح بإعادة المحاولة
     return null;
   }
 }
@@ -225,8 +239,9 @@ export async function startBot(): Promise<BotState> {
     return getBotState();
   }
 
-  // لا ننظف الجلسة إذا كان هناك محاولة سابقة
-  // cleanupOldSession(); ← معطل مؤقتاً لتجنب فقدان الجلسة
+  // 🧹 تنظيف كامل: حذف الجلسة القديمة وملف الكود القديم
+  cleanupEverything();
+  pairingRequested = false;
 
   state.status = "connecting";
   state.qrCode = null;
@@ -243,8 +258,7 @@ export async function startBot(): Promise<BotState> {
     const { version, isLatest } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 3000, 0], isLatest: true }));
 
     console.log(`[SalesBot] 📦 Baileys v${version.join(".")} — ${isLatest ? "✅ أحدث إصدار" : "⚠️ يوجد إصدار أحدث"}`);
-    console.log(`[SalesBot] 🧪 وضع التشخيص مفعّل — جميع الأخطاء ستظهر في Terminal`);
-    console.log(`[SalesBot] 🔌 جاري محاولة الاتصال بـ web.whatsapp.com:5222...`);
+    console.log(`[SalesBot] 🔌 جاري الاتصال بسيرفرات واتساب...`);
 
     sock = makeWASocket({
       version,
@@ -252,7 +266,7 @@ export async function startBot(): Promise<BotState> {
         creds: authState.creds,
         keys: makeCacheableSignalKeyStore(authState.keys, logger),
       },
-      logger, // ← مفعّل عالياً باش يظهر WebSocket errors
+      logger,
       browser: ["Ubuntu", "Chrome", "20.0.04"],
       connectTimeoutMs: CONNECT_TIMEOUT,
       defaultQueryTimeoutMs: QUERY_TIMEOUT,
@@ -261,27 +275,33 @@ export async function startBot(): Promise<BotState> {
       generateHighQualityLinkPreview: false,
       printQRInTerminal: false,
       mobile: false,
-      // 🔧 إعدادات إضافية لتحسين الاتصال في بيئات مقيدة
-      keepAliveIntervalMs: 25000,   // إرسال ping كل 25 ثانية
-      retryRequestDelayMs: 500,     // إعادة المحاولة بسرعة
+      keepAliveIntervalMs: 25000,
+      retryRequestDelayMs: 500,
     });
 
     sock.ev.on("creds.update", saveCreds);
 
+    // ⚡ طلب كود الاقتران فوراً عند أول إشارة اتصال
     sock.ev.on("connection.update", async (update: any) => {
       const { connection, lastDisconnect, qr } = update;
 
-      console.log(`[SalesBot] 📡 connection.update → ${JSON.stringify({ connection, hasQR: !!qr, lastDisconnect: !!lastDisconnect })}`);
-
-      // ── QR Code متاح ──
-      if (qr) {
-        console.log("[SalesBot] 📱 QR Code تم استلامه");
-        state.qrCode = qr;
+      // ── طلب كود الاقتران فوراً عند أول محاولة اتصال ──
+      if (connection === "connecting" && !state.pairingCode && !pairingRequested) {
+        console.log("[SalesBot] ⚡ بدأ الاتصال — جاري طلب كود الاقتران فوراً...");
+        setTimeout(async () => {
+          if (sock && state.status === "connecting" && !pairingRequested) {
+            const code = await requestPairingCode(sock, WHATSAPP_PHONE_NUMBER);
+            if (code) {
+              state.pairingCode = code;
+            }
+          }
+        }, 2000);
       }
 
-      // ── جاري الاتصال ──
-      if (connection === "connecting") {
-        console.log("[SalesBot] ⏳ WebSocket: محاولة الاتصال...");
+      // ── QR Code (خطة بديلة) ──
+      if (qr && !state.pairingCode) {
+        console.log("[SalesBot] 📱 QR Code متاح كخطة بديلة");
+        state.qrCode = qr;
       }
 
       // ── تم الاتصال بنجاح ──
@@ -293,18 +313,16 @@ export async function startBot(): Promise<BotState> {
         state.startedAt = new Date().toISOString();
         state.lastError = null;
         state.phoneNumber = sock?.user?.id?.split(":")[0] || null;
-        console.log(`[SalesBot] ✅✅✅ متصل! الرقم: ${state.phoneNumber}`);
+        console.log(`[SalesBot] ✅✅✅ متصل بالواتساب! الرقم: ${state.phoneNumber}`);
         console.log("[SalesBot] 🟢 البوت نشط ومستعد لاستقبال الرسائل");
-
-        // طلب رمز الاقتران بعد الاتصال
-        setTimeout(async () => {
-          if (sock && state.status === "connected" && !state.pairingCode) {
-            await requestPairingCode(sock, WHATSAPP_PHONE_NUMBER);
+        
+        // حذف ملف رمز الاقتران بعد الاتصال الناجح
+        try {
+          if (existsSync(PAIRING_CODE_FILE)) {
+            rmSync(PAIRING_CODE_FILE);
+            console.log("[SalesBot] 🧹 تم حذف ملف الكود بعد الاتصال الناجح");
           }
-        }, 2000);
-
-        // حذف ملف رمز الاقتران القديم
-        try { if (existsSync(PAIRING_CODE_FILE)) rmSync(PAIRING_CODE_FILE); } catch {}
+        } catch {}
       }
 
       // ── انقطع الاتصال ──
@@ -314,39 +332,24 @@ export async function startBot(): Promise<BotState> {
         const errorName = (lastDisconnect?.error as Error)?.name || "";
 
         console.log("");
-        console.log("╔═══════════════════════════════════════════════════╗");
-        console.log("║  🔴 انقطع الاتصال — تفاصيل الخطأ:               ║");
-        console.log(`║  Status Code: ${String(statusCode || "غير معروف").padEnd(36)}║`);
-        console.log(`║  Error Name:  ${errorName.padEnd(36)}║`);
-        console.log(`║  Message:     ${errorMessage.substring(0, 50).padEnd(36)}║`);
-        console.log("╚═══════════════════════════════════════════════════╝");
+        console.log(`[SalesBot] ⚠️ انقطع الاتصال`);
+        console.log(`[SalesBot]    Status: ${statusCode || "غير معروف"}`);
+        console.log(`[SalesBot]    Error: ${errorName} — ${errorMessage.substring(0, 100)}`);
         console.log("");
 
-        // تحليل السبب الجذري
         if (statusCode === DisconnectReason?.loggedOut) {
-          console.log("[SalesBot] 🚪 السبب: تم تسجيل الخروج");
+          console.log("[SalesBot] 🚪 تم تسجيل الخروج — إعادة بدء نظيفة...");
           state.status = "disconnected";
+          state.pairingCode = null;
           sock = null;
-          cleanupOldSession();
+          pairingRequested = false;
           setTimeout(() => { reconnectAttempts = 0; startBot(); }, 2000);
         } else if (errorMessage?.includes("ECONNREFUSED") || errorMessage?.includes("ENOTFOUND") || errorMessage?.includes("ETIMEDOUT")) {
-          // 🔴 هذا هو السبب الأكثر احتمالاً — البورت محجوب أو DNS لا يحل
-          console.log("[SalesBot] 🔴 السبب الجذري: لا يمكن الوصول إلى web.whatsapp.com:5222");
-          console.log("[SalesBot] 🔴 الاحتمالات:");
-          console.log("[SalesBot]    1. البورت 5222 محجوب في البيئة (Render/Railway free tier يمنع WebSocket خارجي)");
-          console.log("[SalesBot]    2. DNS لا يحل web.whatsapp.com");
-          console.log("[SalesBot]    3. جدار ناري (Firewall) يمنع الاتصال الصادر");
+          console.log("[SalesBot] 🔴 البورت 5222 محجوب أو DNS لا يحل web.whatsapp.com");
           state.status = "error";
           state.lastError = `WEB_SOCKET_BLOCKED: ${errorMessage.substring(0, 100)}`;
           scheduleReconnect("WebSocket blocked");
-        } else if (errorMessage?.includes("QR") || errorMessage?.includes("timed out")) {
-          console.log("[SalesBot] ⏰ انتهت صلاحية QR — إعادة المحاولة...");
-          state.status = "disconnected";
-          sock = null;
-          reconnectAttempts = 0;
-          setTimeout(() => startBot(), 500);
         } else {
-          // انقطاع عام
           state.status = "error";
           state.lastError = errorMessage || "انقطاع غير معروف";
           scheduleReconnect("unknown");
@@ -391,7 +394,7 @@ export async function startBot(): Promise<BotState> {
       }
     });
 
-    console.log("[SalesBot] ⏳ في انتظار نتيجة الاتصال...");
+    console.log("[SalesBot] ⏳ في انتظار كود الاقتران...");
     return getBotState();
   } catch (e: any) {
     state.status = "error";
@@ -423,4 +426,5 @@ export async function stopBot(): Promise<void> {
   state.pairingCode = null;
   state.phoneNumber = null;
   state.startedAt = null;
+  pairingRequested = false;
 }
