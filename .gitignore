@@ -29,7 +29,3 @@ dist-ssr
 /playwright/.cache/
 .last-run.json
 .dyad/
-
-# Sales Bot
-qr-code*.png
-.salesbot-auth/
