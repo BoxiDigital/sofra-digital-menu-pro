@@ -738,11 +738,14 @@ function DishCard({
   const cartItem = cart.find((item) => item.dish.id === dish.id);
 
   return (
-      <div className="flex gap-4 p-3 rounded-[1.25rem] border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl hover:border-white/[0.10] hover:bg-white/[0.04] transition-all duration-500 shadow-[0_4px_30px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.5),0_0_30px_rgba(200,162,77,0.04)] group/card">
-        <div
-          className="w-28 h-28 rounded-2xl overflow-hidden flex-shrink-0 cursor-pointer relative shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
-          onClick={() => onImageClick(dish.image)}
-        >
+      <div
+              onClick={() => { if (!cartItem) addToCart(dish); }}
+              className={`flex gap-4 p-3 rounded-[1.25rem] border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl transition-all duration-500 shadow-[0_4px_30px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.5),0_0_30px_rgba(200,162,77,0.04)] group/card hover:border-white/[0.10] hover:bg-white/[0.04] ${!cartItem ? "cursor-pointer" : ""}`}
+            >
+              <div
+                className="w-28 h-28 rounded-2xl overflow-hidden flex-shrink-0 cursor-pointer relative shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
+                onClick={(e) => { e.stopPropagation(); onImageClick(dish.image); }}
+              >
           <img
             src={dish.image}
             alt={lang === "ar" ? dish.nameAr : dish.nameFr}
