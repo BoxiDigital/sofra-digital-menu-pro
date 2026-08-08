@@ -15,13 +15,22 @@ interface ClientViewProps {
   restaurantId: string;
 }
 
-function lightenColor(hex: string, amount: number): string {
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
   hex = hex.replace("#", "");
   if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-  const r = Math.min(255, Math.round(parseInt(hex.substring(0, 2), 16) + (255 - parseInt(hex.substring(0, 2), 16)) * amount));
-  const g = Math.min(255, Math.round(parseInt(hex.substring(2, 4), 16) + (255 - parseInt(hex.substring(2, 4), 16)) * amount));
-  const b = Math.min(255, Math.round(parseInt(hex.substring(4, 6), 16) + (255 - parseInt(hex.substring(4, 6), 16)) * amount));
-  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+  return {
+    r: parseInt(hex.substring(0, 2), 16),
+    g: parseInt(hex.substring(2, 4), 16),
+    b: parseInt(hex.substring(4, 6), 16),
+  };
+}
+
+function lightenColor(hex: string, amount: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  const lr = Math.min(255, Math.round(r + (255 - r) * amount));
+  const lg = Math.min(255, Math.round(g + (255 - g) * amount));
+  const lb = Math.min(255, Math.round(b + (255 - b) * amount));
+  return `#${lr.toString(16).padStart(2, "0")}${lg.toString(16).padStart(2, "0")}${lb.toString(16).padStart(2, "0")}`;
 }
 
 export default function ClientView({ categories, dishes, config, restaurantId }: ClientViewProps) {
@@ -44,10 +53,14 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
     const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
-    const root = document.documentElement;
-    root.style.setProperty("--primary", config.primaryColor);
-    root.style.setProperty("--primary-hover", lightenColor(config.primaryColor, 0.15));
-  }, [config.primaryColor]);
+      const root = document.documentElement;
+      const { r, g, b } = hexToRgb(config.primaryColor);
+      root.style.setProperty("--primary", config.primaryColor);
+      root.style.setProperty("--primary-r", String(r));
+      root.style.setProperty("--primary-g", String(g));
+      root.style.setProperty("--primary-b", String(b));
+      root.style.setProperty("--primary-hover", lightenColor(config.primaryColor, 0.15));
+    }, [config.primaryColor]);
 
   const t = useMemo(() => ({
     cartTitle: lang === "ar" ? "سلة الطلبات" : "Mon panier",
@@ -277,12 +290,16 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
         )}
 
         {/* ─── Atmospheric Lighting Effects ─── */}
-        <div className="fixed inset-0 pointer-events-none z-0">
-          {/* Top warm glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full blur-[150px] opacity-20" style={{ background: `radial-gradient(ellipse at center, ${config.primaryColor}40 0%, transparent 70%)` }} />
-          {/* Subtle bottom ambient */}
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full blur-[120px] opacity-10" style={{ background: `radial-gradient(ellipse at center, ${config.primaryColor}30 0%, transparent 70%)` }} />
-        </div>
+                <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+                  {/* Top warm glow — animated float */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full blur-[150px] animate-glow-pulse" style={{ background: `radial-gradient(ellipse at center, rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.25) 0%, transparent 70%)` }} />
+                  {/* Mid-left floating orb */}
+                  <div className="absolute top-1/3 -left-32 w-[400px] h-[400px] rounded-full blur-[120px] animate-float-slower opacity-15" style={{ background: `radial-gradient(circle, rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.2) 0%, transparent 70%)` }} />
+                  {/* Bottom-right floating orb */}
+                  <div className="absolute bottom-0 -right-20 w-[500px] h-[350px] rounded-full blur-[130px] animate-float-wide opacity-10" style={{ background: `radial-gradient(circle, rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.18) 0%, transparent 70%)` }} />
+                  {/* Subtle bottom ambient */}
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full blur-[120px] animate-glow-pulse opacity-10" style={{ background: `radial-gradient(ellipse at center, rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.15) 0%, transparent 70%)`, animationDelay: "1.5s" }} />
+                </div>
   
         {/* ─── Header ─── */}
         <header className="relative overflow-hidden z-10">
@@ -400,10 +417,10 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                   <button
                     onClick={() => scrollToCategory(null)}
                     className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 backdrop-blur-xl border shadow-[0_2px_12px_rgba(0,0,0,0.3)] ${
-                      selectedCategory === null
-                        ? "bg-[var(--primary)] text-black border-[var(--primary)] shadow-[0_0_25px_rgba(200,162,77,0.25)]"
-                        : "bg-white/[0.03] border-white/[0.05] text-white/50 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.10]"
-                    }`}
+                                          selectedCategory === null
+                                            ? "bg-[var(--primary)] text-black border-[var(--primary)] shadow-[0_0_30px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.35)]"
+                                            : "bg-white/[0.03] border-white/[0.05] text-white/50 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.10]"
+                                        }`}
                   >
                     {t.allCategories}
                   </button>
@@ -412,10 +429,10 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                       key={cat.id}
                       onClick={() => scrollToCategory(cat.id)}
                       className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 backdrop-blur-xl border shadow-[0_2px_12px_rgba(0,0,0,0.3)] ${
-                        selectedCategory === cat.id
-                          ? "bg-[var(--primary)] text-black border-[var(--primary)] shadow-[0_0_25px_rgba(200,162,77,0.25)]"
-                          : "bg-white/[0.03] border-white/[0.05] text-white/50 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.10]"
-                      }`}
+                                              selectedCategory === cat.id
+                                                ? "bg-[var(--primary)] text-black border-[var(--primary)] shadow-[0_0_30px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.35)]"
+                                                : "bg-white/[0.03] border-white/[0.05] text-white/50 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.10]"
+                                            }`}
                     >
                       {lang === "ar" ? cat.nameAr : cat.nameFr}
                     </button>
@@ -425,7 +442,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
             </div>
 
       {/* ─── Dishes Grid ─── */}
-                  <div className="max-w-lg mx-auto px-4 pb-4 space-y-4 relative z-10">
+                        <div className="max-w-lg mx-auto px-4 pb-4 space-y-4 relative z-10 stagger-entrance">
         {promoDishes.map((dish) => (
           <PromoCard
             key={dish.id}
@@ -467,7 +484,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                 </p>
                 <button
                   onClick={() => setRatingModalOpen(true)}
-                  className="inline-flex items-center gap-3 px-16 py-7 rounded-full backdrop-blur-xl bg-white/[0.04] border border-white/[0.08] text-[var(--primary)] font-bold text-2xl hover:bg-white/[0.07] hover:border-white/[0.14] transition-all duration-500 shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-[0_6px_30px_rgba(200,162,77,0.1)]"
+                  className="inline-flex items-center gap-3 px-16 py-7 rounded-full backdrop-blur-xl bg-white/[0.04] border border-white/[0.08] text-[var(--primary)] font-bold text-2xl hover:bg-white/[0.07] hover:border-white/[0.14] transition-all duration-500 shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-[0_6px_30px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.15)]"
                 >
                   <Star className="h-7 w-7" />
                   <span>{lang === "ar" ? "قيّم تجربتك" : "Évaluez votre expérience"}</span>
@@ -623,7 +640,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
               <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 z-40">
                 <Sheet>
                   <SheetTrigger asChild>
-                    <button className="w-full text-black rounded-[1rem] p-4 flex items-center justify-between transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] bg-[var(--primary)] shadow-[0_8px_30px_rgba(200,162,77,0.3)] hover:shadow-[0_12px_40px_rgba(200,162,77,0.4)]">
+                    <button className="w-full text-black rounded-[1rem] p-4 flex items-center justify-between transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] bg-[var(--primary)] animate-cta-pulse ripple-container">
                 <div className="flex items-center gap-3">
                   <div className="bg-black/20 p-2.5 rounded-xl relative">
                     <ShoppingBag className="h-5 w-5" />
@@ -690,7 +707,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                     </div>
                   ))}
 
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--primary)]/5 backdrop-blur-md border border-[var(--primary)]/15 shadow-[0_0_20px_rgba(200,162,77,0.05)]">
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--primary)]/5 backdrop-blur-md border border-[var(--primary)]/15 shadow-[0_0_20px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.05)]">
                     <span className="text-white font-bold">{t.total}</span>
                     <span className="text-[var(--primary)] font-bold text-lg">
                       {cartTotal} {t.currency}
@@ -738,7 +755,7 @@ function DishCard({
   const cartItem = cart.find((item) => item.dish.id === dish.id);
 
   return (
-      <div className="flex gap-4 p-3 rounded-[1.25rem] border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl hover:border-white/[0.10] hover:bg-white/[0.04] transition-all duration-500 shadow-[0_4px_30px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.5),0_0_30px_rgba(200,162,77,0.04)] group/card">
+      <div className="flex gap-4 p-3 rounded-[1.25rem] border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl hover:border-[rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.12)] hover:bg-white/[0.04] transition-all duration-500 shadow-[0_4px_30px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.5),0_0_30px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.06)] group/card">
         <div
           className="w-28 h-28 rounded-2xl overflow-hidden flex-shrink-0 cursor-pointer relative shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
           onClick={() => onImageClick(dish.image)}
@@ -787,7 +804,7 @@ function DishCard({
           </div>
   
           <div className="mt-2.5 flex items-center justify-between">
-            <span className="text-[var(--primary)] font-bold text-sm drop-shadow-[0_0_8px_rgba(200,162,77,0.15)]">
+            <span className="text-[var(--primary)] font-bold text-sm drop-shadow-[0_0_8px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.2)]">
               {dish.price} {currency}
             </span>
             {cartItem ? (
@@ -811,7 +828,7 @@ function DishCard({
             ) : (
               <button
                 onClick={() => addToCart(dish)}
-                className="text-xs font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)] transition-all duration-300 hover:drop-shadow-[0_0_8px_rgba(200,162,77,0.3)]"
+                className="text-xs font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)] transition-all duration-300 hover:drop-shadow-[0_0_8px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.3)]"
               >
                 + {lang === "ar" ? "إضافة" : "Ajouter"}
               </button>
@@ -845,7 +862,7 @@ function PromoCard({
   const promoText = lang === "ar" ? (dish.promoTextAr || "") : (dish.promoTextFr || "");
 
   return (
-      <div className="rounded-[1.5rem] overflow-hidden border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] group/promo hover:shadow-[0_12px_50px_rgba(0,0,0,0.6),0_0_40px_rgba(200,162,77,0.05)] transition-all duration-700">
+      <div className="rounded-[1.5rem] overflow-hidden border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] group/promo hover:shadow-[0_12px_50px_rgba(0,0,0,0.6),0_0_40px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.1)] hover:border-[rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.2)] transition-all duration-700">
         <div
           className="relative h-60 w-full overflow-hidden cursor-pointer"
           onClick={() => onImageClick(dish.image)}
@@ -866,7 +883,7 @@ function PromoCard({
             <Maximize2 className="h-4 w-4 text-white" />
           </div>
           <div className="absolute top-4 left-4">
-            <Badge className="bg-[var(--primary)] text-black border-0 text-xs font-bold px-4 py-1.5 rounded-full shadow-[0_4px_20px_rgba(200,162,77,0.3)] backdrop-blur-sm">
+            <Badge className="bg-[var(--primary)] text-black border-0 text-xs font-bold px-4 py-1.5 rounded-full shadow-[0_4px_20px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.3)] backdrop-blur-sm">
               {promoLabel}
             </Badge>
           </div>
@@ -882,7 +899,7 @@ function PromoCard({
                 {lang === "ar" ? dish.descriptionAr : dish.descriptionFr}
               </p>
             </div>
-            <span className="text-[var(--primary)] font-bold text-lg flex-shrink-0 drop-shadow-[0_0_10px_rgba(200,162,77,0.15)]">
+            <span className="text-[var(--primary)] font-bold text-lg flex-shrink-0 drop-shadow-[0_0_10px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.2)]">
               {dish.price} {currency}
             </span>
           </div>
@@ -890,7 +907,7 @@ function PromoCard({
           {!cartItem ? (
             <button
               onClick={() => addToCart(dish)}
-              className="w-full py-3.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-all duration-300 active:scale-[0.97] shadow-[0_4px_20px_rgba(200,162,77,0.25)] hover:shadow-[0_6px_30px_rgba(200,162,77,0.35)]"
+              className="w-full py-3.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-all duration-300 active:scale-[0.97] shadow-[0_4px_20px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.25)] hover:shadow-[0_6px_30px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.4)] ripple-container"
             >
               + {lang === "ar" ? "إضافة للسلة" : "Ajouter au panier"}
             </button>
@@ -913,7 +930,7 @@ function PromoCard({
           )}
   
           {promoText && (
-            <div className="bg-[var(--primary)]/5 backdrop-blur-md border border-[var(--primary)]/20 rounded-xl p-4 text-center shadow-[0_0_20px_rgba(200,162,77,0.06)]">
+            <div className="bg-[var(--primary)]/5 backdrop-blur-md border border-[var(--primary)]/20 rounded-xl p-4 text-center shadow-[0_0_20px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.06)]">
               <p className="text-[var(--primary)] font-bold text-sm">{promoText}</p>
             </div>
           )}

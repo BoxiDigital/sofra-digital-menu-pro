@@ -109,14 +109,129 @@
     border-radius: 9999px;
   }
   .category-scrollbar::-webkit-scrollbar-thumb {
-    background: #C8A24D;
+    background: var(--primary);
     border-radius: 9999px;
   }
   .category-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #D4B35D;
+    background: var(--primary-hover);
   }
   .category-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #C8A24D #1a1a1a;
+    scrollbar-color: var(--primary) #1a1a1a;
   }
+}
+
+/* ═══════════════════════════════════════════════
+   تأثيرات بصرية ديناميكية مرتبطة بالثيم
+   ═══════════════════════════════════════════════ */
+
+/* ── Ambient Floating Orbs ── */
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(30px, -30px) scale(1.05); }
+  66%  { transform: translate(-20px, 20px) scale(0.95); }
+}
+@keyframes float-slower {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50%  { transform: translate(-50px, -30px) rotate(3deg); }
+}
+@keyframes float-wide {
+  0%, 100% { transform: translate(0, 0); }
+  50%  { transform: translate(60px, -20px); }
+}
+
+/* ── Theme Glow Pulse ── */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.35; }
+  50%  { opacity: 0.65; }
+}
+
+/* ── CTA Attention Pulse (uses theme primary) ── */
+@keyframes cta-pulse {
+  0%, 100% { box-shadow: 0 4px 25px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.2); }
+  50%  { box-shadow: 0 6px 40px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.45); }
+}
+
+/* ── Border Glow Breath ── */
+@keyframes border-glow {
+  0%, 100% { border-color: rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.08); }
+  50%  { border-color: rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.25); }
+}
+
+/* ── Card Entrance ── */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Ripple (touch feedback) ── */
+@keyframes ripple-effect {
+  to { transform: scale(4); opacity: 0; }
+}
+
+/* ── Gradient Shift (ambient background) ── */
+@keyframes gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── Shimmer sweep ── */
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ── Gentle scale breath ── */
+@keyframes subtle-scale {
+  0%, 100% { transform: scale(1); }
+  50%  { transform: scale(1.02); }
+}
+
+/* ── Star twinkle ── */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50%  { opacity: 0.7; transform: scale(1.2); }
+}
+
+/* ── Utility classes ── */
+.animate-float-slow   { animation: float-slow 8s ease-in-out infinite; }
+.animate-float-slower { animation: float-slower 12s ease-in-out infinite; }
+.animate-float-wide   { animation: float-wide 10s ease-in-out infinite; }
+.animate-glow-pulse   { animation: glow-pulse 3s ease-in-out infinite; }
+.animate-cta-pulse    { animation: cta-pulse 2.5s ease-in-out infinite; }
+.animate-fade-in-up   { animation: fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-border-glow  { animation: border-glow 3s ease-in-out infinite; }
+.animate-gradient     { background-size: 200% 200%; animation: gradient-shift 8s ease infinite; }
+.animate-subtle-scale { animation: subtle-scale 4s ease-in-out infinite; }
+.animate-twinkle      { animation: twinkle 2s ease-in-out infinite; }
+
+/* ── Stagger children entrance ── */
+.stagger-entrance > * {
+  opacity: 0;
+  animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.stagger-entrance > *:nth-child(1)  { animation-delay: 0.05s; }
+.stagger-entrance > *:nth-child(2)  { animation-delay: 0.1s; }
+.stagger-entrance > *:nth-child(3)  { animation-delay: 0.15s; }
+.stagger-entrance > *:nth-child(4)  { animation-delay: 0.2s; }
+.stagger-entrance > *:nth-child(5)  { animation-delay: 0.25s; }
+.stagger-entrance > *:nth-child(6)  { animation-delay: 0.3s; }
+.stagger-entrance > *:nth-child(7)  { animation-delay: 0.35s; }
+.stagger-entrance > *:nth-child(8)  { animation-delay: 0.4s; }
+.stagger-entrance > *:nth-child(9)  { animation-delay: 0.45s; }
+.stagger-entrance > *:nth-child(10) { animation-delay: 0.5s; }
+
+/* ── Ripple container ── */
+.ripple-container {
+  position: relative;
+  overflow: hidden;
+}
+.ripple-container .ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.3);
+  transform: scale(0);
+  animation: ripple-effect 0.6s linear;
+  pointer-events: none;
 }

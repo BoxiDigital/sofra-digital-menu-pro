@@ -69,27 +69,45 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
-        "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
-        },
-        "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
-        },
-      },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-      },
+              "accordion-down": {
+                from: { height: "0" },
+                to: { height: "var(--radix-accordion-content-height)" },
+              },
+              "accordion-up": {
+                from: { height: "var(--radix-accordion-content-height)" },
+                to: { height: "0" },
+              },
+              "float-slow": {
+                "0%, 100%": { transform: "translate(0, 0) scale(1)" },
+                "33%": { transform: "translate(30px, -30px) scale(1.05)" },
+                "66%": { transform: "translate(-20px, 20px) scale(0.95)" },
+              },
+              "float-slower": {
+                "0%, 100%": { transform: "translate(0, 0) rotate(0deg)" },
+                "50%": { transform: "translate(-50px, -30px) rotate(3deg)" },
+              },
+              "glow-pulse": {
+                "0%, 100%": { opacity: "0.35" },
+                "50%": { opacity: "0.65" },
+              },
+              "fade-in-up": {
+                from: { opacity: "0", transform: "translateY(24px)" },
+                to: { opacity: "1", transform: "translateY(0)" },
+              },
+              "border-glow": {
+                "0%, 100%": { borderColor: "rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.08)" },
+                "50%": { borderColor: "rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.3)" },
+              },
+            },
+            animation: {
+              "accordion-down": "accordion-down 0.2s ease-out",
+              "accordion-up": "accordion-up 0.2s ease-out",
+              "float-slow": "float-slow 8s ease-in-out infinite",
+              "float-slower": "float-slower 12s ease-in-out infinite",
+              "glow-pulse": "glow-pulse 3s ease-in-out infinite",
+              "fade-in-up": "fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both",
+              "border-glow": "border-glow 3s ease-in-out infinite",
+            },
     },
   },
   plugins: [require("tailwindcss-animate")],
