@@ -6,11 +6,11 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-[#0D0D0D] flex flex-col relative overflow-hidden">
       {/* ─── Animated Background Orbs ─── */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full blur-[150px] animate-glow-pulse" style={{ background: "radial-gradient(ellipse at center, rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.2) 0%, transparent 70%)" }} />
-        <div className="absolute bottom-0 -right-20 w-[400px] h-[400px] rounded-full blur-[120px] animate-float-slower" style={{ background: "radial-gradient(circle, rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.12) 0%, transparent 70%)" }} />
-        <div className="absolute top-1/3 -left-20 w-[350px] h-[350px] rounded-full blur-[130px] animate-float-wide" style={{ background: "radial-gradient(circle, rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.1) 0%, transparent 70%)" }} />
-      </div>
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full blur-[150px] animate-glow-pulse" style={{ background: "radial-gradient(ellipse at center, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.2) 0%, transparent 70%)" }} />
+              <div className="absolute bottom-0 -right-20 w-[400px] h-[400px] rounded-full blur-[120px] animate-float-slower" style={{ background: "radial-gradient(circle, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.12) 0%, transparent 70%)" }} />
+              <div className="absolute top-1/3 -left-20 w-[350px] h-[350px] rounded-full blur-[130px] animate-float-wide" style={{ background: "radial-gradient(circle, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.1) 0%, transparent 70%)" }} />
+            </div>
 
       {/* Hero Section */}
       <section className="flex-1 flex flex-col items-center justify-center px-4 py-16 text-center relative z-10">

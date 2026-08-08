@@ -292,13 +292,13 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
         {/* ─── Atmospheric Lighting Effects ─── */}
                 <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
                   {/* Top warm glow — animated float */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full blur-[150px] animate-glow-pulse" style={{ background: `radial-gradient(ellipse at center, rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.25) 0%, transparent 70%)` }} />
-                  {/* Mid-left floating orb */}
-                  <div className="absolute top-1/3 -left-32 w-[400px] h-[400px] rounded-full blur-[120px] animate-float-slower opacity-15" style={{ background: `radial-gradient(circle, rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.2) 0%, transparent 70%)` }} />
-                  {/* Bottom-right floating orb */}
-                  <div className="absolute bottom-0 -right-20 w-[500px] h-[350px] rounded-full blur-[130px] animate-float-wide opacity-10" style={{ background: `radial-gradient(circle, rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.18) 0%, transparent 70%)` }} />
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full blur-[150px] animate-glow-pulse" style={{ background: `radial-gradient(ellipse at center, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.35) 0%, transparent 70%)` }} />
+                  {/* Mid-left floating orb — brighter */}
+                  <div className="absolute top-[20%] -left-32 w-[450px] h-[450px] rounded-full blur-[120px] animate-float-slower" style={{ background: `radial-gradient(circle, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.22) 0%, transparent 70%)` }} />
+                  {/* Mid-right floating orb */}
+                  <div className="absolute top-[55%] -right-16 w-[400px] h-[300px] rounded-full blur-[130px] animate-float-wide" style={{ background: `radial-gradient(circle, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.18) 0%, transparent 70%)` }} />
                   {/* Subtle bottom ambient */}
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full blur-[120px] animate-glow-pulse opacity-10" style={{ background: `radial-gradient(ellipse at center, rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.15) 0%, transparent 70%)`, animationDelay: "1.5s" }} />
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full blur-[120px] animate-glow-pulse" style={{ background: `radial-gradient(ellipse at center, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.15) 0%, transparent 70%)`, animationDelay: "1.5s" }} />
                 </div>
   
         {/* ─── Header ─── */}
@@ -329,7 +329,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                   onClick={() => setLang("ar")}
                   className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
                     lang === "ar"
-                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]"
+                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.3)]"
                       : "text-white/60 hover:text-white"
                   }`}
                 >
@@ -339,7 +339,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                   onClick={() => setLang("fr")}
                   className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
                     lang === "fr"
-                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]"
+                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.3)]"
                       : "text-white/60 hover:text-white"
                   }`}
                 >
@@ -357,27 +357,27 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                 </div>
               )}
               <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 flex gap-1 bg-black/30 backdrop-blur-xl border border-white/[0.06] rounded-full p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
-                <button
-                  onClick={() => setLang("ar")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
-                    lang === "ar"
-                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]"
-                      : "text-white/60 hover:text-white"
-                  }`}
-                >
-                  عربي
-                </button>
-                <button
-                  onClick={() => setLang("fr")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
-                    lang === "fr"
-                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]"
-                      : "text-white/60 hover:text-white"
-                  }`}
-                >
-                  FR
-                </button>
-              </div>
+                              <button
+                                onClick={() => setLang("ar")}
+                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
+                                  lang === "ar"
+                                    ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.3)]"
+                                    : "text-white/60 hover:text-white"
+                                }`}
+                              >
+                                عربي
+                              </button>
+                              <button
+                                onClick={() => setLang("fr")}
+                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
+                                  lang === "fr"
+                                    ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.3)]"
+                                    : "text-white/60 hover:text-white"
+                                }`}
+                              >
+                                FR
+                              </button>
+                            </div>
             </div>
           )}
   
@@ -504,7 +504,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
             {/* ─── Rating Modal ─── */}
                   {ratingModalOpen && (
                     <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
-                      <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/[0.06] rounded-[1.5rem] p-7 w-full max-w-sm space-y-6 shadow-[0_20px_60px_rgba(0,0,0,0.7),0_0_40px_rgba(200,162,77,0.04)]">
+                      <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/[0.06] rounded-[1.5rem] p-7 w-full max-w-sm space-y-6 shadow-[0_20px_60px_rgba(0,0,0,0.7),0_0_40px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.06)]">
                   {!showFeedback ? (
                     <>
                       <div className="text-center space-y-2">
