@@ -15,38 +15,13 @@ interface ClientViewProps {
   restaurantId: string;
 }
 
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
+function lightenColor(hex: string, amount: number): string {
   hex = hex.replace("#", "");
   if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-  return {
-    r: parseInt(hex.substring(0, 2), 16),
-    g: parseInt(hex.substring(2, 4), 16),
-    b: parseInt(hex.substring(4, 6), 16),
-  };
-}
-
-function lightenColor(hex: string, amount: number): string {
-  const { r, g, b } = hexToRgb(hex);
-  const lr = Math.min(255, Math.round(r + (255 - r) * amount));
-  const lg = Math.min(255, Math.round(g + (255 - g) * amount));
-  const lb = Math.min(255, Math.round(b + (255 - b) * amount));
-  return `#${lr.toString(16).padStart(2, "0")}${lg.toString(16).padStart(2, "0")}${lb.toString(16).padStart(2, "0")}`;
-}
-
-function createRipple(e: React.MouseEvent<HTMLElement>) {
-  const target = e.currentTarget;
-  const rect = target.getBoundingClientRect();
-  const size = Math.max(rect.width, rect.height);
-  const x = e.clientX - rect.left - size / 2;
-  const y = e.clientY - rect.top - size / 2;
-  const ripple = document.createElement("span");
-  ripple.className = "ripple";
-  ripple.style.left = `${x}px`;
-  ripple.style.top = `${y}px`;
-  ripple.style.width = `${size}px`;
-  ripple.style.height = `${size}px`;
-  target.appendChild(ripple);
-  ripple.addEventListener("animationend", () => ripple.remove());
+  const r = Math.min(255, Math.round(parseInt(hex.substring(0, 2), 16) + (255 - parseInt(hex.substring(0, 2), 16)) * amount));
+  const g = Math.min(255, Math.round(parseInt(hex.substring(2, 4), 16) + (255 - parseInt(hex.substring(2, 4), 16)) * amount));
+  const b = Math.min(255, Math.round(parseInt(hex.substring(4, 6), 16) + (255 - parseInt(hex.substring(4, 6), 16)) * amount));
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
 }
 
 export default function ClientView({ categories, dishes, config, restaurantId }: ClientViewProps) {
@@ -69,14 +44,10 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
     const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
-      const root = document.documentElement;
-      const { r, g, b } = hexToRgb(config.primaryColor);
-      root.style.setProperty("--primary", config.primaryColor);
-      root.style.setProperty("--primary-r", String(r));
-      root.style.setProperty("--primary-g", String(g));
-      root.style.setProperty("--primary-b", String(b));
-      root.style.setProperty("--primary-hover", lightenColor(config.primaryColor, 0.15));
-    }, [config.primaryColor]);
+    const root = document.documentElement;
+    root.style.setProperty("--primary", config.primaryColor);
+    root.style.setProperty("--primary-hover", lightenColor(config.primaryColor, 0.15));
+  }, [config.primaryColor]);
 
   const t = useMemo(() => ({
     cartTitle: lang === "ar" ? "سلة الطلبات" : "Mon panier",
@@ -305,21 +276,13 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
           />
         )}
 
-        {/* ─── Vibrant Neon Ambient Orbs ─── */}
-                        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-                          {/* Main top glow — large warm wash */}
-                          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] rounded-full blur-[130px] animate-neon-pulse" style={{ background: `radial-gradient(ellipse at center, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.65) 0%, transparent 65%)`, mixBlendMode: "screen" }} />
-                          {/* Core bright spot behind header */}
-                          <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[350px] h-[250px] rounded-full blur-[80px] animate-core-pulse" style={{ background: `radial-gradient(ellipse at center, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.8) 0%, transparent 60%)`, mixBlendMode: "screen" }} />
-                          {/* Mid-left neon orb */}
-                          <div className="absolute top-[15%] -left-40 w-[450px] h-[450px] rounded-full blur-[100px] animate-float-slower" style={{ background: `radial-gradient(circle at 60% 40%, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.55) 0%, transparent 65%)`, mixBlendMode: "screen" }} />
-                          {/* Mid-right neon orb */}
-                          <div className="absolute top-[45%] -right-20 w-[400px] h-[350px] rounded-full blur-[110px] animate-float-wide" style={{ background: `radial-gradient(circle at 40% 50%, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.5) 0%, transparent 65%)`, mixBlendMode: "screen" }} />
-                          {/* Bottom-right warm glow */}
-                          <div className="absolute bottom-0 right-0 w-[500px] h-[300px] rounded-full blur-[100px] animate-neon-pulse" style={{ background: `radial-gradient(ellipse at 70% 100%, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.4) 0%, transparent 70%)`, mixBlendMode: "screen", animationDelay: "2s" }} />
-                          {/* Grid-section warm wash */}
-                          <div className="absolute top-[70%] left-1/2 -translate-x-1/2 w-[700px] h-[200px] rounded-full blur-[100px] animate-neon-pulse" style={{ background: `radial-gradient(ellipse at center, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.35) 0%, transparent 70%)`, mixBlendMode: "screen", animationDelay: "1s" }} />
-                        </div>
+        {/* ─── Atmospheric Lighting Effects ─── */}
+        <div className="fixed inset-0 pointer-events-none z-0">
+          {/* Top warm glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full blur-[150px] opacity-20" style={{ background: `radial-gradient(ellipse at center, ${config.primaryColor}40 0%, transparent 70%)` }} />
+          {/* Subtle bottom ambient */}
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full blur-[120px] opacity-10" style={{ background: `radial-gradient(ellipse at center, ${config.primaryColor}30 0%, transparent 70%)` }} />
+        </div>
   
         {/* ─── Header ─── */}
         <header className="relative overflow-hidden z-10">
@@ -349,7 +312,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                   onClick={() => setLang("ar")}
                   className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
                     lang === "ar"
-                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.3)]"
+                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]"
                       : "text-white/60 hover:text-white"
                   }`}
                 >
@@ -359,7 +322,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                   onClick={() => setLang("fr")}
                   className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
                     lang === "fr"
-                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.3)]"
+                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]"
                       : "text-white/60 hover:text-white"
                   }`}
                 >
@@ -377,33 +340,33 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                 </div>
               )}
               <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 flex gap-1 bg-black/30 backdrop-blur-xl border border-white/[0.06] rounded-full p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
-                              <button
-                                onClick={() => setLang("ar")}
-                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
-                                  lang === "ar"
-                                    ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.3)]"
-                                    : "text-white/60 hover:text-white"
-                                }`}
-                              >
-                                عربي
-                              </button>
-                              <button
-                                onClick={() => setLang("fr")}
-                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
-                                  lang === "fr"
-                                    ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.3)]"
-                                    : "text-white/60 hover:text-white"
-                                }`}
-                              >
-                                FR
-                              </button>
-                            </div>
+                <button
+                  onClick={() => setLang("ar")}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
+                    lang === "ar"
+                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  عربي
+                </button>
+                <button
+                  onClick={() => setLang("fr")}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
+                    lang === "fr"
+                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  FR
+                </button>
+              </div>
             </div>
           )}
   
           <div className={`px-4 sm:px-6 pb-8 ${config.coverUrl ? "-mt-20 relative z-10" : "pt-6"}`}>
             <div className="max-w-lg mx-auto">
-              <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-[0_4px_20px_rgba(0,0,0,0.6)] neon-text">
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-[0_4px_20px_rgba(0,0,0,0.6)]">
                 {lang === "ar" ? config.nameAr : config.nameFr}
               </h1>
               <p className="text-white/50 text-sm mt-2 font-medium">{t.slogan}</p>
@@ -435,12 +398,12 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
               <div className="max-w-4xl mx-auto">
                 <div className="flex gap-2.5 overflow-x-auto category-scrollbar pb-2">
                   <button
-                                      onClick={() => scrollToCategory(null)}
-                                      className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 backdrop-blur-xl border shadow-[0_2px_12px_rgba(0,0,0,0.3)] ${
-                                                            selectedCategory === null
-                                                              ? "bg-[var(--primary)] text-black border-[var(--primary)] shadow-[0_0_40px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.55),0_0_80px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.2)] neon-text"
-                                                              : "bg-white/[0.03] border-white/[0.05] text-white/50 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.10]"
-                                                          }`}
+                    onClick={() => scrollToCategory(null)}
+                    className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 backdrop-blur-xl border shadow-[0_2px_12px_rgba(0,0,0,0.3)] ${
+                      selectedCategory === null
+                        ? "bg-[var(--primary)] text-black border-[var(--primary)] shadow-[0_0_25px_rgba(200,162,77,0.25)]"
+                        : "bg-white/[0.03] border-white/[0.05] text-white/50 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.10]"
+                    }`}
                   >
                     {t.allCategories}
                   </button>
@@ -449,10 +412,10 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                       key={cat.id}
                       onClick={() => scrollToCategory(cat.id)}
                       className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 backdrop-blur-xl border shadow-[0_2px_12px_rgba(0,0,0,0.3)] ${
-                                                                    selectedCategory === cat.id
-                                                                      ? "bg-[var(--primary)] text-black border-[var(--primary)] shadow-[0_0_40px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.55),0_0_80px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.2)] neon-text"
-                                                                      : "bg-white/[0.03] border-white/[0.05] text-white/50 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.10]"
-                                                                  }`}
+                        selectedCategory === cat.id
+                          ? "bg-[var(--primary)] text-black border-[var(--primary)] shadow-[0_0_25px_rgba(200,162,77,0.25)]"
+                          : "bg-white/[0.03] border-white/[0.05] text-white/50 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.10]"
+                      }`}
                     >
                       {lang === "ar" ? cat.nameAr : cat.nameFr}
                     </button>
@@ -462,7 +425,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
             </div>
 
       {/* ─── Dishes Grid ─── */}
-                        <div className="max-w-lg mx-auto px-4 pb-4 space-y-4 relative z-10 stagger-entrance">
+                  <div className="max-w-lg mx-auto px-4 pb-4 space-y-4 relative z-10">
         {promoDishes.map((dish) => (
           <PromoCard
             key={dish.id}
@@ -504,7 +467,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                 </p>
                 <button
                   onClick={() => setRatingModalOpen(true)}
-                  className="inline-flex items-center gap-3 px-16 py-7 rounded-full backdrop-blur-xl bg-white/[0.04] border border-white/[0.08] text-[var(--primary)] font-bold text-2xl hover:bg-white/[0.07] hover:border-white/[0.14] transition-all duration-500 shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-[0_6px_30px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.15)]"
+                  className="inline-flex items-center gap-3 px-16 py-7 rounded-full backdrop-blur-xl bg-white/[0.04] border border-white/[0.08] text-[var(--primary)] font-bold text-2xl hover:bg-white/[0.07] hover:border-white/[0.14] transition-all duration-500 shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-[0_6px_30px_rgba(200,162,77,0.1)]"
                 >
                   <Star className="h-7 w-7" />
                   <span>{lang === "ar" ? "قيّم تجربتك" : "Évaluez votre expérience"}</span>
@@ -524,7 +487,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
             {/* ─── Rating Modal ─── */}
                   {ratingModalOpen && (
                     <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
-                      <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/[0.06] rounded-[1.5rem] p-7 w-full max-w-sm space-y-6 shadow-[0_20px_60px_rgba(0,0,0,0.7),0_0_40px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.06)]">
+                      <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/[0.06] rounded-[1.5rem] p-7 w-full max-w-sm space-y-6 shadow-[0_20px_60px_rgba(0,0,0,0.7),0_0_40px_rgba(200,162,77,0.04)]">
                   {!showFeedback ? (
                     <>
                       <div className="text-center space-y-2">
@@ -660,7 +623,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
               <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 z-40">
                 <Sheet>
                   <SheetTrigger asChild>
-                    <button onClick={createRipple} className="w-full text-black rounded-[1rem] p-4 flex items-center justify-between transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] bg-[var(--primary)] animate-cta-pulse ripple-container neon-hover-glow">
+                    <button className="w-full text-black rounded-[1rem] p-4 flex items-center justify-between transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] bg-[var(--primary)] shadow-[0_8px_30px_rgba(200,162,77,0.3)] hover:shadow-[0_12px_40px_rgba(200,162,77,0.4)]">
                 <div className="flex items-center gap-3">
                   <div className="bg-black/20 p-2.5 rounded-xl relative">
                     <ShoppingBag className="h-5 w-5" />
@@ -727,7 +690,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                     </div>
                   ))}
 
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--primary)]/5 backdrop-blur-md border border-[var(--primary)]/15 shadow-[0_0_20px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.05)]">
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--primary)]/5 backdrop-blur-md border border-[var(--primary)]/15 shadow-[0_0_20px_rgba(200,162,77,0.05)]">
                     <span className="text-white font-bold">{t.total}</span>
                     <span className="text-[var(--primary)] font-bold text-lg">
                       {cartTotal} {t.currency}
@@ -775,7 +738,7 @@ function DishCard({
   const cartItem = cart.find((item) => item.dish.id === dish.id);
 
   return (
-      <div className="flex gap-4 p-3 rounded-[1.25rem] border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl hover:bg-white/[0.04] transition-all duration-500 shadow-[0_4px_30px_rgba(0,0,0,0.4)] neon-hover-glow group/card neon-card">
+      <div className="flex gap-4 p-3 rounded-[1.25rem] border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl hover:border-white/[0.10] hover:bg-white/[0.04] transition-all duration-500 shadow-[0_4px_30px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.5),0_0_30px_rgba(200,162,77,0.04)] group/card">
         <div
           className="w-28 h-28 rounded-2xl overflow-hidden flex-shrink-0 cursor-pointer relative shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
           onClick={() => onImageClick(dish.image)}
@@ -824,7 +787,7 @@ function DishCard({
           </div>
   
           <div className="mt-2.5 flex items-center justify-between">
-            <span className="text-[var(--primary)] font-bold text-sm drop-shadow-[0_0_8px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.2)]">
+            <span className="text-[var(--primary)] font-bold text-sm drop-shadow-[0_0_8px_rgba(200,162,77,0.15)]">
               {dish.price} {currency}
             </span>
             {cartItem ? (
@@ -848,7 +811,7 @@ function DishCard({
             ) : (
               <button
                 onClick={() => addToCart(dish)}
-                className="text-xs font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)] transition-all duration-300 hover:drop-shadow-[0_0_8px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.3)]"
+                className="text-xs font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)] transition-all duration-300 hover:drop-shadow-[0_0_8px_rgba(200,162,77,0.3)]"
               >
                 + {lang === "ar" ? "إضافة" : "Ajouter"}
               </button>
@@ -882,7 +845,7 @@ function PromoCard({
   const promoText = lang === "ar" ? (dish.promoTextAr || "") : (dish.promoTextFr || "");
 
   return (
-      <div className="rounded-[1.5rem] overflow-hidden border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] group/promo neon-hover-glow neon-card transition-all duration-700">
+      <div className="rounded-[1.5rem] overflow-hidden border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] group/promo hover:shadow-[0_12px_50px_rgba(0,0,0,0.6),0_0_40px_rgba(200,162,77,0.05)] transition-all duration-700">
         <div
           className="relative h-60 w-full overflow-hidden cursor-pointer"
           onClick={() => onImageClick(dish.image)}
@@ -903,7 +866,7 @@ function PromoCard({
             <Maximize2 className="h-4 w-4 text-white" />
           </div>
           <div className="absolute top-4 left-4">
-            <Badge className="bg-[var(--primary)] text-black border-0 text-xs font-bold px-4 py-1.5 rounded-full shadow-[0_4px_20px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.3)] backdrop-blur-sm">
+            <Badge className="bg-[var(--primary)] text-black border-0 text-xs font-bold px-4 py-1.5 rounded-full shadow-[0_4px_20px_rgba(200,162,77,0.3)] backdrop-blur-sm">
               {promoLabel}
             </Badge>
           </div>
@@ -919,15 +882,15 @@ function PromoCard({
                 {lang === "ar" ? dish.descriptionAr : dish.descriptionFr}
               </p>
             </div>
-            <span className="text-[var(--primary)] font-bold text-lg flex-shrink-0 drop-shadow-[0_0_10px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.2)]">
+            <span className="text-[var(--primary)] font-bold text-lg flex-shrink-0 drop-shadow-[0_0_10px_rgba(200,162,77,0.15)]">
               {dish.price} {currency}
             </span>
           </div>
   
           {!cartItem ? (
             <button
-                          onClick={(e) => { createRipple(e); addToCart(dish); }}
-                          className="w-full py-3.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-all duration-300 active:scale-[0.97] shadow-[0_0_30px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.45),0_0_60px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.15)] hover:shadow-[0_0_50px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.65),0_0_100px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.25)] ripple-container"
+              onClick={() => addToCart(dish)}
+              className="w-full py-3.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-all duration-300 active:scale-[0.97] shadow-[0_4px_20px_rgba(200,162,77,0.25)] hover:shadow-[0_6px_30px_rgba(200,162,77,0.35)]"
             >
               + {lang === "ar" ? "إضافة للسلة" : "Ajouter au panier"}
             </button>
@@ -950,7 +913,7 @@ function PromoCard({
           )}
   
           {promoText && (
-            <div className="bg-[var(--primary)]/5 backdrop-blur-md border border-[var(--primary)]/20 rounded-xl p-4 text-center shadow-[0_0_20px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.06)]">
+            <div className="bg-[var(--primary)]/5 backdrop-blur-md border border-[var(--primary)]/20 rounded-xl p-4 text-center shadow-[0_0_20px_rgba(200,162,77,0.06)]">
               <p className="text-[var(--primary)] font-bold text-sm">{promoText}</p>
             </div>
           )}

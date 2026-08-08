@@ -101,17 +101,10 @@ export default function AdminView({
   const navigate = useNavigate();
 
   React.useEffect(() => {
-      const root = document.documentElement;
-      const hex = config.primaryColor.replace("#", "");
-      const r = parseInt(hex.substring(0, 2), 16);
-      const g = parseInt(hex.substring(2, 4), 16);
-      const b = parseInt(hex.substring(4, 6), 16);
-      root.style.setProperty("--primary", config.primaryColor);
-      root.style.setProperty("--primary-r", String(r));
-      root.style.setProperty("--primary-g", String(g));
-      root.style.setProperty("--primary-b", String(b));
-      root.style.setProperty("--primary-hover", lightenColor(config.primaryColor, 0.15));
-    }, [config.primaryColor]);
+    const root = document.documentElement;
+    root.style.setProperty("--primary", config.primaryColor);
+    root.style.setProperty("--primary-hover", lightenColor(config.primaryColor, 0.15));
+  }, [config.primaryColor]);
 
   const handleLogout = () => {
     logout();
@@ -251,17 +244,10 @@ export default function AdminView({
   const [configForm, setConfigForm] = useState<RestaurantConfig>({ ...config });
 
   useEffect(() => {
-      const root = document.documentElement;
-      const hex = configForm.primaryColor.replace("#", "");
-      const r = parseInt(hex.substring(0, 2), 16);
-      const g = parseInt(hex.substring(2, 4), 16);
-      const b = parseInt(hex.substring(4, 6), 16);
-      root.style.setProperty("--primary", configForm.primaryColor);
-      root.style.setProperty("--primary-r", String(r));
-      root.style.setProperty("--primary-g", String(g));
-      root.style.setProperty("--primary-b", String(b));
-      root.style.setProperty("--primary-hover", lightenColor(configForm.primaryColor, 0.15));
-    }, [configForm.primaryColor]);
+    const root = document.documentElement;
+    root.style.setProperty("--primary", configForm.primaryColor);
+    root.style.setProperty("--primary-hover", lightenColor(configForm.primaryColor, 0.15));
+  }, [configForm.primaryColor]);
 
   const availableDishes = dishes.filter((d) => d.isAvailable);
   const unavailableDishes = dishes.filter((d) => !d.isAvailable);
