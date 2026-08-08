@@ -33,6 +33,22 @@ function lightenColor(hex: string, amount: number): string {
   return `#${lr.toString(16).padStart(2, "0")}${lg.toString(16).padStart(2, "0")}${lb.toString(16).padStart(2, "0")}`;
 }
 
+function createRipple(e: React.MouseEvent<HTMLElement>) {
+  const target = e.currentTarget;
+  const rect = target.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const x = e.clientX - rect.left - size / 2;
+  const y = e.clientY - rect.top - size / 2;
+  const ripple = document.createElement("span");
+  ripple.className = "ripple";
+  ripple.style.left = `${x}px`;
+  ripple.style.top = `${y}px`;
+  ripple.style.width = `${size}px`;
+  ripple.style.height = `${size}px`;
+  target.appendChild(ripple);
+  ripple.addEventListener("animationend", () => ripple.remove());
+}
+
 export default function ClientView({ categories, dishes, config, restaurantId }: ClientViewProps) {
   const { toast } = useToast();
   const [lang, setLang] = useState<"ar" | "fr">("ar");
@@ -289,17 +305,21 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
           />
         )}
 
-        {/* ─── Atmospheric Lighting Effects ─── */}
-                <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-                  {/* Top warm glow — animated float */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full blur-[150px] animate-glow-pulse" style={{ background: `radial-gradient(ellipse at center, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.35) 0%, transparent 70%)` }} />
-                  {/* Mid-left floating orb — brighter */}
-                  <div className="absolute top-[20%] -left-32 w-[450px] h-[450px] rounded-full blur-[120px] animate-float-slower" style={{ background: `radial-gradient(circle, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.22) 0%, transparent 70%)` }} />
-                  {/* Mid-right floating orb */}
-                  <div className="absolute top-[55%] -right-16 w-[400px] h-[300px] rounded-full blur-[130px] animate-float-wide" style={{ background: `radial-gradient(circle, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.18) 0%, transparent 70%)` }} />
-                  {/* Subtle bottom ambient */}
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full blur-[120px] animate-glow-pulse" style={{ background: `radial-gradient(ellipse at center, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.15) 0%, transparent 70%)`, animationDelay: "1.5s" }} />
-                </div>
+        {/* ─── Vibrant Neon Ambient Orbs ─── */}
+                        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+                          {/* Main top glow — large warm wash */}
+                          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] rounded-full blur-[130px] animate-neon-pulse" style={{ background: `radial-gradient(ellipse at center, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.65) 0%, transparent 65%)`, mixBlendMode: "screen" }} />
+                          {/* Core bright spot behind header */}
+                          <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[350px] h-[250px] rounded-full blur-[80px] animate-core-pulse" style={{ background: `radial-gradient(ellipse at center, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.8) 0%, transparent 60%)`, mixBlendMode: "screen" }} />
+                          {/* Mid-left neon orb */}
+                          <div className="absolute top-[15%] -left-40 w-[450px] h-[450px] rounded-full blur-[100px] animate-float-slower" style={{ background: `radial-gradient(circle at 60% 40%, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.55) 0%, transparent 65%)`, mixBlendMode: "screen" }} />
+                          {/* Mid-right neon orb */}
+                          <div className="absolute top-[45%] -right-20 w-[400px] h-[350px] rounded-full blur-[110px] animate-float-wide" style={{ background: `radial-gradient(circle at 40% 50%, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.5) 0%, transparent 65%)`, mixBlendMode: "screen" }} />
+                          {/* Bottom-right warm glow */}
+                          <div className="absolute bottom-0 right-0 w-[500px] h-[300px] rounded-full blur-[100px] animate-neon-pulse" style={{ background: `radial-gradient(ellipse at 70% 100%, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.4) 0%, transparent 70%)`, mixBlendMode: "screen", animationDelay: "2s" }} />
+                          {/* Grid-section warm wash */}
+                          <div className="absolute top-[70%] left-1/2 -translate-x-1/2 w-[700px] h-[200px] rounded-full blur-[100px] animate-neon-pulse" style={{ background: `radial-gradient(ellipse at center, rgba(var(--primary-r,200), var(--primary-g,162), var(--primary-b,77), 0.35) 0%, transparent 70%)`, mixBlendMode: "screen", animationDelay: "1s" }} />
+                        </div>
   
         {/* ─── Header ─── */}
         <header className="relative overflow-hidden z-10">
@@ -383,7 +403,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
   
           <div className={`px-4 sm:px-6 pb-8 ${config.coverUrl ? "-mt-20 relative z-10" : "pt-6"}`}>
             <div className="max-w-lg mx-auto">
-              <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-[0_4px_20px_rgba(0,0,0,0.6)]">
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-[0_4px_20px_rgba(0,0,0,0.6)] neon-text">
                 {lang === "ar" ? config.nameAr : config.nameFr}
               </h1>
               <p className="text-white/50 text-sm mt-2 font-medium">{t.slogan}</p>
@@ -415,12 +435,12 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
               <div className="max-w-4xl mx-auto">
                 <div className="flex gap-2.5 overflow-x-auto category-scrollbar pb-2">
                   <button
-                    onClick={() => scrollToCategory(null)}
-                    className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 backdrop-blur-xl border shadow-[0_2px_12px_rgba(0,0,0,0.3)] ${
-                                          selectedCategory === null
-                                            ? "bg-[var(--primary)] text-black border-[var(--primary)] shadow-[0_0_30px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.35)]"
-                                            : "bg-white/[0.03] border-white/[0.05] text-white/50 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.10]"
-                                        }`}
+                                      onClick={() => scrollToCategory(null)}
+                                      className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 backdrop-blur-xl border shadow-[0_2px_12px_rgba(0,0,0,0.3)] ${
+                                                            selectedCategory === null
+                                                              ? "bg-[var(--primary)] text-black border-[var(--primary)] shadow-[0_0_40px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.55),0_0_80px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.2)] neon-text"
+                                                              : "bg-white/[0.03] border-white/[0.05] text-white/50 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.10]"
+                                                          }`}
                   >
                     {t.allCategories}
                   </button>
@@ -429,10 +449,10 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                       key={cat.id}
                       onClick={() => scrollToCategory(cat.id)}
                       className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 backdrop-blur-xl border shadow-[0_2px_12px_rgba(0,0,0,0.3)] ${
-                                              selectedCategory === cat.id
-                                                ? "bg-[var(--primary)] text-black border-[var(--primary)] shadow-[0_0_30px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.35)]"
-                                                : "bg-white/[0.03] border-white/[0.05] text-white/50 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.10]"
-                                            }`}
+                                                                    selectedCategory === cat.id
+                                                                      ? "bg-[var(--primary)] text-black border-[var(--primary)] shadow-[0_0_40px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.55),0_0_80px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.2)] neon-text"
+                                                                      : "bg-white/[0.03] border-white/[0.05] text-white/50 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.10]"
+                                                                  }`}
                     >
                       {lang === "ar" ? cat.nameAr : cat.nameFr}
                     </button>
@@ -640,7 +660,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
               <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 z-40">
                 <Sheet>
                   <SheetTrigger asChild>
-                    <button className="w-full text-black rounded-[1rem] p-4 flex items-center justify-between transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] bg-[var(--primary)] animate-cta-pulse ripple-container">
+                    <button onClick={createRipple} className="w-full text-black rounded-[1rem] p-4 flex items-center justify-between transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] bg-[var(--primary)] animate-cta-pulse ripple-container neon-hover-glow">
                 <div className="flex items-center gap-3">
                   <div className="bg-black/20 p-2.5 rounded-xl relative">
                     <ShoppingBag className="h-5 w-5" />
@@ -755,7 +775,7 @@ function DishCard({
   const cartItem = cart.find((item) => item.dish.id === dish.id);
 
   return (
-      <div className="flex gap-4 p-3 rounded-[1.25rem] border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl hover:border-[rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.12)] hover:bg-white/[0.04] transition-all duration-500 shadow-[0_4px_30px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.5),0_0_30px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.06)] group/card">
+      <div className="flex gap-4 p-3 rounded-[1.25rem] border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl hover:bg-white/[0.04] transition-all duration-500 shadow-[0_4px_30px_rgba(0,0,0,0.4)] neon-hover-glow group/card neon-card">
         <div
           className="w-28 h-28 rounded-2xl overflow-hidden flex-shrink-0 cursor-pointer relative shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
           onClick={() => onImageClick(dish.image)}
@@ -862,7 +882,7 @@ function PromoCard({
   const promoText = lang === "ar" ? (dish.promoTextAr || "") : (dish.promoTextFr || "");
 
   return (
-      <div className="rounded-[1.5rem] overflow-hidden border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] group/promo hover:shadow-[0_12px_50px_rgba(0,0,0,0.6),0_0_40px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.1)] hover:border-[rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.2)] transition-all duration-700">
+      <div className="rounded-[1.5rem] overflow-hidden border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] group/promo neon-hover-glow neon-card transition-all duration-700">
         <div
           className="relative h-60 w-full overflow-hidden cursor-pointer"
           onClick={() => onImageClick(dish.image)}
@@ -906,8 +926,8 @@ function PromoCard({
   
           {!cartItem ? (
             <button
-              onClick={() => addToCart(dish)}
-              className="w-full py-3.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-all duration-300 active:scale-[0.97] shadow-[0_4px_20px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.25)] hover:shadow-[0_6px_30px_rgba(var(--primary-r),var(--primary-g),var(--primary-b),0.4)] ripple-container"
+                          onClick={(e) => { createRipple(e); addToCart(dish); }}
+                          className="w-full py-3.5 rounded-xl bg-[var(--primary)] text-black font-bold text-sm hover:bg-[var(--primary-hover)] transition-all duration-300 active:scale-[0.97] shadow-[0_0_30px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.45),0_0_60px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.15)] hover:shadow-[0_0_50px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.65),0_0_100px_rgba(var(--primary-r,200),var(--primary-g,162),var(--primary-b,77),0.25)] ripple-container"
             >
               + {lang === "ar" ? "إضافة للسلة" : "Ajouter au panier"}
             </button>

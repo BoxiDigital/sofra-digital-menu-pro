@@ -125,40 +125,62 @@
 }
 
 /* ═══════════════════════════════════════════════
-   تأثيرات بصرية ديناميكية مرتبطة بالثيم
+   تأثيرات نيونية قوية – Neon & Ambient Glow
    ═══════════════════════════════════════════════ */
 
-/* ── Ambient Floating Orbs ── */
+/* ── Ambient Floating Orbs (stronger) ── */
 @keyframes float-slow {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33%  { transform: translate(30px, -30px) scale(1.05); }
-  66%  { transform: translate(-20px, 20px) scale(0.95); }
+  33%  { transform: translate(30px, -30px) scale(1.08); }
+  66%  { transform: translate(-20px, 20px) scale(0.92); }
 }
 @keyframes float-slower {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  50%  { transform: translate(-50px, -30px) rotate(3deg); }
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  50%  { transform: translate(-50px, -30px) rotate(3deg) scale(1.1); }
 }
 @keyframes float-wide {
-  0%, 100% { transform: translate(0, 0); }
-  50%  { transform: translate(60px, -20px); }
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(70px, -20px) scale(1.15); }
 }
 
-/* ── Theme Glow Pulse ── */
-@keyframes glow-pulse {
-  0%, 100% { opacity: 0.35; }
-  50%  { opacity: 0.65; }
+/* ── Intense Neon Pulse (bright breathing) ── */
+@keyframes neon-pulse {
+  0%, 100% { opacity: 0.55; filter: blur(120px); }
+  50%  { opacity: 0.9; filter: blur(100px); }
 }
 
-/* ── CTA Attention Pulse (uses theme primary) ── */
+/* ── Core Glow Pulse (tighter, brighter) ── */
+@keyframes core-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%  { opacity: 0.85; transform: scale(1.15); }
+}
+
+/* ── Neon Border Breath ── */
+@keyframes neon-border-glow {
+  0%, 100% { 
+    border-color: rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.1);
+    box-shadow: 0 0 15px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.05),
+                inset 0 0 15px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.02);
+  }
+  50%  { 
+    border-color: rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.45);
+    box-shadow: 0 0 40px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.2),
+                0 0 80px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.08),
+                inset 0 0 20px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.05);
+  }
+}
+
+/* ── CTA Button Neon Pulse ── */
 @keyframes cta-pulse {
-  0%, 100% { box-shadow: 0 4px 25px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.2); }
-  50%  { box-shadow: 0 6px 40px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.45); }
-}
-
-/* ── Border Glow Breath ── */
-@keyframes border-glow {
-  0%, 100% { border-color: rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.08); }
-  50%  { border-color: rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.25); }
+  0%, 100% { 
+    box-shadow: 0 4px 25px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.35),
+                0 0 60px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.1);
+  }
+  50%  { 
+    box-shadow: 0 6px 45px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.6),
+                0 0 100px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.25),
+                0 0 150px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.1);
+  }
 }
 
 /* ── Card Entrance ── */
@@ -167,12 +189,13 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Ripple (touch feedback) ── */
-@keyframes ripple-effect {
-  to { transform: scale(4); opacity: 0; }
+/* ── Neon Ripple (intense touch feedback) ── */
+@keyframes neon-ripple {
+  0%   { transform: scale(0); opacity: 1; }
+  100% { transform: scale(6); opacity: 0; }
 }
 
-/* ── Gradient Shift (ambient background) ── */
+/* ── Gradient Shift (animated bg sweep) ── */
 @keyframes gradient-shift {
   0%   { background-position: 0% 50%; }
   50%  { background-position: 100% 50%; }
@@ -197,17 +220,25 @@
   50%  { opacity: 0.7; transform: scale(1.2); }
 }
 
+/* ── Neon line sweep (for card borders) ── */
+@keyframes neon-line-sweep {
+  0%   { left: -100%; }
+  100% { left: 100%; }
+}
+
 /* ── Utility classes ── */
-.animate-float-slow   { animation: float-slow 8s ease-in-out infinite; }
-.animate-float-slower { animation: float-slower 12s ease-in-out infinite; }
-.animate-float-wide   { animation: float-wide 10s ease-in-out infinite; }
-.animate-glow-pulse   { animation: glow-pulse 3s ease-in-out infinite; }
-.animate-cta-pulse    { animation: cta-pulse 2.5s ease-in-out infinite; }
-.animate-fade-in-up   { animation: fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.animate-border-glow  { animation: border-glow 3s ease-in-out infinite; }
-.animate-gradient     { background-size: 200% 200%; animation: gradient-shift 8s ease infinite; }
-.animate-subtle-scale { animation: subtle-scale 4s ease-in-out infinite; }
-.animate-twinkle      { animation: twinkle 2s ease-in-out infinite; }
+.animate-float-slow    { animation: float-slow 8s ease-in-out infinite; }
+.animate-float-slower  { animation: float-slower 12s ease-in-out infinite; }
+.animate-float-wide    { animation: float-wide 10s ease-in-out infinite; }
+.animate-neon-pulse    { animation: neon-pulse 3.5s ease-in-out infinite; }
+.animate-core-pulse    { animation: core-pulse 4s ease-in-out infinite; }
+.animate-glow-pulse    { animation: neon-pulse 3s ease-in-out infinite; }
+.animate-cta-pulse     { animation: cta-pulse 2.5s ease-in-out infinite; }
+.animate-fade-in-up    { animation: fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-border-glow   { animation: neon-border-glow 3.5s ease-in-out infinite; }
+.animate-gradient      { background-size: 200% 200%; animation: gradient-shift 8s ease infinite; }
+.animate-subtle-scale  { animation: subtle-scale 4s ease-in-out infinite; }
+.animate-twinkle       { animation: twinkle 2s ease-in-out infinite; }
 
 /* ── Stagger children entrance ── */
 .stagger-entrance > * {
@@ -225,16 +256,84 @@
 .stagger-entrance > *:nth-child(9)  { animation-delay: 0.45s; }
 .stagger-entrance > *:nth-child(10) { animation-delay: 0.5s; }
 
-/* ── Ripple container ── */
+/* ── Ripple container (neon-enhanced) ── */
 .ripple-container {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
 }
 .ripple-container .ripple {
   position: absolute;
   border-radius: 50%;
-  background: rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.3);
+  background: rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.5);
   transform: scale(0);
-  animation: ripple-effect 0.6s linear;
+  animation: neon-ripple 0.7s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
+  z-index: 0;
+  mix-blend-mode: plus-lighter;
+  box-shadow: 0 0 30px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.7),
+              0 0 60px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.3);
+}
+
+/* ── Neon glow card base ── */
+.neon-card {
+  position: relative;
+  overflow: hidden;
+}
+.neon-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.6),
+    transparent 40%,
+    transparent 60%,
+    rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.4)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.neon-card:hover::before {
+  opacity: 1;
+}
+
+/* ── Neon hover glow class ── */
+.neon-hover-glow {
+  transition: box-shadow 0.5s ease, border-color 0.5s ease;
+}
+.neon-hover-glow:hover {
+  box-shadow: 0 0 40px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.3),
+              0 0 80px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.1),
+              0 0 120px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.05) !important;
+  border-color: rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.5) !important;
+}
+
+/* ── Neon text glow ── */
+.neon-text {
+  text-shadow: 0 0 20px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.6),
+               0 0 40px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.3),
+               0 0 80px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.15);
+}
+
+/* ── Animated gradient border sweep ── */
+.neon-line-sweep {
+  position: relative;
+  overflow: hidden;
+}
+.neon-line-sweep::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.15), transparent);
+  animation: neon-line-sweep 3s ease-in-out infinite;
 }
