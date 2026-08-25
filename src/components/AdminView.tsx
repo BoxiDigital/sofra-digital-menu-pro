@@ -293,37 +293,28 @@ export default function AdminView({
     const file = e.target.files?.[0];
     if (!file) return;
     
-    const fileExt = file.name.split('.').pop();
+    const fileExt = (file.name.split('.').pop() || "jpg").toLowerCase();
     const fileName = `${type}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
     
     try {
       const { data, error } = await supabase.storage
-        .from('restaurant-images')
-        .upload(fileName, file);
+        .from('dish-images')
+        .upload(fileName, file, { cacheControl: "3600", upsert: false });
       
       if (error) throw error;
       
       const { data: { publicUrl } } = supabase.storage
-        .from('restaurant-images')
+        .from('dish-images')
         .getPublicUrl(fileName);
       
       if (type === "dish") setDishForm((prev) => ({ ...prev, image: publicUrl }));
       else if (type === "cover") setConfigForm((prev) => ({ ...prev, coverUrl: publicUrl }));
       else setConfigForm((prev) => ({ ...prev, logoUrl: publicUrl }));
       
-      toast({ title: "تم رفع الصورة بنجاح", description: "تم حفظ الصورة في التخزين السحابي Supabase" });
+      toast({ title: "\u2705 \u062a\u0645 \u0631\u0641\u0639 \u0627\u0644\u0635\u0648\u0631\u0629", description: "\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0635\u0648\u0631\u0629 \u0641\u064a Supabase Storage \u0648\u062a\u062e\u0632\u064a\u0646 \u0627\u0644\u0631\u0627\u0628\u0637 \u0627\u0644\u0639\u0627\u0645", variant: "success" });
     } catch (err: any) {
-      console.error("Upload error:", err);
-      toast({ title: "خطأ في رفع الصورة", description: err?.message || "حدث خطأ أثناء رفع الصورة", variant: "destructive" });
-      // Fallback to Base64 if storage upload fails
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        if (type === "dish") setDishForm((prev) => ({ ...prev, image: base64String }));
-        else if (type === "cover") setConfigForm((prev) => ({ ...prev, coverUrl: base64String }));
-        else setConfigForm((prev) => ({ ...prev, logoUrl: base64String }));
-      };
-      reader.readAsDataURL(file);
+      console.error("[AdminView] Upload error:", err);
+      toast({ title: "\u274c \u0641\u0634\u0644 \u0631\u0641\u0639 \u0627\u0644\u0635\u0648\u0631\u0629", description: err?.message || "\u062a\u0623\u0643\u062f \u0645\u0646 \u0625\u0646\u0634\u0627\u0621 Bucket \u0628\u0627\u0633\u0645 dish-images \u0648\u062c\u0639\u0644\u0647 Public \u0641\u064a Supabase", variant: "destructive" });
     }
   };
 
@@ -349,7 +340,14 @@ export default function AdminView({
     if (!dishForm.price || dishForm.price <= 0) errors.price = "\u064a\u062c\u0628 \u0625\u062f\u062e\u0627\u0644 \u0633\u0639\u0631 \u0623\u0643\u0628\u0631 \u0645\u0646 \u0635\u0641\u0631";
     if (!dishForm.category || !dishForm.category.trim()) errors.category = "\u064a\u062c\u0628 \u0627\u062e\u062a\u064a\u0627\u0631 \u0641\u0626\u0629";
     setDishErrors(errors);
-    if (Object.keys(errors).length > 0) return;
+    if (Object.keys(errors).length > 0) {
+      const firstErrorField = errors.nameAr ? "dish-name-ar" : errors.price ? "dish-price" : "dish-category";
+      setTimeout(() => {
+        const el = document.getElementById(firstErrorField);
+        if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.focus(); }
+      }, 100);
+      return;
+    }
     // Auto-fallback: empty langs get Arabic
     const ar = (dishForm.nameAr || "").trim();
     const descAr = (dishForm.descriptionAr || "").trim();
@@ -1238,7 +1236,7 @@ export default function AdminView({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-white/40 text-[11px] font-medium">الاسم (عربي) <span className="text-red-400">*</span></Label>
-                <Input value={dishForm.nameAr || ""} onChange={(e) => { setDishForm({ ...dishForm, nameAr: e.target.value }); setDishErrors(p => ({...p, nameAr: undefined})); }}
+                <Input id="dish-name-ar" value={dishForm.nameAr || ""} onChange={(e) => { setDishForm({ ...dishForm, nameAr: e.target.value }); setDishErrors(p => ({...p, nameAr: undefined})); }}
                   className={`mt-1 bg-white/[0.04] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all ${dishErrors.nameAr ? "border-red-500/60" : "border-white/[0.08]"}`} />
                 {dishErrors.nameAr && <p className="text-red-400 text-[10px] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{dishErrors.nameAr}</p>}
               </div>
@@ -1287,14 +1285,14 @@ export default function AdminView({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-white/40 text-[11px] font-medium">السعر <span className="text-red-400">*</span></Label>
-                <Input type="number" value={dishForm.price && dishForm.price > 0 ? dishForm.price : ""} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => { const v = e.target.value === "" ? 0 : Number(e.target.value); setDishForm({ ...dishForm, price: v }); setDishErrors(p => ({...p, price: undefined})); }}
+                <Input id="dish-price" type="number" value={dishForm.price && dishForm.price > 0 ? dishForm.price : ""} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => { const v = e.target.value === "" ? 0 : Number(e.target.value); setDishForm({ ...dishForm, price: v }); setDishErrors(p => ({...p, price: undefined})); }}
                   className={`mt-1 bg-white/[0.04] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all ${dishErrors.price ? "border-red-500/60" : "border-white/[0.08]"}`} />
                 {dishErrors.price && <p className="text-red-400 text-[10px] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{dishErrors.price}</p>}
               </div>
               <div>
                 <Label className="text-white/40 text-[11px] font-medium">الفئة <span className="text-red-400">*</span></Label>
                 <Select value={dishForm.category} onValueChange={(val) => { setDishForm({ ...dishForm, category: val }); setDishErrors(p => ({...p, category: undefined})); }}>
-                  <SelectTrigger className={`mt-1 bg-white/[0.04] text-white rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 transition-all ${dishErrors.category ? "border-red-500/60" : "border-white/[0.08]"}`}>
+                  <SelectTrigger id="dish-category" className={`mt-1 bg-white/[0.04] text-white rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 transition-all ${dishErrors.category ? "border-red-500/60" : "border-white/[0.08]"}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#151515]/95 backdrop-blur-xl border-white/[0.08] text-white rounded-xl">
