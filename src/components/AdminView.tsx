@@ -272,6 +272,7 @@ export default function AdminView({
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
   const [dishForm, setDishForm] = useState<Partial<Dish>>({});
   const [isDishDialogOpen, setIsDishDialogOpen] = useState(false);
+  const [dishErrors, setDishErrors] = useState<{ nameAr?: string; price?: string; category?: string }>({});
 
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryForm, setCategoryForm] = useState<Partial<Category>>({});
@@ -328,6 +329,7 @@ export default function AdminView({
 
   const openAddDish = () => {
     setEditingDish(null);
+    setDishErrors({});
     setDishForm({
       nameAr: "", nameFr: "", nameEn: "", nameEs: "", descriptionAr: "", descriptionFr: "", descriptionEn: "", descriptionEs: "", price: 0,
       category: categories[0]?.id || "",
@@ -338,27 +340,32 @@ export default function AdminView({
     setIsDishDialogOpen(true);
   };
 
-  const openEditDish = (dish: Dish) => { setEditingDish(dish); setDishForm({ ...dish }); setIsDishDialogOpen(true); };
+  const openEditDish = (dish: Dish) => { setEditingDish(dish); setDishErrors({}); setDishForm({ ...dish }); setIsDishDialogOpen(true); };
 
   const saveDish = async () => {
-    if (!dishForm.nameAr || !dishForm.nameFr || !dishForm.price) {
-      toast({ title: "تنبيه", description: "يرجى ملء جميع الحقول المطلوبة", variant: "destructive" });
-      return;
-    }
+    // Only nameAr + price > 0 + category are mandatory
+    const errors: { nameAr?: string; price?: string; category?: string } = {};
+    if (!(dishForm.nameAr || "").trim()) errors.nameAr = "\u0627\u0644\u0627\u0633\u0645 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0645\u0637\u0644\u0648\u0628";
+    if (!dishForm.price || dishForm.price <= 0) errors.price = "\u064a\u062c\u0628 \u0625\u062f\u062e\u0627\u0644 \u0633\u0639\u0631 \u0623\u0643\u0628\u0631 \u0645\u0646 \u0635\u0641\u0631";
+    if (!dishForm.category || !dishForm.category.trim()) errors.category = "\u064a\u062c\u0628 \u0627\u062e\u062a\u064a\u0627\u0631 \u0641\u0626\u0629";
+    setDishErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    // Auto-fallback: empty langs get Arabic
+    const ar = (dishForm.nameAr || "").trim();
+    const descAr = (dishForm.descriptionAr || "").trim();
+    const filledDish = {
+      ...dishForm,
+      nameAr: ar, nameFr: (dishForm.nameFr || "").trim() || ar, nameEn: (dishForm.nameEn || "").trim() || ar, nameEs: (dishForm.nameEs || "").trim() || ar,
+      descriptionAr: descAr, descriptionFr: (dishForm.descriptionFr || "").trim() || descAr, descriptionEn: (dishForm.descriptionEn || "").trim() || descAr, descriptionEs: (dishForm.descriptionEs || "").trim() || descAr,
+    };
     let updatedDishes: Dish[];
-    if (editingDish) {
-      updatedDishes = dishes.map((d) => (d.id === editingDish.id ? (dishForm as Dish) : d));
-    } else {
-      const newDish: Dish = { ...(dishForm as Dish), id: `dish_${Date.now()}` };
-      updatedDishes = [...dishes, newDish];
-    }
+    if (editingDish) { updatedDishes = dishes.map((d) => (d.id === editingDish.id ? (filledDish as Dish) : d)); }
+    else { updatedDishes = [...dishes, { ...(filledDish as Dish), id: `dish_${Date.now()}` }]; }
     try {
       await handleUpdateDishesSafe(updatedDishes);
-      setIsDishDialogOpen(false);
-      toast({ title: editingDish ? "تم التعديل" : "تم الإضافة", description: editingDish ? "تم تعديل الطبق بنجاح" : "تم إضافة الطبق الجديد بنجاح" });
-    } catch (err) {
-      // Error toast already shown by handleSaveError
-    }
+      setIsDishDialogOpen(false); setDishErrors({});
+      toast({ title: editingDish ? "\u2705 \u062a\u0645 \u0627\u0644\u062a\u0639\u062f\u064a\u0644" : "\u2705 \u062a\u0645 \u0627\u0644\u0625\u0636\u0627\u0641\u0629", description: editingDish ? "\u062a\u0645 \u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0637\u0628\u0642 \u0628\u0646\u062c\u0627\u062d" : "\u062a\u0645 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0637\u0628\u0642 \u0627\u0644\u062c\u062f\u064a\u062f \u0628\u0646\u062c\u0627\u062d" });
+    } catch (err) {}
   };
 
   const deleteDish = async (id: string) => {
@@ -394,24 +401,20 @@ export default function AdminView({
   const openEditCategory = (category: Category) => { setEditingCategory(category); setCategoryForm({ ...category }); setIsCategoryDialogOpen(true); };
 
   const saveCategory = async () => {
-    if (!categoryForm.nameAr || !categoryForm.nameFr) {
-      toast({ title: "تنبيه", description: "يرجى ملء جميع الحقلين المطلوبين", variant: "destructive" });
+    const ar = (categoryForm.nameAr || "").trim();
+    if (!ar) {
+      toast({ title: "تنبيه", description: "الاسم بالعربية مطلوب", variant: "destructive" });
       return;
     }
+    const filled = { ...categoryForm, nameAr: ar, nameFr: (categoryForm.nameFr || "").trim() || ar, nameEn: (categoryForm.nameEn || "").trim() || ar, nameEs: (categoryForm.nameEs || "").trim() || ar };
     let updatedCategories: Category[];
-    if (editingCategory) {
-      updatedCategories = categories.map((c) => (c.id === editingCategory.id ? (categoryForm as Category) : c));
-    } else {
-      const newCategory: Category = { ...(categoryForm as Category), id: `cat_${Date.now()}` };
-      updatedCategories = [...categories, newCategory];
-    }
+    if (editingCategory) { updatedCategories = categories.map((c) => (c.id === editingCategory.id ? (filled as Category) : c)); }
+    else { updatedCategories = [...categories, { ...(filled as Category), id: `cat_${Date.now()}` }]; }
     try {
       await handleUpdateCategoriesSafe(updatedCategories);
       setIsCategoryDialogOpen(false);
-      toast({ title: editingCategory ? "تم التعديل" : "تم الإضافة", description: editingCategory ? "تم تعديل الفئة بنجاح" : "تم إضافة الفئة الجديدة بنجاح" });
-    } catch (err) {
-      // error toast already shown
-    }
+      toast({ title: editingCategory ? "✅ تم التعديل" : "✅ تم الإضافة", description: editingCategory ? "تم تعديل الفئة بنجاح" : "تم إضافة الفئة الجديدة بنجاح" });
+    } catch (err) {}
   };
 
   const deleteCategory = async (id: string) => {
@@ -1228,9 +1231,10 @@ export default function AdminView({
           <div className="space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-white/40 text-[11px] font-medium">الاسم (عربي)</Label>
-                <Input value={dishForm.nameAr || ""} onChange={(e) => setDishForm({ ...dishForm, nameAr: e.target.value })}
-                  className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                <Label className="text-white/40 text-[11px] font-medium">الاسم (عربي) <span className="text-red-400">*</span></Label>
+                <Input value={dishForm.nameAr || ""} onChange={(e) => { setDishForm({ ...dishForm, nameAr: e.target.value }); setDishErrors(p => ({...p, nameAr: undefined})); }}
+                  className={`mt-1 bg-white/[0.04] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all ${dishErrors.nameAr ? "border-red-500/60" : "border-white/[0.08]"}`} />
+                {dishErrors.nameAr && <p className="text-red-400 text-[10px] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{dishErrors.nameAr}</p>}
               </div>
               <div>
                 <Label className="text-white/40 text-[11px] font-medium">الاسم (فرنسي)</Label>
@@ -1276,14 +1280,15 @@ export default function AdminView({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-white/40 text-[11px] font-medium">السعر</Label>
-                <Input type="number" value={dishForm.price || 0} onChange={(e) => setDishForm({ ...dishForm, price: Number(e.target.value) })}
-                  className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                <Label className="text-white/40 text-[11px] font-medium">السعر <span className="text-red-400">*</span></Label>
+                <Input type="number" value={dishForm.price || 0} onChange={(e) => { setDishForm({ ...dishForm, price: Number(e.target.value) }); setDishErrors(p => ({...p, price: undefined})); }}
+                  className={`mt-1 bg-white/[0.04] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all ${dishErrors.price ? "border-red-500/60" : "border-white/[0.08]"}`} />
+                {dishErrors.price && <p className="text-red-400 text-[10px] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{dishErrors.price}</p>}
               </div>
               <div>
-                <Label className="text-white/40 text-[11px] font-medium">الفئة</Label>
-                <Select value={dishForm.category} onValueChange={(val) => setDishForm({ ...dishForm, category: val })}>
-                  <SelectTrigger className="mt-1 bg-white/[0.04] border-white/[0.08] text-white rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 transition-all">
+                <Label className="text-white/40 text-[11px] font-medium">الفئة <span className="text-red-400">*</span></Label>
+                <Select value={dishForm.category} onValueChange={(val) => { setDishForm({ ...dishForm, category: val }); setDishErrors(p => ({...p, category: undefined})); }}>
+                  <SelectTrigger className={`mt-1 bg-white/[0.04] text-white rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 transition-all ${dishErrors.category ? "border-red-500/60" : "border-white/[0.08]"}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#151515]/95 backdrop-blur-xl border-white/[0.08] text-white rounded-xl">
@@ -1292,6 +1297,7 @@ export default function AdminView({
                     ))}
                   </SelectContent>
                 </Select>
+                {dishErrors.category && <p className="text-red-400 text-[10px] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{dishErrors.category}</p>}
               </div>
             </div>
             <div>
@@ -1444,11 +1450,11 @@ export default function AdminView({
             </div>
 
             <div className="flex gap-2 justify-end pt-2">
-              <Button variant="ghost" onClick={() => setIsDishDialogOpen(false)}
-                className="text-white/40 hover:text-white/70 hover:bg-white/[0.04] rounded-xl transition-all">إلغاء</Button>
-              <Button onClick={saveDish}
-                className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl px-6 shadow-[0_4px_20px_rgba(200,162,77,0.2)] hover:shadow-[0_6px_24px_rgba(200,162,77,0.3)] transition-all duration-300">
-                <Save className="h-4 w-4 ml-1.5" /><span>حفظ</span>
+              <Button variant="ghost" onClick={() => setIsDishDialogOpen(false)} disabled={isSaving}
+                className="text-white/40 hover:text-white/70 hover:bg-white/[0.04] rounded-xl transition-all disabled:opacity-30">إلغاء</Button>
+              <Button onClick={saveDish} disabled={isSaving}
+                className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl px-6 shadow-[0_4px_20px_rgba(200,162,77,0.2)] hover:shadow-[0_6px_24px_rgba(200,162,77,0.3)] transition-all duration-300 disabled:opacity-50">
+                {isSaving ? (<><Loader2 className="h-4 w-4 ml-1.5 animate-spin" /><span>جاري الحفظ...</span></>) : (<><Save className="h-4 w-4 ml-1.5" /><span>حفظ</span></>)}
               </Button>
             </div>
           </div>
