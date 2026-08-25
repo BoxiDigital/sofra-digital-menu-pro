@@ -192,33 +192,28 @@ export default function AdminView({
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [pwdField, setPwdField] = useState<{ current?: boolean; newPwd?: boolean; confirm?: boolean }>({});
 
   const handleChangePassword = async () => {
-    setPasswordError("");
-    setPasswordSuccess("");
-
-    if (!currentPassword) { setPasswordError("يرجى إدخال كلمة المرور الحالية"); return; }
-    if (!newPassword) { setPasswordError("يرجى إدخال كلمة المرور الجديدة"); return; }
-    if (newPassword.length < 6) { setPasswordError("كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل"); return; }
-    if (newPassword !== confirmNewPassword) { setPasswordError("كلمة المرور الجديدة غير متطابقة"); return; }
-
+    setPasswordError(""); setPasswordSuccess(""); setPwdField({});
+    if (!currentPassword) { setPasswordError("\u064a\u0631\u062c\u0649 \u0625\u062f\u062e\u0627\u0644 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u062d\u0627\u0644\u064a\u0629"); setPwdField({ current: true }); setTimeout(() => { document.getElementById("pwd-current")?.scrollIntoView({ behavior: "smooth", block: "center" }); document.getElementById("pwd-current")?.focus(); }, 100); return; }
+    if (!newPassword) { setPasswordError("\u064a\u0631\u062c\u0649 \u0625\u062f\u062e\u0627\u0644 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u062c\u062f\u064a\u062f\u0629"); setPwdField({ newPwd: true }); setTimeout(() => { document.getElementById("pwd-new")?.scrollIntoView({ behavior: "smooth", block: "center" }); document.getElementById("pwd-new")?.focus(); }, 100); return; }
+    if (newPassword.length < 6) { setPasswordError("\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u062c\u062f\u064a\u062f\u0629 \u064a\u062c\u0628 \u0623\u0646 \u062a\u0643\u0648\u0646 6 \u0623\u062d\u0631\u0641 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644"); setPwdField({ newPwd: true, confirm: true }); setTimeout(() => { document.getElementById("pwd-new")?.scrollIntoView({ behavior: "smooth", block: "center" }); document.getElementById("pwd-new")?.focus(); }, 100); return; }
+    if (newPassword !== confirmNewPassword) { setPasswordError("\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u062c\u062f\u064a\u062f\u0629 \u063a\u064a\u0631 \u0645\u062a\u0637\u0627\u0628\u0642\u0629"); setPwdField({ newPwd: true, confirm: true }); setTimeout(() => { document.getElementById("pwd-confirm")?.scrollIntoView({ behavior: "smooth", block: "center" }); document.getElementById("pwd-confirm")?.focus(); }, 100); return; }
     setIsChangingPassword(true);
     try {
       const { error: authError } = await supabase.auth.signInWithPassword({
         email: user?.email || "",
         password: currentPassword,
       });
-      if (authError) { setPasswordError("كلمة المرور الحالية غير صحيحة"); setIsChangingPassword(false); return; }
-
+      if (authError) { setPasswordError("\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u062d\u0627\u0644\u064a\u0629 \u063a\u064a\u0631 \u0635\u062d\u064a\u062d\u0629"); setPwdField({ current: true }); setIsChangingPassword(false); return; }
       const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
       if (updateError) { setPasswordError(updateError.message); setIsChangingPassword(false); return; }
-
-      setPasswordSuccess("تم تغيير كلمة المرور بنجاح");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmNewPassword("");
+      setPasswordSuccess("\u062a\u0645 \u062a\u063a\u064a\u064a\u0631 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0628\u0646\u062c\u0627\u062d");
+      setCurrentPassword(""); setNewPassword(""); setConfirmNewPassword(""); setPwdField({});
+      toast({ title: "\u2705 \u062a\u0645 \u062a\u063a\u064a\u064a\u0631 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631", description: "\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0628\u0646\u062c\u0627\u062d", variant: "success" });
     } catch (err: any) {
-      setPasswordError(err?.message || "حدث خطأ أثناء تغيير كلمة المرور");
+      setPasswordError(err?.message || "\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u062a\u063a\u064a\u064a\u0631 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631");
     } finally {
       setIsChangingPassword(false);
     }
@@ -404,7 +399,8 @@ export default function AdminView({
   const saveCategory = async () => {
     const ar = (categoryForm.nameAr || "").trim();
     if (!ar) {
-      toast({ title: "تنبيه", description: "الاسم بالعربية مطلوب", variant: "destructive" });
+      toast({ title: "تنبيه", description: "\u0627\u0644\u0627\u0633\u0645 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0645\u0637\u0644\u0648\u0628", variant: "destructive" });
+      setTimeout(() => { const el = document.getElementById("cat-name-ar"); if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.focus(); } }, 100);
       return;
     }
     const filled = { ...categoryForm, nameAr: ar, nameFr: (categoryForm.nameFr || "").trim() || ar, nameEn: (categoryForm.nameEn || "").trim() || ar, nameEs: (categoryForm.nameEs || "").trim() || ar };
@@ -436,9 +432,14 @@ export default function AdminView({
   };
 
   const saveConfig = async () => {
+    if (!(configForm.nameAr || "").trim()) {
+      toast({ title: "تنبيه", description: "\u0627\u0633\u0645 \u0627\u0644\u0645\u0637\u0639\u0645 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0645\u0637\u0644\u0648\u0628", variant: "destructive" });
+      setTimeout(() => { const el = document.getElementById("cfg-name-ar"); if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.focus(); } }, 100);
+      return;
+    }
     try {
       await handleUpdateConfigSafe(configForm);
-      toast({ title: "✅ تم حفظ الإعدادات بنجاح", description: "تم تحديث معلومات المطعم والألوان بنجاح", duration: 3000 });
+      toast({ title: "\u2705 \u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a", description: "\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0645\u0639\u0644\u0648\u0645\u0627\u062a \u0627\u0644\u0645\u0637\u0639\u0645 \u0628\u0646\u062c\u0627\u062d", variant: "success" });
     } catch (err) {
       // error toast already shown
     }
@@ -703,8 +704,8 @@ export default function AdminView({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white/40 text-[11px] font-medium">اسم المطعم (بالعربية)</Label>
-                  <Input value={configForm.nameAr} onChange={(e) => setConfigForm({ ...configForm, nameAr: e.target.value })}
+                  <Label className="text-white/40 text-[11px] font-medium">اسم المطعم (بالعربية) <span className="text-red-400">*</span></Label>
+                  <Input id="cfg-name-ar" value={configForm.nameAr} onChange={(e) => setConfigForm({ ...configForm, nameAr: e.target.value })}
                     className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
                 </div>
                 <div>
@@ -927,7 +928,7 @@ export default function AdminView({
 
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t border-white/[0.04]">
                 <Button onClick={saveConfig} disabled={isSaving}
-                  className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold px-6 h-11 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(200,162,77,0.2)] hover:shadow-[0_6px_24px_rgba(200,162,77,0.3)] transition-all duration-300">
+                  className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold px-6 h-11 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(200,162,77,0.2)] hover:shadow-[0_6px_24px_rgba(200,162,77,0.3)] transition-all duration-300">
                   {isSaving ? (
                     <><Loader2 className="h-4 w-4 ml-1.5 animate-spin" /><span>جارٍ الحفظ...</span></>
                   ) : (
@@ -967,14 +968,15 @@ export default function AdminView({
             <div className="bg-white/[0.02] backdrop-blur-2xl p-6 rounded-2xl border border-white/[0.04] space-y-5 max-w-md shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
               {/* Current Password */}
               <div className="space-y-2">
-                <Label className="text-white/40 text-[11px] font-medium">كلمة المرور الحالية</Label>
+                <Label className="text-white/40 text-[11px] font-medium">كلمة المرور الحالية <span className="text-red-400">*</span></Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/15" />
                   <Input
+                    id="pwd-current"
                     type={showCurrentPassword ? "text" : "password"}
                     value={currentPassword}
-                    onChange={(e) => { setCurrentPassword(e.target.value); setPasswordError(""); setPasswordSuccess(""); }}
-                    className="pl-10 pr-12 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-11 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all"
+                    onChange={(e) => { setCurrentPassword(e.target.value); setPasswordError(""); setPasswordSuccess(""); setPwdField(p => ({...p, current: undefined})); }}
+                    className={`pl-10 pr-12 bg-white/[0.03] text-white placeholder:text-white/15 rounded-xl h-11 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all ${pwdField.current ? "border-red-500/60" : "border-white/[0.06]"}`}
                     placeholder="أدخل كلمة المرور الحالية"
                     dir="ltr"
                   />
@@ -987,14 +989,15 @@ export default function AdminView({
 
               {/* New Password */}
               <div className="space-y-2">
-                <Label className="text-white/40 text-[11px] font-medium">كلمة المرور الجديدة</Label>
+                <Label className="text-white/40 text-[11px] font-medium">كلمة المرور الجديدة <span className="text-red-400">*</span></Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/15" />
                   <Input
+                    id="pwd-new"
                     type={showNewPassword ? "text" : "password"}
                     value={newPassword}
-                    onChange={(e) => { setNewPassword(e.target.value); setPasswordError(""); setPasswordSuccess(""); }}
-                    className="pl-10 pr-12 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-11 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all"
+                    onChange={(e) => { setNewPassword(e.target.value); setPasswordError(""); setPasswordSuccess(""); setPwdField(p => ({...p, newPwd: undefined})); }}
+                    className={`pl-10 pr-12 bg-white/[0.03] text-white placeholder:text-white/15 rounded-xl h-11 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all ${pwdField.newPwd ? "border-red-500/60" : "border-white/[0.06]"}`}
                     placeholder="أدخل كلمة المرور الجديدة"
                     dir="ltr"
                   />
@@ -1007,14 +1010,15 @@ export default function AdminView({
 
               {/* Confirm New Password */}
               <div className="space-y-2">
-                <Label className="text-white/40 text-[11px] font-medium">تأكيد كلمة المرور الجديدة</Label>
+                <Label className="text-white/40 text-[11px] font-medium">تأكيد كلمة المرور الجديدة <span className="text-red-400">*</span></Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/15" />
                   <Input
+                    id="pwd-confirm"
                     type={showConfirmNewPassword ? "text" : "password"}
                     value={confirmNewPassword}
-                    onChange={(e) => { setConfirmNewPassword(e.target.value); setPasswordError(""); setPasswordSuccess(""); }}
-                    className="pl-10 pr-12 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-11 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all"
+                    onChange={(e) => { setConfirmNewPassword(e.target.value); setPasswordError(""); setPasswordSuccess(""); setPwdField(p => ({...p, confirm: undefined})); }}
+                    className={`pl-10 pr-12 bg-white/[0.03] text-white placeholder:text-white/15 rounded-xl h-11 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all ${pwdField.confirm ? "border-red-500/60" : "border-white/[0.06]"}`}
                     placeholder="أعد كتابة كلمة المرور الجديدة"
                     dir="ltr"
                   />
@@ -1045,7 +1049,7 @@ export default function AdminView({
                 className="w-full bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl h-11 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(200,162,77,0.2)] hover:shadow-[0_6px_24px_rgba(200,162,77,0.3)] transition-all duration-300">
                 {isChangingPassword ? (
                   <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-black/30 border-t-black/80 rounded-full animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     جاري تغيير كلمة المرور...
                   </span>
                 ) : (
@@ -1475,8 +1479,8 @@ export default function AdminView({
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <Label className="text-white/40 text-[11px] font-medium">الاسم (عربي)</Label>
-              <Input value={categoryForm.nameAr || ""} onChange={(e) => setCategoryForm({ ...categoryForm, nameAr: e.target.value })}
+              <Label className="text-white/40 text-[11px] font-medium">الاسم (عربي) <span className="text-red-400">*</span></Label>
+              <Input id="cat-name-ar" value={categoryForm.nameAr || ""} onChange={(e) => setCategoryForm({ ...categoryForm, nameAr: e.target.value })}
                 className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
             </div>
             <div>
@@ -1511,11 +1515,11 @@ export default function AdminView({
               </Select>
             </div>
             <div className="flex gap-2 justify-end pt-2">
-              <Button variant="ghost" onClick={() => setIsCategoryDialogOpen(false)}
-                className="text-white/40 hover:text-white/70 hover:bg-white/[0.04] rounded-xl transition-all">إلغاء</Button>
-              <Button onClick={saveCategory}
-                className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl px-6 shadow-[0_4px_20px_rgba(200,162,77,0.2)] hover:shadow-[0_6px_24px_rgba(200,162,77,0.3)] transition-all duration-300">
-                <Save className="h-4 w-4 ml-1.5" /><span>حفظ</span>
+              <Button variant="ghost" onClick={() => setIsCategoryDialogOpen(false)} disabled={isSaving}
+                className="text-white/40 hover:text-white/70 hover:bg-white/[0.04] rounded-xl transition-all disabled:opacity-30">إلغاء</Button>
+              <Button onClick={saveCategory} disabled={isSaving}
+                className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl px-6 shadow-[0_4px_20px_rgba(200,162,77,0.2)] hover:shadow-[0_6px_24px_rgba(200,162,77,0.3)] transition-all duration-300 disabled:opacity-50">
+                {isSaving ? (<><Loader2 className="h-4 w-4 ml-1.5 animate-spin" /><span>جاري الحفظ...</span></>) : (<><Save className="h-4 w-4 ml-1.5" /><span>حفظ</span></>)}
               </Button>
             </div>
           </div>
