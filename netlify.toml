@@ -1,0 +1,22 @@
+# Netlify Configuration — Sofra Digital Menu
+# =============================================================================
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# ── SPA Rewrites (للتطبيقات أحادية الصفحة) ──────────────────────────────────
+# أي مسار غير موجود يُعاد توجيهه إلى index.html ليتم التعامل معه عبر React Router
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# ── Edge Function: OG Proxy ──────────────────────────────────────────────────
+# تعترض كاشفات وسائل التواصل (واتساب، فيسبوك، تويتر...) وتُضخ OG Tags
+# ديناميكية مخصصة لكل مطعم قبل أن يرى الكاشف الصفحة.
+
+[[edge_functions]]
+  function = "og-proxy"
+  path = "/*"

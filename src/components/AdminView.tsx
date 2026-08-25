@@ -302,11 +302,22 @@ export default function AdminView({
         .from('dish-images')
         .getPublicUrl(fileName);
       
-      if (type === "dish") setDishForm((prev) => ({ ...prev, image: publicUrl }));
-      else if (type === "cover") setConfigForm((prev) => ({ ...prev, coverUrl: publicUrl }));
-      else setConfigForm((prev) => ({ ...prev, logoUrl: publicUrl }));
-      
-      toast({ title: "\u2705 \u062a\u0645 \u0631\u0641\u0639 \u0627\u0644\u0635\u0648\u0631\u0629", description: "\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0635\u0648\u0631\u0629 \u0641\u064a Supabase Storage \u0648\u062a\u062e\u0632\u064a\u0646 \u0627\u0644\u0631\u0627\u0628\u0637 \u0627\u0644\u0639\u0627\u0645", variant: "success" });
+      if (type === "dish") {
+        setDishForm((prev) => ({ ...prev, image: publicUrl }));
+        toast({ title: "\u2705 \u062a\u0645 \u0631\u0641\u0639 \u0627\u0644\u0635\u0648\u0631\u0629", description: "\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0635\u0648\u0631\u0629 \u0641\u064a Supabase Storage", variant: "success" });
+      } else {
+        // Auto-save logo/cover immediately to persist in DB without extra "Save" click
+        const updatedConfig = type === "cover"
+          ? { ...configForm, coverUrl: publicUrl }
+          : { ...configForm, logoUrl: publicUrl };
+        setConfigForm(updatedConfig);
+        try {
+          await handleUpdateConfigSafe(updatedConfig);
+          toast({ title: "\u2705 \u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0635\u0648\u0631\u0629", description: type === "cover" ? "\u062a\u0645 \u0631\u0641\u0639 \u0627\u0644\u063a\u0644\u0627\u0641 \u0648\u062d\u0641\u0638\u0647 \u0641\u064a \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a" : "\u062a\u0645 \u0631\u0641\u0639 \u0627\u0644\u0634\u0639\u0627\u0631 \u0648\u062d\u0641\u0638\u0647 \u0641\u064a \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a", variant: "success" });
+        } catch (err: any) {
+          toast({ title: "\u26a0\ufe0f \u062a\u0645 \u0631\u0641\u0639 \u0627\u0644\u0635\u0648\u0631\u0629 \u0648\u0644\u0643\u0646 \u0641\u0634\u0644 \u0627\u0644\u062d\u0641\u0638 \u0627\u0644\u062a\u0644\u0642\u0627\u0626\u064a", description: "\u0627\u0636\u063a\u0637 \u0632\u0631 '\u062d\u0641\u0638 \u062c\u0645\u064a\u0639 \u0627\u0644\u062a\u063a\u064a\u064a\u0631\u0627\u062a' \u0644\u062a\u062b\u0628\u064a\u062a \u0627\u0644\u062a\u063a\u064a\u064a\u0631", variant: "destructive" });
+        }
+      }
     } catch (err: any) {
       console.error("[AdminView] Upload error:", err);
       toast({ title: "\u274c \u0641\u0634\u0644 \u0631\u0641\u0639 \u0627\u0644\u0635\u0648\u0631\u0629", description: err?.message || "\u062a\u0623\u0643\u062f \u0645\u0646 \u0625\u0646\u0634\u0627\u0621 Bucket \u0628\u0627\u0633\u0645 dish-images \u0648\u062c\u0639\u0644\u0647 Public \u0641\u064a Supabase", variant: "destructive" });
