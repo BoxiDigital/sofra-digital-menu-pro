@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Dish, Category, RestaurantConfig, Review } from "../types";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { getMyReviews, getAnalytics, resetAnalytics } from "../utils/storage";
+import { getMyReviews, getAnalytics, resetAnalytics, getMyRestaurant } from "../utils/storage";
 import {
   Plus, 
   Edit, 
@@ -38,7 +38,6 @@ import {
   MapPin,
   Link2,
   BarChart3,
-  Trash2 as Trash2Icon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -149,6 +148,38 @@ export default function AdminView({
       toast({ title: "خطأ في الحذف", description: err?.message || "حدث خطأ أثناء حذف الشكوى", variant: "destructive" });
     } finally {
       setDeletingReviewId(null);
+    }
+  };
+
+  const loadAnalytics = async () => {
+    setAnalyticsLoading(true);
+    try {
+      const restaurant = await getMyRestaurant();
+      if (restaurant?.id) {
+        const stats = await getAnalytics(restaurant.id);
+        setAnalytics(stats);
+      }
+    } catch (err) {
+      console.error("[AdminView] loadAnalytics error:", err);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  const handleResetAnalytics = async () => {
+    if (!confirm("هل أنت متأكد من تصفير جميع الإحصائيات؟ لا يمكن التراجع عن هذا الإجراء.")) return;
+    setResettingAnalytics(true);
+    try {
+      const restaurant = await getMyRestaurant();
+      if (restaurant?.id) {
+        await resetAnalytics(restaurant.id);
+        setAnalytics({ scanViews: 0, whatsappClicks: 0, totalEvents: 0 });
+        toast({ title: "تم التصفير", description: "تم تصفير جميع الإحصائيات بنجاح" });
+      }
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err?.message || "حدث خطأ أثناء تصفير الإحصائيات", variant: "destructive" });
+    } finally {
+      setResettingAnalytics(false);
     }
   };
 
