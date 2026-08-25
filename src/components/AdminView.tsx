@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Dish, Category, RestaurantConfig, Review } from "../types";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { getMyReviews } from "../utils/storage";
+import { getMyReviews, getAnalytics, resetAnalytics } from "../utils/storage";
 import {
   Plus, 
   Edit, 
@@ -37,6 +37,8 @@ import {
   ThumbsUp,
   MapPin,
   Link2,
+  BarChart3,
+  Trash2 as Trash2Icon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,6 +117,9 @@ export default function AdminView({
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null);
+  const [analytics, setAnalytics] = useState({ scanViews: 0, whatsappClicks: 0, totalEvents: 0 });
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [resettingAnalytics, setResettingAnalytics] = useState(false);
 
   const loadReviews = async () => {
     setReviewsLoading(true);
@@ -252,24 +257,48 @@ export default function AdminView({
   const availableDishes = dishes.filter((d) => d.isAvailable);
   const unavailableDishes = dishes.filter((d) => !d.isAvailable);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "dish" | "logo" | "cover") => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "dish" | "logo" | "cover") => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      if (type === "dish") setDishForm((prev) => ({ ...prev, image: base64String }));
-      else if (type === "cover") setConfigForm((prev) => ({ ...prev, coverUrl: base64String }));
-      else setConfigForm((prev) => ({ ...prev, logoUrl: base64String }));
-      toast({ title: "تم رفع الصورة بنجاح", description: "تم تحويل الصورة وحفظها محلياً" });
-    };
-    reader.readAsDataURL(file);
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${type}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+    
+    try {
+      const { data, error } = await supabase.storage
+        .from('restaurant-images')
+        .upload(fileName, file);
+      
+      if (error) throw error;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('restaurant-images')
+        .getPublicUrl(fileName);
+      
+      if (type === "dish") setDishForm((prev) => ({ ...prev, image: publicUrl }));
+      else if (type === "cover") setConfigForm((prev) => ({ ...prev, coverUrl: publicUrl }));
+      else setConfigForm((prev) => ({ ...prev, logoUrl: publicUrl }));
+      
+      toast({ title: "تم رفع الصورة بنجاح", description: "تم حفظ الصورة في التخزين السحابي Supabase" });
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      toast({ title: "خطأ في رفع الصورة", description: err?.message || "حدث خطأ أثناء رفع الصورة", variant: "destructive" });
+      // Fallback to Base64 if storage upload fails
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        if (type === "dish") setDishForm((prev) => ({ ...prev, image: base64String }));
+        else if (type === "cover") setConfigForm((prev) => ({ ...prev, coverUrl: base64String }));
+        else setConfigForm((prev) => ({ ...prev, logoUrl: base64String }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const openAddDish = () => {
     setEditingDish(null);
     setDishForm({
-      nameAr: "", nameFr: "", descriptionAr: "", descriptionFr: "", price: 0,
+      nameAr: "", nameFr: "", nameEn: "", nameEs: "", descriptionAr: "", descriptionFr: "", descriptionEn: "", descriptionEs: "", price: 0,
       category: categories[0]?.id || "",
       image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80",
       isAvailable: true, isNew: false, isBestSeller: false, isVegetarian: false, isHalal: true, isGlutenFree: false,
@@ -327,7 +356,7 @@ export default function AdminView({
 
   const openAddCategory = () => {
     setEditingCategory(null);
-    setCategoryForm({ nameAr: "", nameFr: "", icon: "Utensils" });
+    setCategoryForm({ nameAr: "", nameFr: "", nameEn: "", nameEs: "", icon: "Utensils" });
     setIsCategoryDialogOpen(true);
   };
 
@@ -423,7 +452,7 @@ export default function AdminView({
   return (
     <div className="min-h-screen pb-16 relative" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <Tabs defaultValue="dishes" className="space-y-8" onValueChange={(val) => { if (val === "reviews") loadReviews(); }}>
+        <Tabs defaultValue="dishes" className="space-y-8" onValueChange={(val) => { if (val === "reviews") loadReviews(); if (val === "analytics") loadAnalytics(); }}>
           {/* ── Tabs Navigation ── */}
           <TabsList className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.04] p-1 rounded-2xl w-full max-w-lg flex shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
             <TabsTrigger value="dishes"
@@ -445,6 +474,10 @@ export default function AdminView({
             <TabsTrigger value="reviews"
               className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[var(--primary)] data-[state=active]:text-black data-[state=active]:shadow-[0_2px_12px_rgba(200,162,77,0.3)] data-[state=inactive]:text-white/35 data-[state=inactive]:hover:text-white/60 transition-all duration-300">
               التقييمات
+            </TabsTrigger>
+            <TabsTrigger value="analytics"
+              className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[var(--primary)] data-[state=active]:text-black data-[state=active]:shadow-[0_2px_12px_rgba(200,162,77,0.3)] data-[state=inactive]:text-white/35 data-[state=inactive]:hover:text-white/60 transition-all duration-300">
+              التحليلات
             </TabsTrigger>
           </TabsList>
 
@@ -642,6 +675,16 @@ export default function AdminView({
                     className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
                 </div>
                 <div>
+                  <Label className="text-white/40 text-[11px] font-medium">اسم المطعم (بالإنجليزية)</Label>
+                  <Input value={configForm.nameEn} onChange={(e) => setConfigForm({ ...configForm, nameEn: e.target.value })}
+                    className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
+                  <Label className="text-white/40 text-[11px] font-medium">اسم المطعم (بالإسبانية)</Label>
+                  <Input value={configForm.nameEs} onChange={(e) => setConfigForm({ ...configForm, nameEs: e.target.value })}
+                    className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
                   <Label className="text-white/40 text-[11px] font-medium">الشعار (بالعربية)</Label>
                   <Input value={configForm.sloganAr} onChange={(e) => setConfigForm({ ...configForm, sloganAr: e.target.value })}
                     className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
@@ -649,6 +692,16 @@ export default function AdminView({
                 <div>
                   <Label className="text-white/40 text-[11px] font-medium">الشعار (بالفرنسية)</Label>
                   <Input value={configForm.sloganFr} onChange={(e) => setConfigForm({ ...configForm, sloganFr: e.target.value })}
+                    className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
+                  <Label className="text-white/40 text-[11px] font-medium">الشعار (بالإنجليزية)</Label>
+                  <Input value={configForm.sloganEn} onChange={(e) => setConfigForm({ ...configForm, sloganEn: e.target.value })}
+                    className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
+                  <Label className="text-white/40 text-[11px] font-medium">الشعار (بالإسبانية)</Label>
+                  <Input value={configForm.sloganEs} onChange={(e) => setConfigForm({ ...configForm, sloganEs: e.target.value })}
                     className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
                 </div>
                 <div>
@@ -662,6 +715,16 @@ export default function AdminView({
                     className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
                 </div>
                 <div>
+                  <Label className="text-white/40 text-[11px] font-medium">ساعات العمل (بالإنجليزية)</Label>
+                  <Input value={configForm.workingHoursEn} onChange={(e) => setConfigForm({ ...configForm, workingHoursEn: e.target.value })}
+                    className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
+                  <Label className="text-white/40 text-[11px] font-medium">ساعات العمل (بالإسبانية)</Label>
+                  <Input value={configForm.workingHoursEs} onChange={(e) => setConfigForm({ ...configForm, workingHoursEs: e.target.value })}
+                    className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
                   <Label className="text-white/40 text-[11px] font-medium">رقم واتساب (مع رمز الدولة)</Label>
                   <Input value={configForm.whatsappNumber} onChange={(e) => setConfigForm({ ...configForm, whatsappNumber: e.target.value })}
                     className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" placeholder="212600000000" />
@@ -672,6 +735,10 @@ export default function AdminView({
                     <Input value={configForm.currencyAr} onChange={(e) => setConfigForm({ ...configForm, currencyAr: e.target.value })}
                       className="bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" placeholder="درهم" />
                     <Input value={configForm.currencyFr} onChange={(e) => setConfigForm({ ...configForm, currencyFr: e.target.value })}
+                      className="bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" placeholder="MAD" />
+                    <Input value={configForm.currencyEn} onChange={(e) => setConfigForm({ ...configForm, currencyEn: e.target.value })}
+                      className="bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" placeholder="MAD" />
+                    <Input value={configForm.currencyEs} onChange={(e) => setConfigForm({ ...configForm, currencyEs: e.target.value })}
                       className="bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" placeholder="MAD" />
                   </div>
                 </div>
@@ -805,6 +872,16 @@ export default function AdminView({
                   <div>
                     <Label className="text-white/30 text-[10px]">بالفرنسية</Label>
                     <Textarea value={configForm.whatsappMessageFr} onChange={(e) => setConfigForm({ ...configForm, whatsappMessageFr: e.target.value })}
+                      className="mt-1 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl text-xs min-h-[80px] focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                  </div>
+                  <div>
+                    <Label className="text-white/30 text-[10px]">بالإنجليزية</Label>
+                    <Textarea value={configForm.whatsappMessageEn} onChange={(e) => setConfigForm({ ...configForm, whatsappMessageEn: e.target.value })}
+                      className="mt-1 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl text-xs min-h-[80px] focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                  </div>
+                  <div>
+                    <Label className="text-white/30 text-[10px]">بالإسبانية</Label>
+                    <Textarea value={configForm.whatsappMessageEs} onChange={(e) => setConfigForm({ ...configForm, whatsappMessageEs: e.target.value })}
                       className="mt-1 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl text-xs min-h-[80px] focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
                   </div>
                 </div>
@@ -1021,6 +1098,91 @@ export default function AdminView({
               </div>
             )}
           </TabsContent>
+
+          {/* ═══════════════════════ ANALYTICS TAB ═══════════════════════ */}
+          <TabsContent value="analytics" className="space-y-6">
+            <div>
+              <h2 className="text-xl font-bold text-white">تحليلات المنيو</h2>
+              <p className="text-xs text-white/25 mt-0.5">إحصائيات مشاهدات المنيو ونقرات واتساب</p>
+            </div>
+
+            {analyticsLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="w-10 h-10 rounded-2xl border border-[var(--primary)]/15 flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 text-[var(--primary)] animate-spin" />
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Stats cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-white/[0.02] backdrop-blur-2xl border border-white/[0.04] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.25)] hover:border-white/[0.08] transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/15">
+                        <Eye className="h-5 w-5 text-blue-400" />
+                      </div>
+                      <div className="text-[11px] text-white/30">مشاهدات المنيو</div>
+                    </div>
+                    <div className="text-3xl font-bold text-white tracking-tight">{analytics.scanViews}</div>
+                    <p className="text-white/20 text-xs mt-1">عدد مرات مسح QR أو فتح الرابط</p>
+                  </div>
+                  <div className="bg-white/[0.02] backdrop-blur-2xl border border-white/[0.04] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.25)] hover:border-white/[0.08] transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-green-500/10 flex items-center justify-center border border-green-500/15">
+                        <MessageCircle className="h-5 w-5 text-green-400" />
+                      </div>
+                      <div className="text-[11px] text-white/30">نقرات واتساب</div>
+                    </div>
+                    <div className="text-3xl font-bold text-white tracking-tight">{analytics.whatsappClicks}</div>
+                    <p className="text-white/20 text-xs mt-1">عدد مرات النقر على زر طلب واتساب</p>
+                  </div>
+                  <div className="bg-white/[0.02] backdrop-blur-2xl border border-white/[0.04] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.25)] hover:border-white/[0.08] transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center border border-[var(--primary)]/15">
+                        <BarChart3 className="h-5 w-5 text-[var(--primary)]" />
+                      </div>
+                      <div className="text-[11px] text-white/30">معدل التحويل</div>
+                    </div>
+                    <div className="text-3xl font-bold text-white tracking-tight">
+                      {analytics.scanViews > 0 ? Math.round((analytics.whatsappClicks / analytics.scanViews) * 100) : 0}%
+                    </div>
+                    <p className="text-white/20 text-xs mt-1">نسبة النقر على واتساب من المشاهدات</p>
+                  </div>
+                </div>
+
+                {/* Total events */}
+                <div className="bg-white/[0.02] backdrop-blur-2xl border border-white/[0.04] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.25)]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-[11px] text-white/30 mb-1">إجمالي التفاعلات</div>
+                      <div className="text-2xl font-bold text-white tracking-tight">{analytics.totalEvents}</div>
+                    </div>
+                    <Button
+                      onClick={handleResetAnalytics}
+                      disabled={resettingAnalytics || analytics.totalEvents === 0}
+                      variant="ghost"
+                      className="text-red-400/60 hover:text-red-300 hover:bg-red-500/8 rounded-xl transition-all duration-300 disabled:opacity-30"
+                    >
+                      {resettingAnalytics ? (
+                        <Loader2 className="h-4 w-4 ml-1.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4 ml-1.5" />
+                      )}
+                      <span>تصفير الإحصائيات</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {analytics.totalEvents === 0 && (
+                  <div className="bg-white/[0.02] backdrop-blur-2xl p-12 rounded-2xl border border-white/[0.04] text-center shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
+                    <BarChart3 className="h-12 w-12 mx-auto text-white/6 mb-4" />
+                    <p className="text-white/30 text-lg">لا توجد بيانات تحليلية بعد</p>
+                    <p className="text-white/18 text-sm mt-1">ستظهر الإحصائيات فور بدء الزبائن بتصفح المنيو والطلب عبر واتساب</p>
+                  </div>
+                )}
+              </>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -1047,6 +1209,18 @@ export default function AdminView({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
+                <Label className="text-white/40 text-[11px] font-medium">الاسم (إنجليزي)</Label>
+                <Input value={dishForm.nameEn || ""} onChange={(e) => setDishForm({ ...dishForm, nameEn: e.target.value })}
+                  className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+              </div>
+              <div>
+                <Label className="text-white/40 text-[11px] font-medium">الاسم (إسباني)</Label>
+                <Input value={dishForm.nameEs || ""} onChange={(e) => setDishForm({ ...dishForm, nameEs: e.target.value })}
+                  className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
                 <Label className="text-white/40 text-[11px] font-medium">الوصف (عربي)</Label>
                 <Textarea value={dishForm.descriptionAr || ""} onChange={(e) => setDishForm({ ...dishForm, descriptionAr: e.target.value })}
                   className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl text-xs min-h-[60px] focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
@@ -1054,6 +1228,18 @@ export default function AdminView({
               <div>
                 <Label className="text-white/40 text-[11px] font-medium">الوصف (فرنسي)</Label>
                 <Textarea value={dishForm.descriptionFr || ""} onChange={(e) => setDishForm({ ...dishForm, descriptionFr: e.target.value })}
+                  className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl text-xs min-h-[60px] focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-white/40 text-[11px] font-medium">الوصف (إنجليزي)</Label>
+                <Textarea value={dishForm.descriptionEn || ""} onChange={(e) => setDishForm({ ...dishForm, descriptionEn: e.target.value })}
+                  className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl text-xs min-h-[60px] focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+              </div>
+              <div>
+                <Label className="text-white/40 text-[11px] font-medium">الوصف (إسباني)</Label>
+                <Textarea value={dishForm.descriptionEs || ""} onChange={(e) => setDishForm({ ...dishForm, descriptionEs: e.target.value })}
                   className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl text-xs min-h-[60px] focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
               </div>
             </div>
@@ -1135,6 +1321,16 @@ export default function AdminView({
                     className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
                 </div>
                 <div>
+                  <Label className="text-white/40 text-[11px] font-medium">وسم العرض (إنجليزي)</Label>
+                  <Input value={dishForm.promoLabelEn || ""} onChange={(e) => setDishForm({ ...dishForm, promoLabelEn: e.target.value })}
+                    className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
+                  <Label className="text-white/40 text-[11px] font-medium">وسم العرض (إسباني)</Label>
+                  <Input value={dishForm.promoLabelEs || ""} onChange={(e) => setDishForm({ ...dishForm, promoLabelEs: e.target.value })}
+                    className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
                   <Label className="text-white/40 text-[11px] font-medium">نص العرض (عربي)</Label>
                   <Input value={dishForm.promoTextAr || ""} onChange={(e) => setDishForm({ ...dishForm, promoTextAr: e.target.value })}
                     className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
@@ -1142,6 +1338,16 @@ export default function AdminView({
                 <div>
                   <Label className="text-white/40 text-[11px] font-medium">نص العرض (فرنسي)</Label>
                   <Input value={dishForm.promoTextFr || ""} onChange={(e) => setDishForm({ ...dishForm, promoTextFr: e.target.value })}
+                    className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
+                  <Label className="text-white/40 text-[11px] font-medium">نص العرض (إنجليزي)</Label>
+                  <Input value={dishForm.promoTextEn || ""} onChange={(e) => setDishForm({ ...dishForm, promoTextEn: e.target.value })}
+                    className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
+                  <Label className="text-white/40 text-[11px] font-medium">نص العرض (إسباني)</Label>
+                  <Input value={dishForm.promoTextEs || ""} onChange={(e) => setDishForm({ ...dishForm, promoTextEs: e.target.value })}
                     className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
                 </div>
               </div>
@@ -1235,6 +1441,16 @@ export default function AdminView({
             <div>
               <Label className="text-white/40 text-[11px] font-medium">الاسم (فرنسي)</Label>
               <Input value={categoryForm.nameFr || ""} onChange={(e) => setCategoryForm({ ...categoryForm, nameFr: e.target.value })}
+                className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+            </div>
+            <div>
+              <Label className="text-white/40 text-[11px] font-medium">الاسم (إنجليزي)</Label>
+              <Input value={categoryForm.nameEn || ""} onChange={(e) => setCategoryForm({ ...categoryForm, nameEn: e.target.value })}
+                className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+            </div>
+            <div>
+              <Label className="text-white/40 text-[11px] font-medium">الاسم (إسباني)</Label>
+              <Input value={categoryForm.nameEs || ""} onChange={(e) => setCategoryForm({ ...categoryForm, nameEs: e.target.value })}
                 className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
             </div>
             <div>

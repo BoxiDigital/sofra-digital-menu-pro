@@ -4,6 +4,7 @@ import {
   getRestaurantBySlug,
   getCategoriesByRestaurant,
   getDishesByRestaurant,
+  trackEvent,
 } from "../utils/storage";
 import { Category, Dish, RestaurantConfig } from "../types";
 import ClientView from "../components/ClientView";
@@ -20,11 +21,43 @@ export default function MenuPage() {
 
   // Keep CSS variables in sync so the loading/error states reflect the theme
   useEffect(() => {
-    if (config?.primaryColor) {
-      const root = document.documentElement;
-      root.style.setProperty("--primary", config.primaryColor);
+    if (config) {
+      const title = `${config.nameAr} — قائمة رقمية | سُفرة`;
+      const desc = config.sloganAr || `${config.nameAr} — منيو رقمي احترافي`;
+      const image = config.logoUrl || config.coverUrl || '';
+      
+      document.title = title;
+      
+      const setMeta = (property: string, content: string) => {
+        let el = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement | null;
+        if (!el) {
+          el = document.createElement('meta');
+          el.setAttribute('property', property);
+          document.head.appendChild(el);
+        }
+        el.setAttribute('content', content);
+      };
+      
+      const setNameMeta = (name: string, content: string) => {
+        let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+        if (!el) {
+          el = document.createElement('meta');
+          el.setAttribute('name', name);
+          document.head.appendChild(el);
+        }
+        el.setAttribute('content', content);
+      };
+      
+      setMeta('og:title', title);
+      setMeta('og:description', desc);
+      if (image) setMeta('og:image', image);
+      setMeta('og:url', window.location.href);
+      setNameMeta('description', desc);
+      setNameMeta('twitter:title', title);
+      setNameMeta('twitter:description', desc);
+      if (image) setNameMeta('twitter:image', image);
     }
-  }, [config?.primaryColor]);
+  }, [config]);
 
   useEffect(() => {
     if (!slug) {
@@ -55,6 +88,8 @@ export default function MenuPage() {
             setConfig(cfg);
       setCategories(cats);
       setDishes(dsh);
+      // Track analytics: scan view
+      trackEvent(restaurant.id, "scan_view").catch(() => {});
     } catch (err) {
       console.error("[MenuPage] Error:", err);
       setNotFound(true);

@@ -134,12 +134,14 @@ export default function Login() {
           </Button>
         </form>
 
+        {/* تم إخفاء زر التسجيل مؤقتاً - يمكن إظهاره لاحقاً بإزالة هذا التعليق
         <div className="text-center text-xs text-white/25">
           لا تملك حساب؟{" "}
           <Link to="/register" className="text-[#C8A24D] hover:text-[#D4B35D] font-medium transition-colors">
             سجل مطعمك الآن
           </Link>
         </div>
+        */}
       </div>
     </div>
   );
