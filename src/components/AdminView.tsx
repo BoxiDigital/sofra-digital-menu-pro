@@ -364,8 +364,11 @@ export default function AdminView({
     try {
       await handleUpdateDishesSafe(updatedDishes);
       setIsDishDialogOpen(false); setDishErrors({});
-      toast({ title: editingDish ? "\u2705 \u062a\u0645 \u0627\u0644\u062a\u0639\u062f\u064a\u0644" : "\u2705 \u062a\u0645 \u0627\u0644\u0625\u0636\u0627\u0641\u0629", description: editingDish ? "\u062a\u0645 \u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0637\u0628\u0642 \u0628\u0646\u062c\u0627\u062d" : "\u062a\u0645 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0637\u0628\u0642 \u0627\u0644\u062c\u062f\u064a\u062f \u0628\u0646\u062c\u0627\u062d" });
-    } catch (err) {}
+      toast({ title: editingDish ? "\u2705 \u062a\u0645 \u0627\u0644\u062a\u0639\u062f\u064a\u0644" : "\u2705 \u062a\u0645 \u0627\u0644\u0625\u0636\u0627\u0641\u0629", description: editingDish ? "\u062a\u0645 \u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0637\u0628\u0642 \u0628\u0646\u062c\u0627\u062d" : "\u062a\u0645 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0637\u0628\u0642 \u0627\u0644\u062c\u062f\u064a\u062f \u0628\u0646\u062c\u0627\u062d", variant: "success" });
+    } catch (err: any) {
+      console.error("[AdminView] saveDish error:", err);
+      toast({ title: "\u274c \u0641\u0634\u0644 \u0627\u0644\u062d\u0641\u0638", description: err?.message || "\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u0627\u0644\u062d\u0641\u0638 \u0641\u064a Supabase", variant: "destructive" });
+    }
   };
 
   const deleteDish = async (id: string) => {
@@ -413,8 +416,11 @@ export default function AdminView({
     try {
       await handleUpdateCategoriesSafe(updatedCategories);
       setIsCategoryDialogOpen(false);
-      toast({ title: editingCategory ? "✅ تم التعديل" : "✅ تم الإضافة", description: editingCategory ? "تم تعديل الفئة بنجاح" : "تم إضافة الفئة الجديدة بنجاح" });
-    } catch (err) {}
+      toast({ title: editingCategory ? "\u2705 \u062a\u0645 \u0627\u0644\u062a\u0639\u062f\u064a\u0644" : "\u2705 \u062a\u0645 \u0627\u0644\u0625\u0636\u0627\u0641\u0629", description: editingCategory ? "\u062a\u0645 \u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0641\u0626\u0629 \u0628\u0646\u062c\u0627\u062d" : "\u062a\u0645 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0641\u0626\u0629 \u0627\u0644\u062c\u062f\u064a\u062f\u0629 \u0628\u0646\u062c\u0627\u062d", variant: "success" });
+    } catch (err: any) {
+      console.error("[AdminView] saveCategory error:", err);
+      toast({ title: "\u274c \u0641\u0634\u0644 \u0627\u0644\u062d\u0641\u0638", description: err?.message || "\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u0627\u0644\u062d\u0641\u0638 \u0641\u064a Supabase", variant: "destructive" });
+    }
   };
 
   const deleteCategory = async (id: string) => {
@@ -571,7 +577,7 @@ export default function AdminView({
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <Switch checked={dish.isAvailable} onCheckedChange={() => toggleDishAvailability(dish.id, dish.isAvailable)} />
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-[var(--primary)]/70 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-lg transition-all" onClick={() => openEditDish(dish)}>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-200 hover:text-white hover:bg-white/10 rounded-lg transition-all" onClick={() => openEditDish(dish)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400/40 hover:text-red-300 hover:bg-red-500/8 rounded-lg transition-all" onClick={() => deleteDish(dish.id)}>
@@ -625,7 +631,7 @@ export default function AdminView({
                             onClick={() => reactivateDish(dish.id)}>
                             <RefreshCcw className="h-3 w-3" /><span>تفعيل</span>
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-[var(--primary)]/30 hover:text-[var(--primary)]/60 hover:bg-white/3 rounded-lg" onClick={() => openEditDish(dish)}>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300/60 hover:text-white hover:bg-white/10 rounded-lg" onClick={() => openEditDish(dish)}>
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400/30 hover:text-red-400/60 hover:bg-red-500/5 rounded-lg" onClick={() => deleteDish(dish.id)}>
@@ -669,7 +675,7 @@ export default function AdminView({
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-[var(--primary)]/60 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-lg transition-all" onClick={() => openEditCategory(cat)}>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-200 hover:text-white hover:bg-white/10 rounded-lg transition-all" onClick={() => openEditCategory(cat)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400/30 hover:text-red-300 hover:bg-red-500/8 rounded-lg transition-all" onClick={() => deleteCategory(cat.id)}>
@@ -1281,7 +1287,7 @@ export default function AdminView({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-white/40 text-[11px] font-medium">السعر <span className="text-red-400">*</span></Label>
-                <Input type="number" value={dishForm.price || 0} onChange={(e) => { setDishForm({ ...dishForm, price: Number(e.target.value) }); setDishErrors(p => ({...p, price: undefined})); }}
+                <Input type="number" value={dishForm.price && dishForm.price > 0 ? dishForm.price : ""} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => { const v = e.target.value === "" ? 0 : Number(e.target.value); setDishForm({ ...dishForm, price: v }); setDishErrors(p => ({...p, price: undefined})); }}
                   className={`mt-1 bg-white/[0.04] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all ${dishErrors.price ? "border-red-500/60" : "border-white/[0.08]"}`} />
                 {dishErrors.price && <p className="text-red-400 text-[10px] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{dishErrors.price}</p>}
               </div>
