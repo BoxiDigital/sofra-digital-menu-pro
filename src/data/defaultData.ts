@@ -206,7 +206,7 @@ export const defaultRestaurantConfig: RestaurantConfig = {
   sloganFr: "Le meilleur de la cuisine marocaine",
   sloganEn: "The finest authentic Moroccan cuisine",
   sloganEs: "La mejor cocina marroquí auténtica",
-  logoUrl: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=150&h=150&q=80",
+  logoUrl: "https://likajtjowrmwjkoieznp.supabase.co/storage/v1/object/public/dish-images/sofra-og-default.jpg",
     coverUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80",
   workingHoursAr: "يومياً من 12:00 ظهراً حتى 11:00 مساءً",
   workingHoursFr: "Tous les jours de 12h00 à 23h00",
