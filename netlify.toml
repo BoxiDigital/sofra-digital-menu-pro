@@ -7,6 +7,17 @@
 
 # ── SPA Rewrites (للتطبيقات أحادية الصفحة) ──────────────────────────────────
 # أي مسار غير موجود يُعاد توجيهه إلى index.html ليتم التعامل معه عبر React Router
+# ملاحظة: privacy.html مستثنى باش يخدم كصفحة ثابتة مباشرة
+
+[[redirects]]
+  from = "/privacy.html"
+  to = "/privacy.html"
+  status = 200
+
+[[redirects]]
+  from = "/privacy"
+  to = "/privacy.html"
+  status = 301
 
 [[redirects]]
   from = "/*"
