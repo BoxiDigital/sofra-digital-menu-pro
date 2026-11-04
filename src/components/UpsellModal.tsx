@@ -3,7 +3,7 @@ import { Plus, Check, ShoppingCart, Sparkles, X } from "lucide-react";
 import { Dish } from "../types";
 
 interface UpsellModalProps {
-  lang: "ar" | "fr";
+  lang: "ar" | "fr" | "en" | "es";
   currency: string;
   dish: Dish;
   upsells: Dish[];
@@ -22,8 +22,8 @@ export default function UpsellModal({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(upsells.map(u => u.id)));
 
   const getText = (key: string) => {
-    if (lang === "ar") {
-      const ar: Record<string, string> = {
+    const dicts: Record<string, Record<string, string>> = {
+      ar: {
         title: "أكمل وجبتك مع هذه الإضافات",
         subtitle: "اختر ما يناسبك لتكتمل وجبتك",
         addAll: "إضافة الكل للسلة",
@@ -35,25 +35,51 @@ export default function UpsellModal({
         add: "أضف",
         remove: "إزالة",
         selected: "تم اختياره",
-        allSelected: "الكل مختار",
-      };
-      return ar[key] || key;
-    }
-    const fr: Record<string, string> = {
-      title: "Complétez votre repas",
-      subtitle: "Choisissez les accompagnements parfaits",
-      addAll: "Tout ajouter au panier",
-      addSelected: "Ajouter la sélection avec le plat",
-      skip: "Non merci, ajouter le plat uniquement",
-      total: "Total",
-      basePrice: "Prix du plat",
-      upsellsPrice: "Suppléments",
+        },
+        fr: {
+          title: "Complétez votre repas",
+          subtitle: "Choisissez les accompagnements parfaits",
+          addAll: "Tout ajouter au panier",
+          addSelected: "Ajouter la sélection avec le plat",
+          skip: "Non merci, ajouter le plat uniquement",
+          total: "Total",
+          basePrice: "Prix du plat",
+          upsellsPrice: "Suppléments",
       add: "Ajouter",
-      remove: "Retirer",
-      selected: "Sélectionné",
-      allSelected: "Tout sélectionné",
+        remove: "Retirer",
+        selected: "Sélectionné",
+        allSelected: "Tout sélectionné",
+      },
+      en: {
+        title: "Complete Your Meal",
+        subtitle: "Choose the perfect sides",
+        addAll: "Add all to cart",
+        addSelected: "Add selected with dish",
+        skip: "No thanks, add main dish only",
+        total: "Total",
+        basePrice: "Dish price",
+        upsellsPrice: "Add-ons",
+        add: "Add",
+        remove: "Remove",
+        selected: "Selected",
+        allSelected: "All Selected",
+      },
+      es: {
+        title: "Completa tu Comida",
+        subtitle: "Elige los acompañamientos perfectos",
+        addAll: "Añadir todo al carrito",
+        addSelected: "Añadir selección con el plato",
+        skip: "No gracias, solo el plato principal",
+        total: "Total",
+        basePrice: "Precio del plato",
+        upsellsPrice: "Extras",
+        add: "Añadir",
+        remove: "Quitar",
+        selected: "Seleccionado",
+        allSelected: "Todo seleccionado",
+      },
     };
-    return fr[key] || key;
+    return dicts[lang]?.[key] || key;
   };
 
   const toggleItem = (id: string) => {
@@ -107,10 +133,10 @@ export default function UpsellModal({
           {/* Main dish summary */}
           <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 mb-4 flex items-center gap-4">
             <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border border-white/[0.08]">
-              <img src={dish.image} alt={lang === "ar" ? dish.nameAr : dish.nameFr} className="w-full h-full object-cover" />
+              <img src={dish.image} alt={lang === "ar" ? dish.nameAr : lang === "fr" ? dish.nameFr : lang === "en" ? dish.nameEn : dish.nameEs} className="w-full h-full object-cover" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-white font-bold text-sm">{lang === "ar" ? dish.nameAr : dish.nameFr}</h3>
+              <h3 className="text-white font-bold text-sm">{lang === "ar" ? dish.nameAr : lang === "fr" ? dish.nameFr : lang === "en" ? dish.nameEn : dish.nameEs}</h3>
               <p className="text-[var(--primary)] font-bold text-sm mt-1">{dish.price} {currency}</p>
             </div>
           </div>
@@ -149,7 +175,7 @@ export default function UpsellModal({
                       </div>
                       <div className="flex-1 min-w-0 text-start">
                         <h4 className="text-white text-sm font-bold truncate">
-                          {lang === "ar" ? item.nameAr : item.nameFr}
+                          lang === "ar" ? u.nameAr : lang === "fr" ? u.nameFr : lang === "en" ? u.nameEn : u.nameEs
                         </h4>
                         <p className="text-[var(--primary)] text-xs font-bold mt-0.5">+{item.price} {currency}</p>
                       </div>

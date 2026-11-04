@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dish, Category, RestaurantConfig, CartItem } from "../types";
 import { useToast } from "@/hooks/use-toast";
+import { trackEvent } from "../utils/storage";
 import { supabase } from "@/integrations/supabase/client";
 import UpsellModal from "./UpsellModal";
 
@@ -26,7 +27,7 @@ function lightenColor(hex: string, amount: number): string {
 
 export default function ClientView({ categories, dishes, config, restaurantId }: ClientViewProps) {
   const { toast } = useToast();
-  const [lang, setLang] = useState<"ar" | "fr">("ar");
+  const [lang, setLang] = useState<"ar" | "fr" | "en" | "es">("ar");
   const isRtl = lang === "ar";
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -50,19 +51,19 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
   }, [config.primaryColor]);
 
   const t = useMemo(() => ({
-    cartTitle: lang === "ar" ? "سلة الطلبات" : "Mon panier",
-    currency: lang === "ar" ? config.currencyAr : config.currencyFr,
-    workingHours: lang === "ar" ? config.workingHoursAr : config.workingHoursFr,
-    slogan: lang === "ar" ? config.sloganAr : config.sloganFr,
-    viewOrder: lang === "ar" ? "عرض الطلب" : "Voir commande",
-    total: lang === "ar" ? "المجموع" : "Total",
-    sendWhatsApp: lang === "ar" ? "إرسال الطلب عبر واتساب" : "Envoyer la commande via WhatsApp",
-    emptyCart: lang === "ar" ? "سلتك فارغة" : "Votre panier est vide",
-    emptyCartDesc: lang === "ar" ? "أضف أطباقاً من القائمة للبدء" : "Ajoutez des plats du menu pour commencer",
-    workingTime: lang === "ar" ? "أوقات العمل" : "Horaires",
-    location: lang === "ar" ? "موقعنا" : "Emplacement",
-    allCategories: lang === "ar" ? "الكل" : "Tout",
-    noDishes: lang === "ar" ? "لا توجد أطباق في هذه الفئة" : "Aucun plat dans cette catégorie",
+    cartTitle: lang === "ar" ? "سلة الطلبات" : lang === "fr" ? "Mon panier" : lang === "en" ? "My Cart" : "Mi Carrito",
+    currency: lang === "ar" ? config.currencyAr : lang === "fr" ? config.currencyFr : lang === "en" ? config.currencyEn : config.currencyEs,
+    workingHours: lang === "ar" ? config.workingHoursAr : lang === "fr" ? config.workingHoursFr : lang === "en" ? config.workingHoursEn : config.workingHoursEs,
+    slogan: lang === "ar" ? config.sloganAr : lang === "fr" ? config.sloganFr : lang === "en" ? config.sloganEn : config.sloganEs,
+    viewOrder: lang === "ar" ? "عرض الطلب" : lang === "fr" ? "Voir commande" : lang === "en" ? "View Order" : "Ver Pedido",
+    total: lang === "ar" ? "المجموع" : lang === "fr" ? "Total" : lang === "en" ? "Total" : "Total",
+    sendWhatsApp: lang === "ar" ? "إرسال الطلب عبر واتساب" : lang === "fr" ? "Envoyer la commande via WhatsApp" : lang === "en" ? "Send Order via WhatsApp" : "Enviar Pedido por WhatsApp",
+    emptyCart: lang === "ar" ? "سلتك فارغة" : lang === "fr" ? "Votre panier est vide" : lang === "en" ? "Your cart is empty" : "Tu carrito está vacío",
+    emptyCartDesc: lang === "ar" ? "أضف أطباقاً من القائمة للبدء" : lang === "fr" ? "Ajoutez des plats du menu pour commencer" : lang === "en" ? "Add dishes from the menu to start" : "Añade platos del menú para empezar",
+    workingTime: lang === "ar" ? "أوقات العمل" : lang === "fr" ? "Horaires" : lang === "en" ? "Working Hours" : "Horarios",
+    location: lang === "ar" ? "موقعنا" : lang === "fr" ? "Emplacement" : lang === "en" ? "Our Location" : "Nuestra Ubicación",
+    allCategories: lang === "ar" ? "الكل" : lang === "fr" ? "Tout" : lang === "en" ? "All" : "Todo",
+    noDishes: lang === "ar" ? "لا توجد أطباق في هذه الفئة" : lang === "fr" ? "Aucun plat dans cette catégorie" : lang === "en" ? "No dishes in this category" : "No hay platos en esta categoría",
   }), [lang, config]);
 
   const filteredDishes = useMemo(() => {
@@ -136,15 +137,17 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
     setCart([]);
   }, []);
 
+  const getDishName = (dish: Dish) => lang === "ar" ? dish.nameAr : lang === "fr" ? dish.nameFr : lang === "en" ? dish.nameEn : dish.nameEs;
+
   const generateWhatsAppMessage = useCallback(() => {
     const itemsText = cart
       .map((item) => {
-        const name = lang === "ar" ? item.dish.nameAr : item.dish.nameFr;
+        const name = getDishName(item.dish);
         return `${name} ×${item.quantity} - ${item.dish.price * item.quantity} ${t.currency}`;
       })
       .join("\n");
 
-    const template = lang === "ar" ? config.whatsappMessageAr : config.whatsappMessageFr;
+    const template = lang === "ar" ? config.whatsappMessageAr : lang === "fr" ? config.whatsappMessageFr : lang === "en" ? config.whatsappMessageEn : config.whatsappMessageEs;
     return template
       .replace("{items}", itemsText)
       .replace("{total}", `${cartTotal} ${t.currency}`);
@@ -154,6 +157,10 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
     const message = encodeURIComponent(generateWhatsAppMessage());
     return `https://wa.me/${config.whatsappNumber}?text=${message}`;
   }, [generateWhatsAppMessage, config.whatsappNumber]);
+
+  const handleWhatsAppClick = useCallback(() => {
+    trackEvent(restaurantId, "whatsapp_click").catch(() => {});
+  }, [restaurantId]);
 
   const handleRatingClick = useCallback((rating: number) => {
       setSelectedRating(rating);
@@ -165,10 +172,14 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
           window.open(config.googleMapsUrl, "_blank");
         }
         toast({
-          title: lang === "ar" ? "شكراً لتقييمك!" : "Merci pour votre avis !",
+          title: lang === "ar" ? "شكراً لتقييمك!" : lang === "fr" ? "Merci pour votre avis !" : lang === "en" ? "Thank you for your rating!" : "¡Gracias por tu calificación!",
           description: lang === "ar"
             ? "نقدر وقتك ونعدك بتقديم الأفضل دائماً"
-            : "Nous apprécions votre temps et promettons de toujours offrir le meilleur",
+            : lang === "fr"
+            ? "Nous apprécions votre temps et promettons de toujours offrir le meilleur"
+            : lang === "en"
+            ? "We appreciate your time and promise to always deliver the best"
+            : "Apreciamos tu tiempo y prometemos ofrecer siempre lo mejor",
         });
         setTimeout(() => {
           setSelectedRating(0);
@@ -308,26 +319,10 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                 </div>
               )}
               <div className="absolute top-4 right-4 sm:top-8 sm:right-8 z-20 flex gap-1 bg-black/30 backdrop-blur-xl border border-white/[0.06] rounded-full p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
-                <button
-                  onClick={() => setLang("ar")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
-                    lang === "ar"
-                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]"
-                      : "text-white/60 hover:text-white"
-                  }`}
-                >
-                  عربي
-                </button>
-                <button
-                  onClick={() => setLang("fr")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
-                    lang === "fr"
-                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]"
-                      : "text-white/60 hover:text-white"
-                  }`}
-                >
-                  FR
-                </button>
+                <button onClick={() => setLang("ar")} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${lang === "ar" ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]" : "text-white/60 hover:text-white"}`}>عربي</button>
+                <button onClick={() => setLang("fr")} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${lang === "fr" ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]" : "text-white/60 hover:text-white"}`}>FR</button>
+                <button onClick={() => setLang("en")} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${lang === "en" ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]" : "text-white/60 hover:text-white"}`}>EN</button>
+                <button onClick={() => setLang("es")} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${lang === "es" ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]" : "text-white/60 hover:text-white"}`}>ES</button>
               </div>
             </div>
           ) : (
@@ -340,26 +335,10 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                 </div>
               )}
               <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 flex gap-1 bg-black/30 backdrop-blur-xl border border-white/[0.06] rounded-full p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
-                <button
-                  onClick={() => setLang("ar")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
-                    lang === "ar"
-                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]"
-                      : "text-white/60 hover:text-white"
-                  }`}
-                >
-                  عربي
-                </button>
-                <button
-                  onClick={() => setLang("fr")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
-                    lang === "fr"
-                      ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]"
-                      : "text-white/60 hover:text-white"
-                  }`}
-                >
-                  FR
-                </button>
+                <button onClick={() => setLang("ar")} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${lang === "ar" ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]" : "text-white/60 hover:text-white"}`}>عربي</button>
+                <button onClick={() => setLang("fr")} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${lang === "fr" ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]" : "text-white/60 hover:text-white"}`}>FR</button>
+                <button onClick={() => setLang("en")} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${lang === "en" ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]" : "text-white/60 hover:text-white"}`}>EN</button>
+                <button onClick={() => setLang("es")} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${lang === "es" ? "bg-[var(--primary)] text-black shadow-[0_0_20px_rgba(200,162,77,0.3)]" : "text-white/60 hover:text-white"}`}>ES</button>
               </div>
             </div>
           )}
@@ -367,7 +346,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
           <div className={`px-4 sm:px-6 pb-8 ${config.coverUrl ? "-mt-20 relative z-10" : "pt-6"}`}>
             <div className="max-w-lg mx-auto">
               <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-[0_4px_20px_rgba(0,0,0,0.6)]">
-                {lang === "ar" ? config.nameAr : config.nameFr}
+                {lang === "ar" ? config.nameAr : lang === "fr" ? config.nameFr : lang === "en" ? config.nameEn : config.nameEs}
               </h1>
               <p className="text-white/50 text-sm mt-2 font-medium">{t.slogan}</p>
               <div className="flex flex-wrap gap-2 mt-4">
@@ -417,7 +396,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                           : "bg-white/[0.03] border-white/[0.05] text-white/50 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.10]"
                       }`}
                     >
-                      {lang === "ar" ? cat.nameAr : cat.nameFr}
+                      {lang === "ar" ? cat.nameAr : lang === "fr" ? cat.nameFr : lang === "en" ? cat.nameEn : cat.nameEs}
                     </button>
                   ))}
                 </div>
@@ -463,14 +442,14 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
             <div className="relative z-10">
               <div className="border-y border-white/[0.04] bg-white/[0.01] backdrop-blur-2xl py-8 px-4 text-center shadow-[0_0_60px_rgba(0,0,0,0.4)]">
                 <p className="text-white/40 text-sm font-medium mb-4 tracking-wide">
-                  {lang === "ar" ? "هل استمتعت بتجربتك؟" : "Avez-vous apprécié votre expérience ?"}
+                  {lang === "ar" ? "هل استمتعت بتجربتك؟" : lang === "fr" ? "Avez-vous apprécié votre expérience ?" : lang === "en" ? "Did you enjoy your experience?" : "¿Disfrutaste tu experiencia?"}
                 </p>
                 <button
                   onClick={() => setRatingModalOpen(true)}
                   className="inline-flex items-center gap-3 px-16 py-7 rounded-full backdrop-blur-xl bg-white/[0.04] border border-white/[0.08] text-[var(--primary)] font-bold text-2xl hover:bg-white/[0.07] hover:border-white/[0.14] transition-all duration-500 shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-[0_6px_30px_rgba(200,162,77,0.1)]"
                 >
                   <Star className="h-7 w-7" />
-                  <span>{lang === "ar" ? "قيّم تجربتك" : "Évaluez votre expérience"}</span>
+                  <span>{lang === "ar" ? "قيّم تجربتك" : lang === "fr" ? "Évaluez votre expérience" : lang === "en" ? "Rate your experience" : "Evalúa tu experiencia"}</span>
                 </button>
               </div>
             </div>
@@ -480,7 +459,11 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
               <p className="text-white/10 text-[11px] tracking-wider font-medium">
                 {lang === "ar"
                   ? `© ${new Date().getFullYear()} ${config.nameAr} — جميع الحقوق محفوظة`
-                  : `© ${new Date().getFullYear()} ${config.nameFr} — Tous droits réservés`}
+                  : lang === "fr"
+                  ? `© ${new Date().getFullYear()} ${config.nameFr} — Tous droits réservés`
+                  : lang === "en"
+                  ? `© ${new Date().getFullYear()} ${config.nameEn} — All rights reserved`
+                  : `© ${new Date().getFullYear()} ${config.nameEs} — Todos los derechos reservados`}
               </p>
             </div>
       
@@ -492,7 +475,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                     <>
                       <div className="text-center space-y-2">
                         <h3 className="text-white font-bold text-lg tracking-tight">
-                                                {lang === "ar" ? "قيّم تجربتك" : "Évaluez votre expérience"}
+                                                {lang === "ar" ? "قيّم تجربتك" : lang === "fr" ? "Évaluez votre expérience" : lang === "en" ? "Rate your experience" : "Evalúa tu experiencia"}
                                               </h3>
                                               <p className="text-white/25 text-sm font-medium">
                                                 {lang === "ar"
@@ -608,7 +591,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
 
       {/* ─── Floating WhatsApp Button ─── */}
             <a
-              href={whatsappUrl}
+              href={whatsappUrl} onClick={handleWhatsAppClick}
               target="_blank"
               rel="noopener noreferrer"
               className={`fixed bottom-6 z-50 w-14 h-14 bg-emerald-500 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-[0_8px_30px_rgba(16,185,129,0.25)] transition-all duration-500 hover:scale-110 active:scale-95 hover:shadow-[0_12px_40px_rgba(16,185,129,0.35)] hover:rounded-[1.25rem] border border-emerald-400/20 ${
@@ -698,7 +681,7 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                   </div>
 
                   <a
-                                      href={whatsappUrl}
+                                      href={whatsappUrl} onClick={handleWhatsAppClick}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="w-full flex items-center justify-center gap-2 py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-bold rounded-xl transition-all duration-300 mt-4 shadow-[0_4px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_6px_25px_rgba(16,185,129,0.35)]"
@@ -748,7 +731,7 @@ function DishCard({
               >
           <img
             src={dish.image}
-            alt={lang === "ar" ? dish.nameAr : dish.nameFr}
+            alt={lang === "ar" ? dish.nameAr : lang === "fr" ? dish.nameFr : lang === "en" ? dish.nameEn : dish.nameEs}
             className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110"
             onError={(e) => {
               (e.target as HTMLImageElement).src =
@@ -765,10 +748,10 @@ function DishCard({
         <div className="flex-1 min-w-0 flex flex-col justify-between">
           <div>
             <h3 className="text-white font-bold text-sm leading-snug tracking-tight">
-              {lang === "ar" ? dish.nameAr : dish.nameFr}
+              {lang === "ar" ? dish.nameAr : lang === "fr" ? dish.nameFr : lang === "en" ? dish.nameEn : dish.nameEs}
             </h3>
             <p className="text-white/30 text-xs mt-1 line-clamp-2 leading-relaxed font-medium">
-              {lang === "ar" ? dish.descriptionAr : dish.descriptionFr}
+              {lang === "ar" ? dish.descriptionAr : lang === "fr" ? dish.descriptionFr : lang === "en" ? dish.descriptionEn : dish.descriptionEs}
             </p>
             <div className="flex flex-wrap gap-1 mt-2">
               {dish.isNew && (
@@ -855,7 +838,7 @@ function PromoCard({
         >
           <img
             src={dish.image}
-            alt={lang === "ar" ? dish.nameAr : dish.nameFr}
+            alt={lang === "ar" ? dish.nameAr : lang === "fr" ? dish.nameFr : lang === "en" ? dish.nameEn : dish.nameEs}
             className="w-full h-full object-cover transition-transform duration-1000 group-hover/promo:scale-110"
             onError={(e) => {
               (e.target as HTMLImageElement).src =
@@ -879,10 +862,10 @@ function PromoCard({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="text-white font-bold text-lg tracking-tight">
-                {lang === "ar" ? dish.nameAr : dish.nameFr}
+                {lang === "ar" ? dish.nameAr : lang === "fr" ? dish.nameFr : lang === "en" ? dish.nameEn : dish.nameEs}
               </h3>
               <p className="text-white/30 text-sm mt-1.5 leading-relaxed font-medium">
-                {lang === "ar" ? dish.descriptionAr : dish.descriptionFr}
+                {lang === "ar" ? dish.descriptionAr : lang === "fr" ? dish.descriptionFr : lang === "en" ? dish.descriptionEn : dish.descriptionEs}
               </p>
             </div>
             <span className="text-[var(--primary)] font-bold text-lg flex-shrink-0 drop-shadow-[0_0_10px_rgba(200,162,77,0.15)]">

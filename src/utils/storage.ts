@@ -11,6 +11,8 @@ function mapCategoryFromDB(row: any): Category {
     id: row.id,
     nameAr: row.name_ar,
     nameFr: row.name_fr,
+    nameEn: row.name_en || row.name_fr,
+    nameEs: row.name_es || row.name_fr,
     icon: row.icon,
   };
 }
@@ -20,6 +22,8 @@ function mapCategoryToDB(cat: Category, restaurantId: string): any {
     id: cat.id,
     name_ar: cat.nameAr,
     name_fr: cat.nameFr,
+    name_en: cat.nameEn,
+    name_es: cat.nameEs,
     icon: cat.icon,
     restaurant_id: restaurantId,
   };
@@ -43,8 +47,12 @@ function mapDishFromDB(row: any): Dish {
     id: row.id,
     nameAr: row.name_ar,
     nameFr: row.name_fr,
+    nameEn: row.name_en || row.name_fr,
+    nameEs: row.name_es || row.name_fr,
     descriptionAr: row.description_ar,
     descriptionFr: row.description_fr,
+    descriptionEn: row.description_en || row.description_fr,
+    descriptionEs: row.description_es || row.description_fr,
     price: Number(row.price),
     category: row.category,
     image: row.image,
@@ -57,8 +65,12 @@ function mapDishFromDB(row: any): Dish {
     isPromo: row.is_promo,
     promoLabelAr: row.promo_label_ar,
     promoLabelFr: row.promo_label_fr,
+    promoLabelEn: row.promo_label_en || row.promo_label_fr,
+    promoLabelEs: row.promo_label_es || row.promo_label_fr,
     promoTextAr: row.promo_text_ar,
     promoTextFr: row.promo_text_fr,
+    promoTextEn: row.promo_text_en || row.promo_text_fr,
+    promoTextEs: row.promo_text_es || row.promo_text_fr,
     upsellIds,
   };
 }
@@ -68,8 +80,12 @@ function mapDishToDB(dish: Dish, restaurantId: string): any {
     id: dish.id,
     name_ar: dish.nameAr,
     name_fr: dish.nameFr,
+    name_en: dish.nameEn,
+    name_es: dish.nameEs,
     description_ar: dish.descriptionAr,
     description_fr: dish.descriptionFr,
+    description_en: dish.descriptionEn,
+    description_es: dish.descriptionEs,
     price: dish.price,
     category: dish.category,
     image: dish.image,
@@ -82,8 +98,12 @@ function mapDishToDB(dish: Dish, restaurantId: string): any {
     is_promo: dish.isPromo || false,
     promo_label_ar: dish.promoLabelAr || "",
     promo_label_fr: dish.promoLabelFr || "",
+    promo_label_en: dish.promoLabelEn || "",
+    promo_label_es: dish.promoLabelEs || "",
     promo_text_ar: dish.promoTextAr || "",
     promo_text_fr: dish.promoTextFr || "",
+    promo_text_en: dish.promoTextEn || "",
+    promo_text_es: dish.promoTextEs || "",
     restaurant_id: restaurantId,
     upsell_ids: dish.upsellIds || [],
   };
@@ -93,19 +113,29 @@ function mapConfigFromDB(row: any): RestaurantConfig & { id?: string; slug?: str
   return {
     nameAr: row.name_ar,
     nameFr: row.name_fr,
+    nameEn: row.name_en || row.name_fr,
+    nameEs: row.name_es || row.name_fr,
     sloganAr: row.slogan_ar,
     sloganFr: row.slogan_fr,
+    sloganEn: row.slogan_en || row.slogan_fr,
+    sloganEs: row.slogan_es || row.slogan_fr,
     logoUrl: row.logo_url,
     coverUrl: row.cover_url,
     workingHoursAr: row.working_hours_ar,
     workingHoursFr: row.working_hours_fr,
+    workingHoursEn: row.working_hours_en || row.working_hours_fr,
+    workingHoursEs: row.working_hours_es || row.working_hours_fr,
     whatsappNumber: row.whatsapp_number,
     whatsappMessageAr: row.whatsapp_message_ar,
     whatsappMessageFr: row.whatsapp_message_fr,
+    whatsappMessageEn: row.whatsapp_message_en || row.whatsapp_message_fr,
+    whatsappMessageEs: row.whatsapp_message_es || row.whatsapp_message_fr,
     primaryColor: row.primary_color,
     backgroundColor: row.background_color,
     currencyAr: row.currency_ar,
     currencyFr: row.currency_fr,
+    currencyEn: row.currency_en || row.currency_fr,
+    currencyEs: row.currency_es || row.currency_fr,
     googleMapsUrl: row.google_maps_url || "",
     id: row.id,
     slug: row.slug,
@@ -116,19 +146,29 @@ function mapConfigToDB(config: RestaurantConfig): any {
   return {
     name_ar: config.nameAr,
     name_fr: config.nameFr,
+    name_en: config.nameEn,
+    name_es: config.nameEs,
     slogan_ar: config.sloganAr,
     slogan_fr: config.sloganFr,
+    slogan_en: config.sloganEn,
+    slogan_es: config.sloganEs,
     logo_url: config.logoUrl,
     cover_url: config.coverUrl,
     working_hours_ar: config.workingHoursAr,
     working_hours_fr: config.workingHoursFr,
+    working_hours_en: config.workingHoursEn,
+    working_hours_es: config.workingHoursEs,
     whatsapp_number: config.whatsappNumber,
     whatsapp_message_ar: config.whatsappMessageAr,
     whatsapp_message_fr: config.whatsappMessageFr,
+    whatsapp_message_en: config.whatsappMessageEn,
+    whatsapp_message_es: config.whatsappMessageEs,
     primary_color: config.primaryColor,
     background_color: config.backgroundColor,
     currency_ar: config.currencyAr,
     currency_fr: config.currencyFr,
+    currency_en: config.currencyEn,
+    currency_es: config.currencyEs,
     google_maps_url: config.googleMapsUrl,
   };
 }
@@ -407,6 +447,50 @@ export async function seedDefaultData(nameAr?: string, nameFr?: string): Promise
 
 export async function resetToDefault(): Promise<void> {
   await resetMyToDefault();
+}
+
+// ───────────────────────────────────────────
+// التحليلات (Analytics)
+// ───────────────────────────────────────────
+
+export async function trackEvent(restaurantId: string, eventType: 'scan_view' | 'whatsapp_click'): Promise<void> {
+  try {
+    await supabase
+      .from("menu_analytics")
+      .insert({
+        restaurant_id: restaurantId,
+        event_type: eventType,
+        created_at: new Date().toISOString(),
+      });
+  } catch (err) {
+    console.error("[analytics] trackEvent error:", err);
+  }
+}
+
+export async function getAnalytics(restaurantId: string): Promise<{ scanViews: number; whatsappClicks: number; totalEvents: number }> {
+  const { data, error } = await supabase
+    .from("menu_analytics")
+    .select("event_type")
+    .eq("restaurant_id", restaurantId);
+
+  if (error || !data) {
+    return { scanViews: 0, whatsappClicks: 0, totalEvents: 0 };
+  }
+
+  const scanViews = data.filter((r: any) => r.event_type === "scan_view").length;
+  const whatsappClicks = data.filter((r: any) => r.event_type === "whatsapp_click").length;
+
+  return { scanViews, whatsappClicks, totalEvents: data.length };
+}
+
+export async function resetAnalytics(restaurantId: string): Promise<void> {
+  const { error } = await supabase
+    .from("menu_analytics")
+    .delete()
+    .eq("restaurant_id", restaurantId);
+
+  if (error) throw error;
+  dispatchDataChange();
 }
 
 // ───────────────────────────────────────────

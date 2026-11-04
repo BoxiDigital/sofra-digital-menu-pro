@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Dish, Category, RestaurantConfig, Review } from "../types";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { getMyReviews } from "../utils/storage";
+import { getMyReviews, getAnalytics, resetAnalytics, getMyRestaurant } from "../utils/storage";
 import {
   Plus, 
   Edit, 
@@ -37,6 +37,7 @@ import {
   ThumbsUp,
   MapPin,
   Link2,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,6 +116,9 @@ export default function AdminView({
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null);
+  const [analytics, setAnalytics] = useState({ scanViews: 0, whatsappClicks: 0, totalEvents: 0 });
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [resettingAnalytics, setResettingAnalytics] = useState(false);
 
   const loadReviews = async () => {
     setReviewsLoading(true);
@@ -147,6 +151,38 @@ export default function AdminView({
     }
   };
 
+  const loadAnalytics = async () => {
+    setAnalyticsLoading(true);
+    try {
+      const restaurant = await getMyRestaurant();
+      if (restaurant?.id) {
+        const stats = await getAnalytics(restaurant.id);
+        setAnalytics(stats);
+      }
+    } catch (err) {
+      console.error("[AdminView] loadAnalytics error:", err);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  const handleResetAnalytics = async () => {
+    if (!confirm("هل أنت متأكد من تصفير جميع الإحصائيات؟ لا يمكن التراجع عن هذا الإجراء.")) return;
+    setResettingAnalytics(true);
+    try {
+      const restaurant = await getMyRestaurant();
+      if (restaurant?.id) {
+        await resetAnalytics(restaurant.id);
+        setAnalytics({ scanViews: 0, whatsappClicks: 0, totalEvents: 0 });
+        toast({ title: "تم التصفير", description: "تم تصفير جميع الإحصائيات بنجاح" });
+      }
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err?.message || "حدث خطأ أثناء تصفير الإحصائيات", variant: "destructive" });
+    } finally {
+      setResettingAnalytics(false);
+    }
+  };
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
@@ -156,33 +192,28 @@ export default function AdminView({
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [pwdField, setPwdField] = useState<{ current?: boolean; newPwd?: boolean; confirm?: boolean }>({});
 
   const handleChangePassword = async () => {
-    setPasswordError("");
-    setPasswordSuccess("");
-
-    if (!currentPassword) { setPasswordError("يرجى إدخال كلمة المرور الحالية"); return; }
-    if (!newPassword) { setPasswordError("يرجى إدخال كلمة المرور الجديدة"); return; }
-    if (newPassword.length < 6) { setPasswordError("كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل"); return; }
-    if (newPassword !== confirmNewPassword) { setPasswordError("كلمة المرور الجديدة غير متطابقة"); return; }
-
+    setPasswordError(""); setPasswordSuccess(""); setPwdField({});
+    if (!currentPassword) { setPasswordError("\u064a\u0631\u062c\u0649 \u0625\u062f\u062e\u0627\u0644 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u062d\u0627\u0644\u064a\u0629"); setPwdField({ current: true }); setTimeout(() => { document.getElementById("pwd-current")?.scrollIntoView({ behavior: "smooth", block: "center" }); document.getElementById("pwd-current")?.focus(); }, 100); return; }
+    if (!newPassword) { setPasswordError("\u064a\u0631\u062c\u0649 \u0625\u062f\u062e\u0627\u0644 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u062c\u062f\u064a\u062f\u0629"); setPwdField({ newPwd: true }); setTimeout(() => { document.getElementById("pwd-new")?.scrollIntoView({ behavior: "smooth", block: "center" }); document.getElementById("pwd-new")?.focus(); }, 100); return; }
+    if (newPassword.length < 6) { setPasswordError("\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u062c\u062f\u064a\u062f\u0629 \u064a\u062c\u0628 \u0623\u0646 \u062a\u0643\u0648\u0646 6 \u0623\u062d\u0631\u0641 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644"); setPwdField({ newPwd: true, confirm: true }); setTimeout(() => { document.getElementById("pwd-new")?.scrollIntoView({ behavior: "smooth", block: "center" }); document.getElementById("pwd-new")?.focus(); }, 100); return; }
+    if (newPassword !== confirmNewPassword) { setPasswordError("\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u062c\u062f\u064a\u062f\u0629 \u063a\u064a\u0631 \u0645\u062a\u0637\u0627\u0628\u0642\u0629"); setPwdField({ newPwd: true, confirm: true }); setTimeout(() => { document.getElementById("pwd-confirm")?.scrollIntoView({ behavior: "smooth", block: "center" }); document.getElementById("pwd-confirm")?.focus(); }, 100); return; }
     setIsChangingPassword(true);
     try {
       const { error: authError } = await supabase.auth.signInWithPassword({
         email: user?.email || "",
         password: currentPassword,
       });
-      if (authError) { setPasswordError("كلمة المرور الحالية غير صحيحة"); setIsChangingPassword(false); return; }
-
+      if (authError) { setPasswordError("\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u062d\u0627\u0644\u064a\u0629 \u063a\u064a\u0631 \u0635\u062d\u064a\u062d\u0629"); setPwdField({ current: true }); setIsChangingPassword(false); return; }
       const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
       if (updateError) { setPasswordError(updateError.message); setIsChangingPassword(false); return; }
-
-      setPasswordSuccess("تم تغيير كلمة المرور بنجاح");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmNewPassword("");
+      setPasswordSuccess("\u062a\u0645 \u062a\u063a\u064a\u064a\u0631 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0628\u0646\u062c\u0627\u062d");
+      setCurrentPassword(""); setNewPassword(""); setConfirmNewPassword(""); setPwdField({});
+      toast({ title: "\u2705 \u062a\u0645 \u062a\u063a\u064a\u064a\u0631 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631", description: "\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0628\u0646\u062c\u0627\u062d", variant: "success" });
     } catch (err: any) {
-      setPasswordError(err?.message || "حدث خطأ أثناء تغيير كلمة المرور");
+      setPasswordError(err?.message || "\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u062a\u063a\u064a\u064a\u0631 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631");
     } finally {
       setIsChangingPassword(false);
     }
@@ -236,6 +267,7 @@ export default function AdminView({
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
   const [dishForm, setDishForm] = useState<Partial<Dish>>({});
   const [isDishDialogOpen, setIsDishDialogOpen] = useState(false);
+  const [dishErrors, setDishErrors] = useState<{ nameAr?: string; price?: string; category?: string }>({});
 
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryForm, setCategoryForm] = useState<Partial<Category>>({});
@@ -252,24 +284,51 @@ export default function AdminView({
   const availableDishes = dishes.filter((d) => d.isAvailable);
   const unavailableDishes = dishes.filter((d) => !d.isAvailable);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "dish" | "logo" | "cover") => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "dish" | "logo" | "cover") => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      if (type === "dish") setDishForm((prev) => ({ ...prev, image: base64String }));
-      else if (type === "cover") setConfigForm((prev) => ({ ...prev, coverUrl: base64String }));
-      else setConfigForm((prev) => ({ ...prev, logoUrl: base64String }));
-      toast({ title: "تم رفع الصورة بنجاح", description: "تم تحويل الصورة وحفظها محلياً" });
-    };
-    reader.readAsDataURL(file);
+    
+    const fileExt = (file.name.split('.').pop() || "jpg").toLowerCase();
+    const fileName = `${type}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+    
+    try {
+      const { data, error } = await supabase.storage
+        .from('dish-images')
+        .upload(fileName, file, { cacheControl: "3600", upsert: false });
+      
+      if (error) throw error;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('dish-images')
+        .getPublicUrl(fileName);
+      
+      if (type === "dish") {
+        setDishForm((prev) => ({ ...prev, image: publicUrl }));
+        toast({ title: "\u2705 \u062a\u0645 \u0631\u0641\u0639 \u0627\u0644\u0635\u0648\u0631\u0629", description: "\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0635\u0648\u0631\u0629 \u0641\u064a Supabase Storage", variant: "success" });
+      } else {
+        // Auto-save logo/cover immediately to persist in DB without extra "Save" click
+        const updatedConfig = type === "cover"
+          ? { ...configForm, coverUrl: publicUrl }
+          : { ...configForm, logoUrl: publicUrl };
+        setConfigForm(updatedConfig);
+        try {
+          await handleUpdateConfigSafe(updatedConfig);
+          toast({ title: "\u2705 \u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0635\u0648\u0631\u0629", description: type === "cover" ? "\u062a\u0645 \u0631\u0641\u0639 \u0627\u0644\u063a\u0644\u0627\u0641 \u0648\u062d\u0641\u0638\u0647 \u0641\u064a \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a" : "\u062a\u0645 \u0631\u0641\u0639 \u0627\u0644\u0634\u0639\u0627\u0631 \u0648\u062d\u0641\u0638\u0647 \u0641\u064a \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a", variant: "success" });
+        } catch (err: any) {
+          toast({ title: "\u26a0\ufe0f \u062a\u0645 \u0631\u0641\u0639 \u0627\u0644\u0635\u0648\u0631\u0629 \u0648\u0644\u0643\u0646 \u0641\u0634\u0644 \u0627\u0644\u062d\u0641\u0638 \u0627\u0644\u062a\u0644\u0642\u0627\u0626\u064a", description: "\u0627\u0636\u063a\u0637 \u0632\u0631 '\u062d\u0641\u0638 \u062c\u0645\u064a\u0639 \u0627\u0644\u062a\u063a\u064a\u064a\u0631\u0627\u062a' \u0644\u062a\u062b\u0628\u064a\u062a \u0627\u0644\u062a\u063a\u064a\u064a\u0631", variant: "destructive" });
+        }
+      }
+    } catch (err: any) {
+      console.error("[AdminView] Upload error:", err);
+      toast({ title: "\u274c \u0641\u0634\u0644 \u0631\u0641\u0639 \u0627\u0644\u0635\u0648\u0631\u0629", description: err?.message || "\u062a\u0623\u0643\u062f \u0645\u0646 \u0625\u0646\u0634\u0627\u0621 Bucket \u0628\u0627\u0633\u0645 dish-images \u0648\u062c\u0639\u0644\u0647 Public \u0641\u064a Supabase", variant: "destructive" });
+    }
   };
 
   const openAddDish = () => {
     setEditingDish(null);
+    setDishErrors({});
     setDishForm({
-      nameAr: "", nameFr: "", descriptionAr: "", descriptionFr: "", price: 0,
+      nameAr: "", nameFr: "", nameEn: "", nameEs: "", descriptionAr: "", descriptionFr: "", descriptionEn: "", descriptionEs: "", price: 0,
       category: categories[0]?.id || "",
       image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80",
       isAvailable: true, isNew: false, isBestSeller: false, isVegetarian: false, isHalal: true, isGlutenFree: false,
@@ -278,26 +337,41 @@ export default function AdminView({
     setIsDishDialogOpen(true);
   };
 
-  const openEditDish = (dish: Dish) => { setEditingDish(dish); setDishForm({ ...dish }); setIsDishDialogOpen(true); };
+  const openEditDish = (dish: Dish) => { setEditingDish(dish); setDishErrors({}); setDishForm({ ...dish }); setIsDishDialogOpen(true); };
 
   const saveDish = async () => {
-    if (!dishForm.nameAr || !dishForm.nameFr || !dishForm.price) {
-      toast({ title: "تنبيه", description: "يرجى ملء جميع الحقول المطلوبة", variant: "destructive" });
+    // Only nameAr + price > 0 + category are mandatory
+    const errors: { nameAr?: string; price?: string; category?: string } = {};
+    if (!(dishForm.nameAr || "").trim()) errors.nameAr = "\u0627\u0644\u0627\u0633\u0645 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0645\u0637\u0644\u0648\u0628";
+    if (!dishForm.price || dishForm.price <= 0) errors.price = "\u064a\u062c\u0628 \u0625\u062f\u062e\u0627\u0644 \u0633\u0639\u0631 \u0623\u0643\u0628\u0631 \u0645\u0646 \u0635\u0641\u0631";
+    if (!dishForm.category || !dishForm.category.trim()) errors.category = "\u064a\u062c\u0628 \u0627\u062e\u062a\u064a\u0627\u0631 \u0641\u0626\u0629";
+    setDishErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      const firstErrorField = errors.nameAr ? "dish-name-ar" : errors.price ? "dish-price" : "dish-category";
+      setTimeout(() => {
+        const el = document.getElementById(firstErrorField);
+        if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.focus(); }
+      }, 100);
       return;
     }
+    // Auto-fallback: empty langs get Arabic
+    const ar = (dishForm.nameAr || "").trim();
+    const descAr = (dishForm.descriptionAr || "").trim();
+    const filledDish = {
+      ...dishForm,
+      nameAr: ar, nameFr: (dishForm.nameFr || "").trim() || ar, nameEn: (dishForm.nameEn || "").trim() || ar, nameEs: (dishForm.nameEs || "").trim() || ar,
+      descriptionAr: descAr, descriptionFr: (dishForm.descriptionFr || "").trim() || descAr, descriptionEn: (dishForm.descriptionEn || "").trim() || descAr, descriptionEs: (dishForm.descriptionEs || "").trim() || descAr,
+    };
     let updatedDishes: Dish[];
-    if (editingDish) {
-      updatedDishes = dishes.map((d) => (d.id === editingDish.id ? (dishForm as Dish) : d));
-    } else {
-      const newDish: Dish = { ...(dishForm as Dish), id: `dish_${Date.now()}` };
-      updatedDishes = [...dishes, newDish];
-    }
+    if (editingDish) { updatedDishes = dishes.map((d) => (d.id === editingDish.id ? (filledDish as Dish) : d)); }
+    else { updatedDishes = [...dishes, { ...(filledDish as Dish), id: `dish_${Date.now()}` }]; }
     try {
       await handleUpdateDishesSafe(updatedDishes);
-      setIsDishDialogOpen(false);
-      toast({ title: editingDish ? "تم التعديل" : "تم الإضافة", description: editingDish ? "تم تعديل الطبق بنجاح" : "تم إضافة الطبق الجديد بنجاح" });
-    } catch (err) {
-      // Error toast already shown by handleSaveError
+      setIsDishDialogOpen(false); setDishErrors({});
+      toast({ title: editingDish ? "\u2705 \u062a\u0645 \u0627\u0644\u062a\u0639\u062f\u064a\u0644" : "\u2705 \u062a\u0645 \u0627\u0644\u0625\u0636\u0627\u0641\u0629", description: editingDish ? "\u062a\u0645 \u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0637\u0628\u0642 \u0628\u0646\u062c\u0627\u062d" : "\u062a\u0645 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0637\u0628\u0642 \u0627\u0644\u062c\u062f\u064a\u062f \u0628\u0646\u062c\u0627\u062d", variant: "success" });
+    } catch (err: any) {
+      console.error("[AdminView] saveDish error:", err);
+      toast({ title: "\u274c \u0641\u0634\u0644 \u0627\u0644\u062d\u0641\u0638", description: err?.message || "\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u0627\u0644\u062d\u0641\u0638 \u0641\u064a Supabase", variant: "destructive" });
     }
   };
 
@@ -327,30 +401,30 @@ export default function AdminView({
 
   const openAddCategory = () => {
     setEditingCategory(null);
-    setCategoryForm({ nameAr: "", nameFr: "", icon: "Utensils" });
+    setCategoryForm({ nameAr: "", nameFr: "", nameEn: "", nameEs: "", icon: "Utensils" });
     setIsCategoryDialogOpen(true);
   };
 
   const openEditCategory = (category: Category) => { setEditingCategory(category); setCategoryForm({ ...category }); setIsCategoryDialogOpen(true); };
 
   const saveCategory = async () => {
-    if (!categoryForm.nameAr || !categoryForm.nameFr) {
-      toast({ title: "تنبيه", description: "يرجى ملء جميع الحقلين المطلوبين", variant: "destructive" });
+    const ar = (categoryForm.nameAr || "").trim();
+    if (!ar) {
+      toast({ title: "تنبيه", description: "\u0627\u0644\u0627\u0633\u0645 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0645\u0637\u0644\u0648\u0628", variant: "destructive" });
+      setTimeout(() => { const el = document.getElementById("cat-name-ar"); if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.focus(); } }, 100);
       return;
     }
+    const filled = { ...categoryForm, nameAr: ar, nameFr: (categoryForm.nameFr || "").trim() || ar, nameEn: (categoryForm.nameEn || "").trim() || ar, nameEs: (categoryForm.nameEs || "").trim() || ar };
     let updatedCategories: Category[];
-    if (editingCategory) {
-      updatedCategories = categories.map((c) => (c.id === editingCategory.id ? (categoryForm as Category) : c));
-    } else {
-      const newCategory: Category = { ...(categoryForm as Category), id: `cat_${Date.now()}` };
-      updatedCategories = [...categories, newCategory];
-    }
+    if (editingCategory) { updatedCategories = categories.map((c) => (c.id === editingCategory.id ? (filled as Category) : c)); }
+    else { updatedCategories = [...categories, { ...(filled as Category), id: `cat_${Date.now()}` }]; }
     try {
       await handleUpdateCategoriesSafe(updatedCategories);
       setIsCategoryDialogOpen(false);
-      toast({ title: editingCategory ? "تم التعديل" : "تم الإضافة", description: editingCategory ? "تم تعديل الفئة بنجاح" : "تم إضافة الفئة الجديدة بنجاح" });
-    } catch (err) {
-      // error toast already shown
+      toast({ title: editingCategory ? "\u2705 \u062a\u0645 \u0627\u0644\u062a\u0639\u062f\u064a\u0644" : "\u2705 \u062a\u0645 \u0627\u0644\u0625\u0636\u0627\u0641\u0629", description: editingCategory ? "\u062a\u0645 \u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0641\u0626\u0629 \u0628\u0646\u062c\u0627\u062d" : "\u062a\u0645 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0641\u0626\u0629 \u0627\u0644\u062c\u062f\u064a\u062f\u0629 \u0628\u0646\u062c\u0627\u062d", variant: "success" });
+    } catch (err: any) {
+      console.error("[AdminView] saveCategory error:", err);
+      toast({ title: "\u274c \u0641\u0634\u0644 \u0627\u0644\u062d\u0641\u0638", description: err?.message || "\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u0627\u0644\u062d\u0641\u0638 \u0641\u064a Supabase", variant: "destructive" });
     }
   };
 
@@ -369,9 +443,14 @@ export default function AdminView({
   };
 
   const saveConfig = async () => {
+    if (!(configForm.nameAr || "").trim()) {
+      toast({ title: "تنبيه", description: "\u0627\u0633\u0645 \u0627\u0644\u0645\u0637\u0639\u0645 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0645\u0637\u0644\u0648\u0628", variant: "destructive" });
+      setTimeout(() => { const el = document.getElementById("cfg-name-ar"); if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.focus(); } }, 100);
+      return;
+    }
     try {
       await handleUpdateConfigSafe(configForm);
-      toast({ title: "✅ تم حفظ الإعدادات بنجاح", description: "تم تحديث معلومات المطعم والألوان بنجاح", duration: 3000 });
+      toast({ title: "\u2705 \u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a", description: "\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0645\u0639\u0644\u0648\u0645\u0627\u062a \u0627\u0644\u0645\u0637\u0639\u0645 \u0628\u0646\u062c\u0627\u062d", variant: "success" });
     } catch (err) {
       // error toast already shown
     }
@@ -423,7 +502,7 @@ export default function AdminView({
   return (
     <div className="min-h-screen pb-16 relative" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <Tabs defaultValue="dishes" className="space-y-8" onValueChange={(val) => { if (val === "reviews") loadReviews(); }}>
+        <Tabs defaultValue="dishes" className="space-y-8" onValueChange={(val) => { if (val === "reviews") loadReviews(); if (val === "analytics") loadAnalytics(); }}>
           {/* ── Tabs Navigation ── */}
           <TabsList className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.04] p-1 rounded-2xl w-full max-w-lg flex shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
             <TabsTrigger value="dishes"
@@ -445,6 +524,10 @@ export default function AdminView({
             <TabsTrigger value="reviews"
               className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[var(--primary)] data-[state=active]:text-black data-[state=active]:shadow-[0_2px_12px_rgba(200,162,77,0.3)] data-[state=inactive]:text-white/35 data-[state=inactive]:hover:text-white/60 transition-all duration-300">
               التقييمات
+            </TabsTrigger>
+            <TabsTrigger value="analytics"
+              className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[var(--primary)] data-[state=active]:text-black data-[state=active]:shadow-[0_2px_12px_rgba(200,162,77,0.3)] data-[state=inactive]:text-white/35 data-[state=inactive]:hover:text-white/60 transition-all duration-300">
+              التحليلات
             </TabsTrigger>
           </TabsList>
 
@@ -504,7 +587,7 @@ export default function AdminView({
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <Switch checked={dish.isAvailable} onCheckedChange={() => toggleDishAvailability(dish.id, dish.isAvailable)} />
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all" onClick={() => openEditDish(dish)}>
+<Button size="icon" variant="ghost" className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all" onClick={() => openEditDish(dish)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400/40 hover:text-red-300 hover:bg-red-500/8 rounded-lg transition-all" onClick={() => deleteDish(dish.id)}>
@@ -558,7 +641,7 @@ export default function AdminView({
                             onClick={() => reactivateDish(dish.id)}>
                             <RefreshCcw className="h-3 w-3" /><span>تفعيل</span>
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-[var(--primary)]/30 hover:text-[var(--primary)]/60 hover:bg-white/3 rounded-lg" onClick={() => openEditDish(dish)}>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300/60 hover:text-white hover:bg-white/10 rounded-lg" onClick={() => openEditDish(dish)}>
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400/30 hover:text-red-400/60 hover:bg-red-500/5 rounded-lg" onClick={() => deleteDish(dish.id)}>
@@ -602,7 +685,7 @@ export default function AdminView({
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-[var(--primary)]/60 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-lg transition-all" onClick={() => openEditCategory(cat)}>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-200 hover:text-white hover:bg-white/10 rounded-lg transition-all" onClick={() => openEditCategory(cat)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400/30 hover:text-red-300 hover:bg-red-500/8 rounded-lg transition-all" onClick={() => deleteCategory(cat.id)}>
@@ -632,13 +715,23 @@ export default function AdminView({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white/40 text-[11px] font-medium">اسم المطعم (بالعربية)</Label>
-                  <Input value={configForm.nameAr} onChange={(e) => setConfigForm({ ...configForm, nameAr: e.target.value })}
+                  <Label className="text-white/40 text-[11px] font-medium">اسم المطعم (بالعربية) <span className="text-red-400">*</span></Label>
+                  <Input id="cfg-name-ar" value={configForm.nameAr} onChange={(e) => setConfigForm({ ...configForm, nameAr: e.target.value })}
                     className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
                 </div>
                 <div>
                   <Label className="text-white/40 text-[11px] font-medium">اسم المطعم (بالفرنسية)</Label>
                   <Input value={configForm.nameFr} onChange={(e) => setConfigForm({ ...configForm, nameFr: e.target.value })}
+                    className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
+                  <Label className="text-white/40 text-[11px] font-medium">اسم المطعم (بالإنجليزية)</Label>
+                  <Input value={configForm.nameEn} onChange={(e) => setConfigForm({ ...configForm, nameEn: e.target.value })}
+                    className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
+                  <Label className="text-white/40 text-[11px] font-medium">اسم المطعم (بالإسبانية)</Label>
+                  <Input value={configForm.nameEs} onChange={(e) => setConfigForm({ ...configForm, nameEs: e.target.value })}
                     className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
                 </div>
                 <div>
@@ -652,6 +745,16 @@ export default function AdminView({
                     className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
                 </div>
                 <div>
+                  <Label className="text-white/40 text-[11px] font-medium">الشعار (بالإنجليزية)</Label>
+                  <Input value={configForm.sloganEn} onChange={(e) => setConfigForm({ ...configForm, sloganEn: e.target.value })}
+                    className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
+                  <Label className="text-white/40 text-[11px] font-medium">الشعار (بالإسبانية)</Label>
+                  <Input value={configForm.sloganEs} onChange={(e) => setConfigForm({ ...configForm, sloganEs: e.target.value })}
+                    className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
                   <Label className="text-white/40 text-[11px] font-medium">ساعات العمل (بالعربية)</Label>
                   <Input value={configForm.workingHoursAr} onChange={(e) => setConfigForm({ ...configForm, workingHoursAr: e.target.value })}
                     className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
@@ -659,6 +762,16 @@ export default function AdminView({
                 <div>
                   <Label className="text-white/40 text-[11px] font-medium">ساعات العمل (بالفرنسية)</Label>
                   <Input value={configForm.workingHoursFr} onChange={(e) => setConfigForm({ ...configForm, workingHoursFr: e.target.value })}
+                    className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
+                  <Label className="text-white/40 text-[11px] font-medium">ساعات العمل (بالإنجليزية)</Label>
+                  <Input value={configForm.workingHoursEn} onChange={(e) => setConfigForm({ ...configForm, workingHoursEn: e.target.value })}
+                    className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
+                  <Label className="text-white/40 text-[11px] font-medium">ساعات العمل (بالإسبانية)</Label>
+                  <Input value={configForm.workingHoursEs} onChange={(e) => setConfigForm({ ...configForm, workingHoursEs: e.target.value })}
                     className="mt-1.5 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
                 </div>
                 <div>
@@ -672,6 +785,10 @@ export default function AdminView({
                     <Input value={configForm.currencyAr} onChange={(e) => setConfigForm({ ...configForm, currencyAr: e.target.value })}
                       className="bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" placeholder="درهم" />
                     <Input value={configForm.currencyFr} onChange={(e) => setConfigForm({ ...configForm, currencyFr: e.target.value })}
+                      className="bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" placeholder="MAD" />
+                    <Input value={configForm.currencyEn} onChange={(e) => setConfigForm({ ...configForm, currencyEn: e.target.value })}
+                      className="bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" placeholder="MAD" />
+                    <Input value={configForm.currencyEs} onChange={(e) => setConfigForm({ ...configForm, currencyEs: e.target.value })}
                       className="bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" placeholder="MAD" />
                   </div>
                 </div>
@@ -807,12 +924,22 @@ export default function AdminView({
                     <Textarea value={configForm.whatsappMessageFr} onChange={(e) => setConfigForm({ ...configForm, whatsappMessageFr: e.target.value })}
                       className="mt-1 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl text-xs min-h-[80px] focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
                   </div>
+                  <div>
+                    <Label className="text-white/30 text-[10px]">بالإنجليزية</Label>
+                    <Textarea value={configForm.whatsappMessageEn} onChange={(e) => setConfigForm({ ...configForm, whatsappMessageEn: e.target.value })}
+                      className="mt-1 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl text-xs min-h-[80px] focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                  </div>
+                  <div>
+                    <Label className="text-white/30 text-[10px]">بالإسبانية</Label>
+                    <Textarea value={configForm.whatsappMessageEs} onChange={(e) => setConfigForm({ ...configForm, whatsappMessageEs: e.target.value })}
+                      className="mt-1 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl text-xs min-h-[80px] focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                  </div>
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t border-white/[0.04]">
                 <Button onClick={saveConfig} disabled={isSaving}
-                  className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold px-6 h-11 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(200,162,77,0.2)] hover:shadow-[0_6px_24px_rgba(200,162,77,0.3)] transition-all duration-300">
+                  className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold px-6 h-11 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(200,162,77,0.2)] hover:shadow-[0_6px_24px_rgba(200,162,77,0.3)] transition-all duration-300">
                   {isSaving ? (
                     <><Loader2 className="h-4 w-4 ml-1.5 animate-spin" /><span>جارٍ الحفظ...</span></>
                   ) : (
@@ -852,14 +979,15 @@ export default function AdminView({
             <div className="bg-white/[0.02] backdrop-blur-2xl p-6 rounded-2xl border border-white/[0.04] space-y-5 max-w-md shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
               {/* Current Password */}
               <div className="space-y-2">
-                <Label className="text-white/40 text-[11px] font-medium">كلمة المرور الحالية</Label>
+                <Label className="text-white/40 text-[11px] font-medium">كلمة المرور الحالية <span className="text-red-400">*</span></Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/15" />
                   <Input
+                    id="pwd-current"
                     type={showCurrentPassword ? "text" : "password"}
                     value={currentPassword}
-                    onChange={(e) => { setCurrentPassword(e.target.value); setPasswordError(""); setPasswordSuccess(""); }}
-                    className="pl-10 pr-12 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-11 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all"
+                    onChange={(e) => { setCurrentPassword(e.target.value); setPasswordError(""); setPasswordSuccess(""); setPwdField(p => ({...p, current: undefined})); }}
+                    className={`pl-10 pr-12 bg-white/[0.03] text-white placeholder:text-white/15 rounded-xl h-11 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all ${pwdField.current ? "border-red-500/60" : "border-white/[0.06]"}`}
                     placeholder="أدخل كلمة المرور الحالية"
                     dir="ltr"
                   />
@@ -872,14 +1000,15 @@ export default function AdminView({
 
               {/* New Password */}
               <div className="space-y-2">
-                <Label className="text-white/40 text-[11px] font-medium">كلمة المرور الجديدة</Label>
+                <Label className="text-white/40 text-[11px] font-medium">كلمة المرور الجديدة <span className="text-red-400">*</span></Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/15" />
                   <Input
+                    id="pwd-new"
                     type={showNewPassword ? "text" : "password"}
                     value={newPassword}
-                    onChange={(e) => { setNewPassword(e.target.value); setPasswordError(""); setPasswordSuccess(""); }}
-                    className="pl-10 pr-12 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-11 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all"
+                    onChange={(e) => { setNewPassword(e.target.value); setPasswordError(""); setPasswordSuccess(""); setPwdField(p => ({...p, newPwd: undefined})); }}
+                    className={`pl-10 pr-12 bg-white/[0.03] text-white placeholder:text-white/15 rounded-xl h-11 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all ${pwdField.newPwd ? "border-red-500/60" : "border-white/[0.06]"}`}
                     placeholder="أدخل كلمة المرور الجديدة"
                     dir="ltr"
                   />
@@ -892,14 +1021,15 @@ export default function AdminView({
 
               {/* Confirm New Password */}
               <div className="space-y-2">
-                <Label className="text-white/40 text-[11px] font-medium">تأكيد كلمة المرور الجديدة</Label>
+                <Label className="text-white/40 text-[11px] font-medium">تأكيد كلمة المرور الجديدة <span className="text-red-400">*</span></Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/15" />
                   <Input
+                    id="pwd-confirm"
                     type={showConfirmNewPassword ? "text" : "password"}
                     value={confirmNewPassword}
-                    onChange={(e) => { setConfirmNewPassword(e.target.value); setPasswordError(""); setPasswordSuccess(""); }}
-                    className="pl-10 pr-12 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/15 rounded-xl h-11 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all"
+                    onChange={(e) => { setConfirmNewPassword(e.target.value); setPasswordError(""); setPasswordSuccess(""); setPwdField(p => ({...p, confirm: undefined})); }}
+                    className={`pl-10 pr-12 bg-white/[0.03] text-white placeholder:text-white/15 rounded-xl h-11 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all ${pwdField.confirm ? "border-red-500/60" : "border-white/[0.06]"}`}
                     placeholder="أعد كتابة كلمة المرور الجديدة"
                     dir="ltr"
                   />
@@ -930,7 +1060,7 @@ export default function AdminView({
                 className="w-full bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl h-11 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(200,162,77,0.2)] hover:shadow-[0_6px_24px_rgba(200,162,77,0.3)] transition-all duration-300">
                 {isChangingPassword ? (
                   <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-black/30 border-t-black/80 rounded-full animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     جاري تغيير كلمة المرور...
                   </span>
                 ) : (
@@ -1021,6 +1151,91 @@ export default function AdminView({
               </div>
             )}
           </TabsContent>
+
+          {/* ═══════════════════════ ANALYTICS TAB ═══════════════════════ */}
+          <TabsContent value="analytics" className="space-y-6">
+            <div>
+              <h2 className="text-xl font-bold text-white">تحليلات المنيو</h2>
+              <p className="text-xs text-white/25 mt-0.5">إحصائيات مشاهدات المنيو ونقرات واتساب</p>
+            </div>
+
+            {analyticsLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="w-10 h-10 rounded-2xl border border-[var(--primary)]/15 flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 text-[var(--primary)] animate-spin" />
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Stats cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-white/[0.02] backdrop-blur-2xl border border-white/[0.04] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.25)] hover:border-white/[0.08] transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/15">
+                        <Eye className="h-5 w-5 text-blue-400" />
+                      </div>
+                      <div className="text-[11px] text-white/30">مشاهدات المنيو</div>
+                    </div>
+                    <div className="text-3xl font-bold text-white tracking-tight">{analytics.scanViews}</div>
+                    <p className="text-white/20 text-xs mt-1">عدد مرات مسح QR أو فتح الرابط</p>
+                  </div>
+                  <div className="bg-white/[0.02] backdrop-blur-2xl border border-white/[0.04] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.25)] hover:border-white/[0.08] transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-green-500/10 flex items-center justify-center border border-green-500/15">
+                        <MessageCircle className="h-5 w-5 text-green-400" />
+                      </div>
+                      <div className="text-[11px] text-white/30">نقرات واتساب</div>
+                    </div>
+                    <div className="text-3xl font-bold text-white tracking-tight">{analytics.whatsappClicks}</div>
+                    <p className="text-white/20 text-xs mt-1">عدد مرات النقر على زر طلب واتساب</p>
+                  </div>
+                  <div className="bg-white/[0.02] backdrop-blur-2xl border border-white/[0.04] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.25)] hover:border-white/[0.08] transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center border border-[var(--primary)]/15">
+                        <BarChart3 className="h-5 w-5 text-[var(--primary)]" />
+                      </div>
+                      <div className="text-[11px] text-white/30">معدل التحويل</div>
+                    </div>
+                    <div className="text-3xl font-bold text-white tracking-tight">
+                      {analytics.scanViews > 0 ? Math.round((analytics.whatsappClicks / analytics.scanViews) * 100) : 0}%
+                    </div>
+                    <p className="text-white/20 text-xs mt-1">نسبة النقر على واتساب من المشاهدات</p>
+                  </div>
+                </div>
+
+                {/* Total events */}
+                <div className="bg-white/[0.02] backdrop-blur-2xl border border-white/[0.04] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.25)]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-[11px] text-white/30 mb-1">إجمالي التفاعلات</div>
+                      <div className="text-2xl font-bold text-white tracking-tight">{analytics.totalEvents}</div>
+                    </div>
+                    <Button
+                      onClick={handleResetAnalytics}
+                      disabled={resettingAnalytics || analytics.totalEvents === 0}
+                      variant="ghost"
+                      className="text-red-400/60 hover:text-red-300 hover:bg-red-500/8 rounded-xl transition-all duration-300 disabled:opacity-30"
+                    >
+                      {resettingAnalytics ? (
+                        <Loader2 className="h-4 w-4 ml-1.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4 ml-1.5" />
+                      )}
+                      <span>تصفير الإحصائيات</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {analytics.totalEvents === 0 && (
+                  <div className="bg-white/[0.02] backdrop-blur-2xl p-12 rounded-2xl border border-white/[0.04] text-center shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
+                    <BarChart3 className="h-12 w-12 mx-auto text-white/6 mb-4" />
+                    <p className="text-white/30 text-lg">لا توجد بيانات تحليلية بعد</p>
+                    <p className="text-white/18 text-sm mt-1">ستظهر الإحصائيات فور بدء الزبائن بتصفح المنيو والطلب عبر واتساب</p>
+                  </div>
+                )}
+              </>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -1035,13 +1250,26 @@ export default function AdminView({
           <div className="space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-white/40 text-[11px] font-medium">الاسم (عربي)</Label>
-                <Input value={dishForm.nameAr || ""} onChange={(e) => setDishForm({ ...dishForm, nameAr: e.target.value })}
-                  className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                <Label className="text-white/40 text-[11px] font-medium">الاسم (عربي) <span className="text-red-400">*</span></Label>
+                <Input id="dish-name-ar" value={dishForm.nameAr || ""} onChange={(e) => { setDishForm({ ...dishForm, nameAr: e.target.value }); setDishErrors(p => ({...p, nameAr: undefined})); }}
+                  className={`mt-1 bg-white/[0.04] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all ${dishErrors.nameAr ? "border-red-500/60" : "border-white/[0.08]"}`} />
+                {dishErrors.nameAr && <p className="text-red-400 text-[10px] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{dishErrors.nameAr}</p>}
               </div>
               <div>
                 <Label className="text-white/40 text-[11px] font-medium">الاسم (فرنسي)</Label>
                 <Input value={dishForm.nameFr || ""} onChange={(e) => setDishForm({ ...dishForm, nameFr: e.target.value })}
+                  className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-white/40 text-[11px] font-medium">الاسم (إنجليزي)</Label>
+                <Input value={dishForm.nameEn || ""} onChange={(e) => setDishForm({ ...dishForm, nameEn: e.target.value })}
+                  className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+              </div>
+              <div>
+                <Label className="text-white/40 text-[11px] font-medium">الاسم (إسباني)</Label>
+                <Input value={dishForm.nameEs || ""} onChange={(e) => setDishForm({ ...dishForm, nameEs: e.target.value })}
                   className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
               </div>
             </div>
@@ -1059,14 +1287,27 @@ export default function AdminView({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-white/40 text-[11px] font-medium">السعر</Label>
-                <Input type="number" value={dishForm.price || 0} onChange={(e) => setDishForm({ ...dishForm, price: Number(e.target.value) })}
-                  className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                <Label className="text-white/40 text-[11px] font-medium">الوصف (إنجليزي)</Label>
+                <Textarea value={dishForm.descriptionEn || ""} onChange={(e) => setDishForm({ ...dishForm, descriptionEn: e.target.value })}
+                  className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl text-xs min-h-[60px] focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
               </div>
               <div>
-                <Label className="text-white/40 text-[11px] font-medium">الفئة</Label>
-                <Select value={dishForm.category} onValueChange={(val) => setDishForm({ ...dishForm, category: val })}>
-                  <SelectTrigger className="mt-1 bg-white/[0.04] border-white/[0.08] text-white rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 transition-all">
+                <Label className="text-white/40 text-[11px] font-medium">الوصف (إسباني)</Label>
+                <Textarea value={dishForm.descriptionEs || ""} onChange={(e) => setDishForm({ ...dishForm, descriptionEs: e.target.value })}
+                  className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl text-xs min-h-[60px] focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-white/40 text-[11px] font-medium">السعر <span className="text-red-400">*</span></Label>
+                <Input id="dish-price" type="number" value={dishForm.price && dishForm.price > 0 ? dishForm.price : ""} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => { const v = e.target.value === "" ? 0 : Number(e.target.value); setDishForm({ ...dishForm, price: v }); setDishErrors(p => ({...p, price: undefined})); }}
+                  className={`mt-1 bg-white/[0.04] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all ${dishErrors.price ? "border-red-500/60" : "border-white/[0.08]"}`} />
+                {dishErrors.price && <p className="text-red-400 text-[10px] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{dishErrors.price}</p>}
+              </div>
+              <div>
+                <Label className="text-white/40 text-[11px] font-medium">الفئة <span className="text-red-400">*</span></Label>
+                <Select value={dishForm.category} onValueChange={(val) => { setDishForm({ ...dishForm, category: val }); setDishErrors(p => ({...p, category: undefined})); }}>
+                  <SelectTrigger id="dish-category" className={`mt-1 bg-white/[0.04] text-white rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 transition-all ${dishErrors.category ? "border-red-500/60" : "border-white/[0.08]"}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#151515]/95 backdrop-blur-xl border-white/[0.08] text-white rounded-xl">
@@ -1075,6 +1316,7 @@ export default function AdminView({
                     ))}
                   </SelectContent>
                 </Select>
+                {dishErrors.category && <p className="text-red-400 text-[10px] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{dishErrors.category}</p>}
               </div>
             </div>
             <div>
@@ -1135,6 +1377,16 @@ export default function AdminView({
                     className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
                 </div>
                 <div>
+                  <Label className="text-white/40 text-[11px] font-medium">وسم العرض (إنجليزي)</Label>
+                  <Input value={dishForm.promoLabelEn || ""} onChange={(e) => setDishForm({ ...dishForm, promoLabelEn: e.target.value })}
+                    className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
+                  <Label className="text-white/40 text-[11px] font-medium">وسم العرض (إسباني)</Label>
+                  <Input value={dishForm.promoLabelEs || ""} onChange={(e) => setDishForm({ ...dishForm, promoLabelEs: e.target.value })}
+                    className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
                   <Label className="text-white/40 text-[11px] font-medium">نص العرض (عربي)</Label>
                   <Input value={dishForm.promoTextAr || ""} onChange={(e) => setDishForm({ ...dishForm, promoTextAr: e.target.value })}
                     className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
@@ -1142,6 +1394,16 @@ export default function AdminView({
                 <div>
                   <Label className="text-white/40 text-[11px] font-medium">نص العرض (فرنسي)</Label>
                   <Input value={dishForm.promoTextFr || ""} onChange={(e) => setDishForm({ ...dishForm, promoTextFr: e.target.value })}
+                    className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
+                  <Label className="text-white/40 text-[11px] font-medium">نص العرض (إنجليزي)</Label>
+                  <Input value={dishForm.promoTextEn || ""} onChange={(e) => setDishForm({ ...dishForm, promoTextEn: e.target.value })}
+                    className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+                </div>
+                <div>
+                  <Label className="text-white/40 text-[11px] font-medium">نص العرض (إسباني)</Label>
+                  <Input value={dishForm.promoTextEs || ""} onChange={(e) => setDishForm({ ...dishForm, promoTextEs: e.target.value })}
                     className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
                 </div>
               </div>
@@ -1207,11 +1469,11 @@ export default function AdminView({
             </div>
 
             <div className="flex gap-2 justify-end pt-2">
-              <Button variant="ghost" onClick={() => setIsDishDialogOpen(false)}
-                className="text-white/40 hover:text-white/70 hover:bg-white/[0.04] rounded-xl transition-all">إلغاء</Button>
-              <Button onClick={saveDish}
-                className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl px-6 shadow-[0_4px_20px_rgba(200,162,77,0.2)] hover:shadow-[0_6px_24px_rgba(200,162,77,0.3)] transition-all duration-300">
-                <Save className="h-4 w-4 ml-1.5" /><span>حفظ</span>
+              <Button variant="ghost" onClick={() => setIsDishDialogOpen(false)} disabled={isSaving}
+                className="text-white/40 hover:text-white/70 hover:bg-white/[0.04] rounded-xl transition-all disabled:opacity-30">إلغاء</Button>
+              <Button onClick={saveDish} disabled={isSaving}
+                className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl px-6 shadow-[0_4px_20px_rgba(200,162,77,0.2)] hover:shadow-[0_6px_24px_rgba(200,162,77,0.3)] transition-all duration-300 disabled:opacity-50">
+                {isSaving ? (<><Loader2 className="h-4 w-4 ml-1.5 animate-spin" /><span>جاري الحفظ...</span></>) : (<><Save className="h-4 w-4 ml-1.5" /><span>حفظ</span></>)}
               </Button>
             </div>
           </div>
@@ -1228,13 +1490,23 @@ export default function AdminView({
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <Label className="text-white/40 text-[11px] font-medium">الاسم (عربي)</Label>
-              <Input value={categoryForm.nameAr || ""} onChange={(e) => setCategoryForm({ ...categoryForm, nameAr: e.target.value })}
+              <Label className="text-white/40 text-[11px] font-medium">الاسم (عربي) <span className="text-red-400">*</span></Label>
+              <Input id="cat-name-ar" value={categoryForm.nameAr || ""} onChange={(e) => setCategoryForm({ ...categoryForm, nameAr: e.target.value })}
                 className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
             </div>
             <div>
               <Label className="text-white/40 text-[11px] font-medium">الاسم (فرنسي)</Label>
               <Input value={categoryForm.nameFr || ""} onChange={(e) => setCategoryForm({ ...categoryForm, nameFr: e.target.value })}
+                className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+            </div>
+            <div>
+              <Label className="text-white/40 text-[11px] font-medium">الاسم (إنجليزي)</Label>
+              <Input value={categoryForm.nameEn || ""} onChange={(e) => setCategoryForm({ ...categoryForm, nameEn: e.target.value })}
+                className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
+            </div>
+            <div>
+              <Label className="text-white/40 text-[11px] font-medium">الاسم (إسباني)</Label>
+              <Input value={categoryForm.nameEs || ""} onChange={(e) => setCategoryForm({ ...categoryForm, nameEs: e.target.value })}
                 className="mt-1 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/15 rounded-xl h-10 text-sm focus:border-[var(--primary)]/30 focus:ring-1 focus:ring-[var(--primary)]/10 transition-all" />
             </div>
             <div>
@@ -1254,11 +1526,11 @@ export default function AdminView({
               </Select>
             </div>
             <div className="flex gap-2 justify-end pt-2">
-              <Button variant="ghost" onClick={() => setIsCategoryDialogOpen(false)}
-                className="text-white/40 hover:text-white/70 hover:bg-white/[0.04] rounded-xl transition-all">إلغاء</Button>
-              <Button onClick={saveCategory}
-                className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl px-6 shadow-[0_4px_20px_rgba(200,162,77,0.2)] hover:shadow-[0_6px_24px_rgba(200,162,77,0.3)] transition-all duration-300">
-                <Save className="h-4 w-4 ml-1.5" /><span>حفظ</span>
+              <Button variant="ghost" onClick={() => setIsCategoryDialogOpen(false)} disabled={isSaving}
+                className="text-white/40 hover:text-white/70 hover:bg-white/[0.04] rounded-xl transition-all disabled:opacity-30">إلغاء</Button>
+              <Button onClick={saveCategory} disabled={isSaving}
+                className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-black font-bold rounded-xl px-6 shadow-[0_4px_20px_rgba(200,162,77,0.2)] hover:shadow-[0_6px_24px_rgba(200,162,77,0.3)] transition-all duration-300 disabled:opacity-50">
+                {isSaving ? (<><Loader2 className="h-4 w-4 ml-1.5 animate-spin" /><span>جاري الحفظ...</span></>) : (<><Save className="h-4 w-4 ml-1.5" /><span>حفظ</span></>)}
               </Button>
             </div>
           </div>
