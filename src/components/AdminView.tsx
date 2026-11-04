@@ -507,7 +507,7 @@ export default function AdminView({
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-[var(--primary)]/70 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-lg transition-all" onClick={() => openEditDish(dish)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-white/70 hover:text-red-400 hover:bg-red-500/8 rounded-lg transition-all" onClick={() => deleteDish(dish.id)}>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400/40 hover:text-red-300 hover:bg-red-500/8 rounded-lg transition-all" onClick={() => deleteDish(dish.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
