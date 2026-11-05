@@ -504,7 +504,7 @@ export default function AdminView({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         <Tabs defaultValue="dishes" className="space-y-8" onValueChange={(val) => { if (val === "reviews") loadReviews(); if (val === "analytics") loadAnalytics(); }}>
           {/* ── Tabs Navigation ── */}
-          <TabsList className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.04] p-1 rounded-2xl w-full max-w-lg flex shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
+          <TabsList className="bg-[#0D0D0D]/95 backdrop-blur-xl border border-white/[0.06] p-1 rounded-2xl w-full max-w-lg flex shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             <TabsTrigger value="dishes"
               className="flex-1 py-2.5 rounded-xl font-bold text-sm data-[state=active]:bg-[var(--primary)] data-[state=active]:text-black data-[state=active]:shadow-[0_2px_12px_rgba(200,162,77,0.3)] data-[state=inactive]:text-white/35 data-[state=inactive]:hover:text-white/60 transition-all duration-300">
               الأطباق
