@@ -241,37 +241,37 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
   }, []);
 
   const backgroundColorMap = {
-    dark: "bg-[#0D0D0D]",
-    cream: "bg-[#FDF6EE]",
-    white: "bg-white",
-  };
-  const textColorMap = {
-    dark: "text-white",
-    cream: "text-[#2D2D2D]",
-    white: "text-[#1A1A1A]",
-  };
-  const mutedTextMap = {
-    dark: "text-white/50",
-    cream: "text-[#2D2D2D]/50",
-    white: "text-[#1A1A1A]/50",
-  };
-  const cardBgMap = {
-    dark: "bg-white/[0.03] border-white/[0.06]",
-    cream: "bg-black/[0.02] border-black/[0.04]",
-    white: "bg-black/[0.01] border-black/[0.04]",
-  };
-  const pillBgMap = {
-    dark: "bg-white/[0.05] border-white/[0.08]",
-    cream: "bg-black/[0.03] border-black/[0.05]",
-    white: "bg-black/[0.03] border-black/[0.05]",
-  };
-
-  const bg = backgroundColorMap[config.backgroundColor] || backgroundColorMap.dark;
-  const textColor = textColorMap[config.backgroundColor] || textColorMap.dark;
-  const mutedText = mutedTextMap[config.backgroundColor] || mutedTextMap.dark;
-  const cardBg = cardBgMap[config.backgroundColor] || cardBgMap.dark;
-  const pillBg = pillBgMap[config.backgroundColor] || pillBgMap.dark;
-  const isDark = config.backgroundColor === "dark";
+      dark: "bg-[#0D0D0D]",
+      cream: "bg-[#FDF6EE]",
+      white: "bg-[#0D0D0D]", // Force white theme to be dark to avoid white areas
+    };
+    const textColorMap = {
+      dark: "text-white",
+      cream: "text-[#2D2D2D]",
+      white: "text-white", // Force white theme to be dark text
+    };
+    const mutedTextMap = {
+      dark: "text-white/50",
+      cream: "text-[#2D2D2D]/50",
+      white: "text-white/50", // Force white theme to be dark muted text
+    };
+    const cardBgMap = {
+      dark: "bg-white/[0.03] border-white/[0.06]",
+      cream: "bg-black/[0.02] border-black/[0.04]",
+      white: "bg-white/[0.03] border-white/[0.06]", // Force white theme to be dark card
+    };
+    const pillBgMap = {
+      dark: "bg-white/[0.05] border-white/[0.08]",
+      cream: "bg-black/[0.03] border-black/[0.05]",
+      white: "bg-white/[0.05] border-white/[0.08]", // Force white theme to be dark pill
+    };
+  
+    const bg = backgroundColorMap[config.backgroundColor] || backgroundColorMap.dark;
+    const textColor = textColorMap[config.backgroundColor] || textColorMap.dark;
+    const mutedText = mutedTextMap[config.backgroundColor] || mutedTextMap.dark;
+    const cardBg = cardBgMap[config.backgroundColor] || cardBgMap.dark;
+    const pillBg = pillBgMap[config.backgroundColor] || pillBgMap.dark;
+    const isDark = config.backgroundColor === "dark" || config.backgroundColor === "white"; // Force white theme to be dark
 
   return (
       <div className={`min-h-screen ${bg} ${textColor} transition-colors duration-500 relative`}>
