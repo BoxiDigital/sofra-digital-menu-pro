@@ -175,8 +175,8 @@ export default function UpsellModal({
                       </div>
                       <div className="flex-1 min-w-0 text-start">
                         <h4 className="text-white text-sm font-bold truncate">
-                          lang === "ar" ? u.nameAr : lang === "fr" ? u.nameFr : lang === "en" ? u.nameEn : u.nameEs
-                        </h4>
+                                                  {lang === "ar" ? item.nameAr : lang === "fr" ? item.nameFr : lang === "en" ? item.nameEn : item.nameEs}
+                                                </h4>
                         <p className="text-[var(--primary)] text-xs font-bold mt-0.5">+{item.price} {currency}</p>
                       </div>
                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
