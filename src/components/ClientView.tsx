@@ -140,18 +140,24 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
   const getDishName = (dish: Dish) => lang === "ar" ? dish.nameAr : lang === "fr" ? dish.nameFr : lang === "en" ? dish.nameEn : dish.nameEs;
 
   const generateWhatsAppMessage = useCallback(() => {
-    const itemsText = cart
-      .map((item) => {
-        const name = getDishName(item.dish);
-        return `${name} ×${item.quantity} - ${item.dish.price * item.quantity} ${t.currency}`;
-      })
-      .join("\n");
-
-    const template = lang === "ar" ? config.whatsappMessageAr : lang === "fr" ? config.whatsappMessageFr : lang === "en" ? config.whatsappMessageEn : config.whatsappMessageEs;
-    return template
-      .replace("{items}", itemsText)
-      .replace("{total}", `${cartTotal} ${t.currency}`);
-  }, [cart, cartTotal, lang, config, t.currency]);
+      const qtyLabel = lang === "ar" ? "الكمية" : lang === "fr" ? "Qté" : lang === "en" ? "Qty" : "Cant";
+      const priceLabel = lang === "ar" ? "السعر" : lang === "fr" ? "Prix" : lang === "en" ? "Price" : "Precio";
+  
+      const itemsText = cart
+        .map((item, index) => {
+          const name = getDishName(item.dish);
+          const lineTotal = item.dish.price * item.quantity;
+          const imageUrl = item.dish.image || "";
+          const imageLine = imageUrl ? `\n   �️ ${imageUrl}` : "";
+          return `*${index + 1}.* ${name}\n   ${qtyLabel}: ×${item.quantity} | ${priceLabel}: ${lineTotal} ${t.currency}${imageLine}`;
+        })
+        .join("\n\n");
+  
+      const template = lang === "ar" ? config.whatsappMessageAr : lang === "fr" ? config.whatsappMessageFr : lang === "en" ? config.whatsappMessageEn : config.whatsappMessageEs;
+      return template
+        .replace("{items}", itemsText)
+        .replace("{total}", `${cartTotal} ${t.currency}`);
+    }, [cart, cartTotal, lang, config, t.currency, getDishName]);
 
   const whatsappUrl = useMemo(() => {
     const message = encodeURIComponent(generateWhatsAppMessage());
@@ -681,12 +687,12 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
                   </div>
 
                   <a
-                                      href={whatsappUrl} onClick={handleWhatsAppClick}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="w-full flex items-center justify-center gap-2 py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-bold rounded-xl transition-all duration-300 mt-4 shadow-[0_4px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_6px_25px_rgba(16,185,129,0.35)]"
-                                      onClick={clearCart}
-                                    >
+                                                        href={whatsappUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="w-full flex items-center justify-center gap-2 py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-bold rounded-xl transition-all duration-300 mt-4 shadow-[0_4px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_6px_25px_rgba(16,185,129,0.35)]"
+                                                        onClick={() => { handleWhatsAppClick(); clearCart(); }}
+                                                      >
                     <MessageCircle className="h-5 w-5" fill="white" />
                     <span>{t.sendWhatsApp}</span>
                   </a>
