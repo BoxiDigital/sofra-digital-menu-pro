@@ -148,8 +148,8 @@ export default function ClientView({ categories, dishes, config, restaurantId }:
           const name = getDishName(item.dish);
           const lineTotal = item.dish.price * item.quantity;
           const imageUrl = item.dish.image || "";
-          const imageLine = imageUrl ? `\n   �️ ${imageUrl}` : "";
-          return `*${index + 1}.* ${name}\n   ${qtyLabel}: ×${item.quantity} | ${priceLabel}: ${lineTotal} ${t.currency}${imageLine}`;
+          const imageLine = imageUrl ? `\n   ${imageUrl}` : "";
+          return `*${index + 1}.* ${name}\n   ${qtyLabel}: ×${item.quantity} | ${priceLabel}: ${lineTotal}${imageLine}`;
         })
         .join("\n\n");
   
