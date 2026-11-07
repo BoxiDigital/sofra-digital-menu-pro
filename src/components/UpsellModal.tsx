@@ -19,7 +19,7 @@ export default function UpsellModal({
   onClose,
   onAddToCart,
 }: UpsellModalProps) {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(upsells.map(u => u.id)));
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const getText = (key: string) => {
     const dicts: Record<string, Record<string, string>> = {
