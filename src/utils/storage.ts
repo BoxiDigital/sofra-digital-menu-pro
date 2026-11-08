@@ -455,15 +455,19 @@ export async function resetToDefault(): Promise<void> {
 
 export async function trackEvent(restaurantId: string, eventType: 'scan_view' | 'whatsapp_click'): Promise<void> {
   try {
-    await supabase
+    const { error } = await supabase
       .from("menu_analytics")
       .insert({
         restaurant_id: restaurantId,
         event_type: eventType,
         created_at: new Date().toISOString(),
       });
+
+    if (error) {
+      console.error("[analytics] Supabase insert error:", error.message, error.code, error.details);
+    }
   } catch (err) {
-    console.error("[analytics] trackEvent error:", err);
+    console.error("[analytics] trackEvent unexpected error:", err);
   }
 }
 
