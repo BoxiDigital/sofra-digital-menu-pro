@@ -1,29 +1,29 @@
--- Create menu_analytics table for tracking page views and WhatsApp clicks
+-- ==============================================
+-- Fix: Ensure RLS policies exist on menu_analytics
+-- ==============================================
 
-CREATE TABLE IF NOT EXISTS public.menu_analytics (
-  id BIGSERIAL PRIMARY KEY,
-  restaurant_id TEXT NOT NULL,
-  event_type TEXT NOT NULL CHECK (event_type IN ('scan_view', 'whatsapp_click')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Indexes for faster queries
-CREATE INDEX IF NOT EXISTS idx_menu_analytics_restaurant ON public.menu_analytics(restaurant_id);
-CREATE INDEX IF NOT EXISTS idx_menu_analytics_event ON public.menu_analytics(restaurant_id, event_type);
-
--- Enable Row Level Security
+-- Ensure RLS is enabled
 ALTER TABLE public.menu_analytics ENABLE ROW LEVEL SECURITY;
 
--- Allow anonymous visitors to insert analytics events (tracking page views & clicks)
+-- Drop old policies if they exist (clean slate)
+DROP POLICY IF EXISTS "Allow anon insert" ON public.menu_analytics;
+DROP POLICY IF EXISTS "Allow authenticated select" ON public.menu_analytics;
+
+-- CRITICAL: Allow anonymous visitors to insert analytics events
 CREATE POLICY "Allow anon insert"
   ON public.menu_analytics
   FOR INSERT
   TO anon
   WITH CHECK (true);
 
--- Allow authenticated users to read analytics (app code filters by restaurant_id)
+-- Allow authenticated owners to read analytics
 CREATE POLICY "Allow authenticated select"
   ON public.menu_analytics
   FOR SELECT
   TO authenticated
   USING (true);
+
+-- Verify policies were created
+SELECT policyname, cmd, roles
+FROM pg_policies
+WHERE tablename = 'menu_analytics';
